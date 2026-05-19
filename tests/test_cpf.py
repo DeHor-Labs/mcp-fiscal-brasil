@@ -1,31 +1,28 @@
-"""Testes para o modulo CPF."""
-
-from mcp_fiscal_brasil.cpf.tools import validar_cpf_tool
+from mcp_fiscal_brasil.cpf.client import format_cpf, unformat_cpf, validate_cpf
 
 
-class TestValidarCPFTool:
-    async def test_cpf_valido(self, cpf_valido: str) -> None:
-        resultado = await validar_cpf_tool(cpf_valido)
-        assert resultado.valido is True
-        assert resultado.cpf_formatado == cpf_valido
-        assert resultado.motivo is None
+def test_validate_cpf_valid():
+    result = validate_cpf("12345678909")
+    assert result.cpf_formatado == "123.456.789-09"
+    assert result.valido is True
 
-    async def test_cpf_invalido_digitos_repetidos(self) -> None:
-        resultado = await validar_cpf_tool("111.111.111-11")
-        assert resultado.valido is False
-        assert resultado.motivo is not None
 
-    async def test_cpf_invalido_dv_errado(self) -> None:
-        resultado = await validar_cpf_tool("529.982.247-26")
-        assert resultado.valido is False
-        assert "verificador" in resultado.motivo.lower() or "invalido" in resultado.motivo.lower()
+def test_validate_cpf_invalid_length():
+    result = validate_cpf("123")
+    assert result.valido is False
 
-    async def test_cpf_invalido_tamanho_errado(self) -> None:
-        resultado = await validar_cpf_tool("123")
-        assert resultado.valido is False
-        assert resultado.motivo is not None
 
-    async def test_cpf_sem_mascara_valido(self) -> None:
-        resultado = await validar_cpf_tool("52998224725")
-        assert resultado.valido is True
-        assert resultado.cpf_formatado == "529.982.247-25"
+def test_validate_cpf_invalid_digits():
+    result = validate_cpf("12345678900")
+    assert result.valido is False
+
+
+def test_validate_cpf_same_digits():
+    result = validate_cpf("11111111111")
+    assert result.valido is False
+
+
+def test_format_unformat():
+    assert format_cpf("12345678901") == "123.456.789-01"
+    assert format_cpf("123") == "123"
+    assert unformat_cpf("123.456.789-01") == "12345678901"

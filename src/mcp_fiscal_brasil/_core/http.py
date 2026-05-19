@@ -49,7 +49,7 @@ class HTTPClient:
             timeout=timeout,
             event_hooks={"request": [self._prepare_request]},
         )
-        self._cache: TTLCache[_CacheKey, dict[str, Any]] = TTLCache(
+        self._cache: TTLCache[_CacheKey, dict[str, Any] | list[Any]] = TTLCache(
             maxsize=1024,
             ttl=self.cache_ttl,
         )
@@ -84,10 +84,31 @@ class HTTPClient:
         cache_key = self._cache_key("GET", url, params)
 
         if self.cache_ttl > 0 and cache_key in self._cache:
-            return self._cache[cache_key]
+            return cast(dict[str, Any], self._cache[cache_key])
 
         response = await self._request("GET", path, params=params, headers=headers)
         data = self._json_object(response)
+
+        if self.cache_ttl > 0 and 200 <= response.status_code < 300:
+            self._cache[cache_key] = data
+
+        return data
+
+    async def get_list(
+        self,
+        path: str,
+        params: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> list[Any]:
+        """Run a GET request and return the JSON list response."""
+        url = self._absolute_url(path)
+        cache_key = self._cache_key("GET_LIST", url, params)
+
+        if self.cache_ttl > 0 and cache_key in self._cache:
+            return cast(list[Any], self._cache[cache_key])
+
+        response = await self._request("GET", path, params=params, headers=headers)
+        data = self._json_list(response)
 
         if self.cache_ttl > 0 and 200 <= response.status_code < 300:
             self._cache[cache_key] = data
@@ -182,7 +203,17 @@ class HTTPClient:
         raise self._http_error(
             response.request.method,
             response,
-            message="Resposta JSON inválida",
+            "A resposta não é um objeto JSON válido.",
+        )
+
+    def _json_list(self, response: httpx.Response) -> list[Any]:
+        data = response.json()
+        if isinstance(data, list):
+            return data
+        raise self._http_error(
+            response.request.method,
+            response,
+            "A resposta não é uma lista JSON válida.",
         )
 
     def _is_retryable_error(self, exc: BaseException) -> bool:

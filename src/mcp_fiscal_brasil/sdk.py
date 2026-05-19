@@ -39,7 +39,7 @@ from .nfe.client import NFEClient
 from .nfe.schemas import NFeResponse, StatusSEFAZResponse
 from .shared.validators import validate_chave_nfe, validate_cnpj, validate_cpf
 from .simples.client import SimplesClient
-from .simples.schemas import SimplesNacionalResponse
+from .simples.schemas import SimplesStatus
 
 
 class FiscalBrasil:
@@ -257,7 +257,7 @@ class FiscalBrasil:
     # Simples Nacional
     # ------------------------------------------------------------------
 
-    async def consultar_simples(self, cnpj: str) -> SimplesNacionalResponse:
+    async def consultar_simples(self, cnpj: str) -> SimplesStatus:
         """
         Consulta a situação de um CNPJ no Simples Nacional e MEI.
 
@@ -265,19 +265,19 @@ class FiscalBrasil:
             cnpj: CNPJ com ou sem máscara.
 
         Returns:
-            SimplesNacionalResponse com optante_simples, optante_mei e datas de opção/exclusão.
+            SimplesStatus com optante_simples, optante_mei e datas de opção/exclusão.
 
         Raises:
             ValueError: Se o CNPJ for inválido.
 
         Exemplo:
             simples = await fiscal.consultar_simples("33.000.167/0001-01")
-            print(simples.optante_simples)  # False (Petrobras não é optante)
-            print(simples.optante_mei)      # False
+            print(simples.simples_nacional)  # False (Petrobras não é optante)
+            print(simples.mei)      # False
         """
         if not validate_cnpj(cnpj):
             raise ValueError(f"CNPJ inválido: {cnpj}")
-        return await self._simples_client.consultar(cnpj)
+        return await self._simples_client.get_simples_status(cnpj)
 
     # ------------------------------------------------------------------
     # SPED
@@ -401,7 +401,7 @@ class FiscalBrasil:
         """
         return asyncio.run(self.consultar_cnpj(cnpj))
 
-    def consultar_simples_sync(self, cnpj: str) -> SimplesNacionalResponse:
+    def consultar_simples_sync(self, cnpj: str) -> SimplesStatus:
         """
         Versão síncrona de consultar_simples. Útil em contextos não-async.
 

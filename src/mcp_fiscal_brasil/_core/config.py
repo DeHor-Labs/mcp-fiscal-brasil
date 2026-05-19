@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     mcp_fiscal_max_retries: int = 3
     brasilapi_base_url: str = "https://brasilapi.com.br/api"
     receita_base_url: str = "https://receitaws.com.br/v1"
+    ibge_cnae_base_url: str = "https://servicodados.ibge.gov.br/api/v2/cnae"
+    ibge_localidades_base_url: str = "https://servicodados.ibge.gov.br/api/v1/localidades"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

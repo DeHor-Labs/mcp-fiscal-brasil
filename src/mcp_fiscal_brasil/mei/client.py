@@ -3,13 +3,13 @@ from datetime import date
 from mcp_fiscal_brasil._core import FiscalNotFoundError, HTTPClient, get_logger, settings
 from mcp_fiscal_brasil._core.errors import FiscalHTTPError
 
-from .schemas import SimplesStatus
+from .schemas import MEIStatus
 
 logger = get_logger(__name__)
 
 
-class SimplesClient:
-    """Cliente para consulta do Simples Nacional via BrasilAPI."""
+class MEIClient:
+    """Cliente para consulta do MEI via BrasilAPI."""
 
     def _http_client(self) -> HTTPClient:
         return HTTPClient(
@@ -28,16 +28,14 @@ class SimplesClient:
         except ValueError:
             return None
 
-    async def get_simples_status(self, cnpj: str) -> SimplesStatus:
-        """Consulta o status do Simples Nacional e MEI para um CNPJ."""
-        logger.info("simples_status_started", cnpj=cnpj)
+    async def get_mei_status(self, cnpj: str) -> MEIStatus:
+        """Consulta o status MEI de um CNPJ."""
+        logger.info("mei_status_started", cnpj=cnpj)
         cnpj_clean = "".join(c for c in cnpj if c.isdigit())
         async with self._http_client() as client:
             try:
                 data = await client.get(f"/simples/v1/{cnpj_clean}")
 
-                # A BrasilAPI retorna {"simples": {...}, "simei": {...}}
-                # ou dados na raiz dependendo da versão, tratamos ambas.
                 simples = data.get("simples") if isinstance(data.get("simples"), dict) else data
                 simei = data.get("simei") if isinstance(data.get("simei"), dict) else data
 
@@ -46,15 +44,8 @@ class SimplesClient:
                 if not isinstance(simei, dict):
                     simei = {}
 
-                return SimplesStatus(
+                return MEIStatus(
                     cnpj=cnpj_clean,
-                    simples_nacional=simples.get("optante", data.get("simples_nacional", False)),
-                    data_opcao=self._parse_date(
-                        simples.get("data_opcao", data.get("data_opcao_simples"))
-                    ),
-                    data_exclusao=self._parse_date(
-                        simples.get("data_exclusao", data.get("data_exclusao_simples"))
-                    ),
                     mei=simei.get("optante", data.get("mei", False)),
                     data_opcao_mei=self._parse_date(
                         simei.get("data_opcao", data.get("data_opcao_simei"))
@@ -62,6 +53,7 @@ class SimplesClient:
                     data_exclusao_mei=self._parse_date(
                         simei.get("data_exclusao", data.get("data_exclusao_simei"))
                     ),
+                    simples_nacional=simples.get("optante", data.get("simples_nacional", False)),
                 )
             except FiscalHTTPError as exc:
                 if exc.status_code == 404:

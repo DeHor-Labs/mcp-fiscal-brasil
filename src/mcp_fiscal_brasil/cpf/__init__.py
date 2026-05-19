@@ -1,5 +1,4 @@
-"""Modulo CPF: validacao de CPF de pessoa fisica."""
+from .client import format_cpf, unformat_cpf, validate_cpf
+from .schemas import CPFValidation
 
-from .tools import validar_cpf_tool
-
-__all__ = ["validar_cpf_tool"]
+__all__ = ["CPFValidation", "format_cpf", "unformat_cpf", "validate_cpf"]

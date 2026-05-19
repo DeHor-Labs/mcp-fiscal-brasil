@@ -1,10 +1,10 @@
 """Ferramentas MCP para CPF."""
 
-from ..shared.validators import format_cpf, validate_cpf
-from .schemas import CPFValidacaoResponse
+from .client import validate_cpf
+from .schemas import CPFValidation
 
 
-async def validar_cpf_tool(cpf: str) -> CPFValidacaoResponse:
+async def validar_cpf_tool(cpf: str) -> CPFValidation:
     """
     Valida o dígito verificador de um CPF brasileiro.
 
@@ -15,30 +15,6 @@ async def validar_cpf_tool(cpf: str) -> CPFValidacaoResponse:
         cpf: Número do CPF com ou sem formatação (ex: '123.456.789-09' ou '12345678909')
 
     Returns:
-        CPFValidacaoResponse indicando se o CPF é matematicamente válido.
+        CPFValidation indicando se o CPF é matematicamente válido.
     """
-    valido = validate_cpf(cpf)
-
-    cpf_formatado = None
-    if valido:
-        try:
-            cpf_formatado = format_cpf(cpf)
-        except ValueError:
-            pass
-
-    motivo = None
-    if not valido:
-        digitos = "".join(c for c in cpf if c.isdigit())
-        if len(digitos) != 11:
-            motivo = f"CPF deve ter 11 dígitos, recebeu {len(digitos)}"
-        elif len(set(digitos)) == 1:
-            motivo = "CPF com todos os dígitos iguais é inválido"
-        else:
-            motivo = "Dígito verificador inválido"
-
-    return CPFValidacaoResponse(
-        cpf_informado=cpf,
-        cpf_formatado=cpf_formatado,
-        valido=valido,
-        motivo=motivo,
-    )
+    return validate_cpf(cpf)

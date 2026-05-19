@@ -3,12 +3,12 @@
 from ..shared.exceptions import ValidationError
 from ..shared.validators import validate_cnpj
 from .client import SimplesClient
-from .schemas import SimplesNacionalResponse
+from .schemas import SimplesStatus
 
 _client = SimplesClient()
 
 
-async def consultar_simples_nacional(cnpj: str) -> SimplesNacionalResponse:
+async def consultar_simples_nacional(cnpj: str) -> SimplesStatus:
     """
     Consulta se uma empresa é optante do Simples Nacional ou MEI.
 
@@ -16,7 +16,7 @@ async def consultar_simples_nacional(cnpj: str) -> SimplesNacionalResponse:
         cnpj: CNPJ da empresa (com ou sem formatação)
 
     Returns:
-        SimplesNacionalResponse com situação no Simples e MEI, incluindo datas de opção/exclusão.
+        SimplesStatus com situação no Simples e MEI, incluindo datas de opção/exclusão.
 
     Raises:
         ValidationError: Se o CNPJ for inválido.
@@ -29,4 +29,4 @@ async def consultar_simples_nacional(cnpj: str) -> SimplesNacionalResponse:
             value=cnpj,
             reason="CNPJ inválido. Verifique os 14 dígitos e o dígito verificador.",
         )
-    return await _client.consultar(cnpj)
+    return await _client.get_simples_status(cnpj)

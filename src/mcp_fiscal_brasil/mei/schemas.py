@@ -3,11 +3,9 @@ from datetime import date
 from pydantic import BaseModel
 
 
-class SimplesStatus(BaseModel):
+class MEIStatus(BaseModel):
     cnpj: str
-    simples_nacional: bool
-    data_opcao: date | None = None
-    data_exclusao: date | None = None
     mei: bool
     data_opcao_mei: date | None = None
     data_exclusao_mei: date | None = None
+    simples_nacional: bool

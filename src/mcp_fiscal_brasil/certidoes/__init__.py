@@ -1,5 +1,10 @@
-"""Modulo Certidoes: consulta de certidoes negativas de debito (CND)."""
+from .client import get_cndt_url, get_fgts_url, get_pgfn_url, validate_cpf_for_certificate
+from .schemas import CertidaoURL
 
-from .tools import consultar_certidao_federal, consultar_certidao_fgts
-
-__all__ = ["consultar_certidao_federal", "consultar_certidao_fgts"]
+__all__ = [
+    "CertidaoURL",
+    "get_cndt_url",
+    "get_fgts_url",
+    "get_pgfn_url",
+    "validate_cpf_for_certificate",
+]
