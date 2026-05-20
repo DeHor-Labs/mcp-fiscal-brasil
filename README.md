@@ -26,6 +26,18 @@
 
 ---
 
+## 🌎 Demo ao vivo
+
+Web UI demo hospedada (Render free tier, pode demorar 30s no primeiro acesso pra acordar):
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/nikolasdehor/mcp-fiscal-brasil)
+
+Você pode clicar no botão acima pra hostear sua própria instância em 3 cliques no Render.com.
+
+Veja [docs/getting-started/deploy.md](docs/getting-started/deploy.md) para outras opções (Fly.io, auto-host via Docker).
+
+---
+
 ## ✨ Novidades v0.2.0
 
 Versão de evolução com 4 frentes:

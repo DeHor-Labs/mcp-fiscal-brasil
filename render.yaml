@@ -1,0 +1,40 @@
+# Render.com blueprint para deploy automatico da REST API + Web UI demo
+# do mcp-fiscal-brasil.
+#
+# Deploy:
+# 1. Faca login em https://dashboard.render.com
+# 2. New -> Blueprint -> aponte para este repo
+# 3. Render le este arquivo e configura tudo
+#
+# Free tier:
+# - Servico web dorme apos 15min de inatividade
+# - Primeiro request acordando demora ~30s (cold start)
+# - 750 horas/mes free (suficiente para demos)
+#
+# Para producao real, use plano starter (US$ 7/mes) que mantem o servico sempre ativo.
+
+services:
+  - type: web
+    name: mcp-fiscal-brasil
+    runtime: docker
+    plan: free
+    region: oregon  # mais proximo do BR no free tier
+    dockerfilePath: ./Dockerfile
+    dockerCommand: mcp-fiscal-api
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: "8000"
+      - key: MCP_FISCAL_HTTP_TIMEOUT
+        value: "30"
+      - key: MCP_FISCAL_CACHE_TTL
+        value: "600"
+      - key: MCP_FISCAL_CACHE_BACKEND
+        value: memory
+      - key: MCP_FISCAL_RATE_LIMIT
+        value: "5"
+      - key: MCP_FISCAL_LOG_LEVEL
+        value: INFO

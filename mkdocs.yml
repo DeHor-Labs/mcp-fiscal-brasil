@@ -91,6 +91,7 @@ nav:
       - Instalacao: getting-started/install.md
       - Configuracao: getting-started/config.md
       - Primeiro uso: getting-started/quickstart.md
+      - Hospedagem: getting-started/deploy.md
   - Interfaces:
       - MCP Server: interfaces/mcp.md
       - CLI: interfaces/cli.md

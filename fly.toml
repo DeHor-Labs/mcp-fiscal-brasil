@@ -1,0 +1,56 @@
+# Configuracao Fly.io para deploy alternativo do mcp-fiscal-brasil.
+#
+# Setup inicial (1x):
+#   flyctl auth signup
+#   flyctl launch --copy-config --no-deploy --name mcp-fiscal-brasil --region gru
+#   flyctl deploy
+#
+# Updates apos push:
+#   flyctl deploy
+#
+# Free allowance: pequena (256MB), suficiente para demo. Para producao, plano 'shared-cpu-1x'.
+
+app = "mcp-fiscal-brasil"
+primary_region = "gru"  # Sao Paulo, latencia minima para BR
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  HOST = "0.0.0.0"
+  PORT = "8000"
+  MCP_FISCAL_HTTP_TIMEOUT = "30"
+  MCP_FISCAL_CACHE_TTL = "600"
+  MCP_FISCAL_CACHE_BACKEND = "memory"
+  MCP_FISCAL_RATE_LIMIT = "5"
+  MCP_FISCAL_LOG_LEVEL = "INFO"
+
+[processes]
+  app = "mcp-fiscal-api"
+
+[[services]]
+  internal_port = 8000
+  protocol = "tcp"
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+    force_https = true
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  [services.http_checks]
+    path = "/health"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 256
