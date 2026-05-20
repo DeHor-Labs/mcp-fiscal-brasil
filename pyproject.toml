@@ -23,6 +23,9 @@ dependencies = [
     "aiolimiter>=1.2.1",
     "structlog>=25.5.0",
     "pydantic-settings>=2.13.1",
+    "typer>=0.25.1",
+    "fastapi>=0.136.1",
+    "uvicorn>=0.42.0",
 ]
 
 [project.optional-dependencies]
@@ -36,6 +39,8 @@ dev = [
 
 [project.scripts]
 mcp-fiscal-brasil = "mcp_fiscal_brasil.server:main"
+mcp-fiscal = "mcp_fiscal_brasil.cli:main"
+mcp-fiscal-api = "mcp_fiscal_brasil.api:run"
 
 [project.urls]
 Examples = "https://github.com/nikolasdehor/mcp-fiscal-brasil/tree/main/examples"
@@ -67,6 +72,7 @@ testpaths = ["tests"]
 
 [dependency-groups]
 dev = [
+    "httpx>=0.28.1",
     "pytest-cov>=7.1.0",
     "types-cachetools>=7.0.0.20260518",
 ]
