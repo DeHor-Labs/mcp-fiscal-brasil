@@ -16,6 +16,7 @@
 </p>
 
 <p align="center">
+  <a href="https://nikolasdehor.github.io/mcp-fiscal-brasil/">📚 Documentação</a> ·
   <a href="#-instalacao">Instalação</a> ·
   <a href="#-ferramentas-disponiveis">Ferramentas</a> ·
   <a href="#-demonstracao">Exemplos</a> ·

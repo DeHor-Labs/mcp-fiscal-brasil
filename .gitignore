@@ -58,3 +58,4 @@ dmypy.json
 
 # Distribuição
 dist/
+site/

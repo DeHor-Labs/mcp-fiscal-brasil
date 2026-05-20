@@ -1,0 +1,122 @@
+site_name: MCP Fiscal Brasil
+site_description: Servidor MCP, CLI e REST API para o sistema fiscal brasileiro (CNPJ, NFe, SPED, Simples Nacional, compliance).
+site_url: https://nikolasdehor.github.io/mcp-fiscal-brasil/
+site_author: Nikolas de Hor
+repo_url: https://github.com/nikolasdehor/mcp-fiscal-brasil
+repo_name: nikolasdehor/mcp-fiscal-brasil
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  language: pt-BR
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: green
+      accent: yellow
+      toggle:
+        icon: material/weather-night
+        name: Modo escuro
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: green
+      accent: yellow
+      toggle:
+        icon: material/weather-sunny
+        name: Modo claro
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.tracking
+    - navigation.indexes
+    - search.highlight
+    - search.suggest
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+    - content.action.edit
+    - content.tabs.link
+  icon:
+    repo: fontawesome/brands/github
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/nikolasdehor
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/in/nikolasdehor
+  generator: false
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      base_path: [".", "docs"]
+      check_paths: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+plugins:
+  - search:
+      lang: pt
+  - mermaid2
+
+nav:
+  - Inicio: index.md
+  - Comece aqui:
+      - Instalacao: getting-started/install.md
+      - Configuracao: getting-started/config.md
+      - Primeiro uso: getting-started/quickstart.md
+  - Interfaces:
+      - MCP Server: interfaces/mcp.md
+      - CLI: interfaces/cli.md
+      - REST API: interfaces/rest-api.md
+      - Web UI: interfaces/web-ui.md
+      - Node.js: interfaces/nodejs.md
+  - Modulos:
+      - Visao geral: modules/index.md
+      - CNPJ: modules/cnpj.md
+      - CPF: modules/cpf.md
+      - NFe: modules/nfe.md
+      - SPED: modules/sped.md
+      - Simples Nacional: modules/simples.md
+      - CNAE: modules/cnae.md
+      - IBGE: modules/ibge.md
+      - CEP: modules/cep.md
+  - Tools agenticas:
+      - Visao geral: agentic/index.md
+      - Analise de compliance: agentic/compliance.md
+      - Comparativo de regimes: agentic/regimes.md
+      - Score de fornecedor: agentic/supplier.md
+      - Validacao de NFe: agentic/nfe.md
+      - Sumario de SPED: agentic/sped.md
+  - Casos de uso:
+      - Due diligence: use-cases/due-diligence.md
+      - Planejamento tributario: use-cases/tax-planning.md
+      - Validacao de fornecedor: use-cases/supplier-validation.md
+  - Contribuir: contributing.md
+  - Changelog: changelog.md
