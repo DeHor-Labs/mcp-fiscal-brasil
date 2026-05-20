@@ -1,7 +1,7 @@
 """MCP Fiscal Brasil - Servidor MCP e SDK Python para o sistema fiscal brasileiro."""
 
-__version__ = "0.1.0"
-__author__ = "Nikolas DeHor"
+__version__ = "0.2.0"
+__author__ = "Nikolas de Hor"
 __description__ = (
     "Servidor MCP para integrar IAs com o sistema fiscal brasileiro. "
     "Consulte CNPJ, NFe, NFSe, SPED, eSocial e mais via linguagem natural."

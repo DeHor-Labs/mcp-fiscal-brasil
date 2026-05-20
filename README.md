@@ -25,6 +25,32 @@
 
 ---
 
+## ✨ Novidades v0.2.0
+
+Versão de evolução com 4 frentes:
+
+- **8 novas fontes de dados**: CNAE, CPF, Simples Nacional, MEI, IBGE, CEP, Empresa consolidada, Certidões
+- **Tools agênticas** (alto nível): `analyze_cnpj_compliance`, `compare_tax_regimes`, `risk_score_supplier`, `validate_nfe_full`, `summarize_sped`
+- **Múltiplas interfaces**: além do servidor MCP, agora CLI (`mcp-fiscal`), REST API (`mcp-fiscal-api`) com Web UI demo, e pacote npm (`mcp-fiscal-brasil`)
+- **Production-grade**: HTTP client com retry exponencial, cache pluggável, rate-limit por host, logs JSON estruturados
+
+```bash
+# CLI standalone
+mcp-fiscal cnpj 12345678000190
+mcp-fiscal compliance 12345678000190
+mcp-fiscal regimes --faturamento 500000 --setor servicos --folha 180000
+
+# REST API + Web UI demo
+mcp-fiscal-api  # http://localhost:8000
+
+# Node.js
+import { analyzeCompliance } from "mcp-fiscal-brasil";
+```
+
+Veja [CHANGELOG.md](CHANGELOG.md) para detalhes.
+
+---
+
 ## Por que este projeto existe?
 
 O Brasil tem o sistema fiscal mais complexo do mundo. São **27 SEFAZs** estaduais, **NFe + NFSe + SPED + eSocial**, cada município com seu próprio portal de serviços, e mais de **500 mil PMEs** tentando manter conformidade fiscal todos os dias.

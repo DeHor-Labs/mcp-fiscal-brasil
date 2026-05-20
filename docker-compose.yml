@@ -1,16 +1,43 @@
+# Compose para desenvolvimento e demos do mcp-fiscal-brasil.
+#
+# Servicos:
+# - api: FastAPI REST + Web UI demo em http://localhost:8000
+# - mcp-http: servidor MCP via HTTP transport (alternativa ao stdio)
+#
+# Uso:
+#   docker compose up api
+#   docker compose up mcp-http
+
 services:
-  mcp-fiscal-brasil:
+  api:
     build: .
+    image: mcp-fiscal-brasil:dev
+    command: ["mcp-fiscal-api"]
     ports:
       - "8000:8000"
     environment:
-      - CNPJ_API_KEY=${CNPJ_API_KEY:-}
-      - NFE_API_KEY=${NFE_API_KEY:-}
-      - NFSE_API_KEY=${NFSE_API_KEY:-}
-    healthcheck:
-      test: ["CMD", "python", "-c", "import mcp_fiscal_brasil; print('ok')"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+      HOST: 0.0.0.0
+      PORT: "8000"
+      MCP_FISCAL_HTTP_TIMEOUT: "30"
+      MCP_FISCAL_CACHE_TTL: "300"
+      MCP_FISCAL_RATE_LIMIT: "10"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  mcp-http:
+    build: .
+    image: mcp-fiscal-brasil:dev
+    command: ["mcp-fiscal-brasil", "--transport", "http"]
+    ports:
+      - "8001:8000"
+    environment:
+      HOST: 0.0.0.0
+      PORT: "8000"
+      MCP_FISCAL_HTTP_TIMEOUT: "30"
+      MCP_FISCAL_CACHE_TTL: "300"
+    restart: unless-stopped
+    profiles: ["mcp"]

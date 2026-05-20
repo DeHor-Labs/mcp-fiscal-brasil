@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mcp-fiscal-brasil"
-version = "0.1.0"
+version = "0.2.0"
 description = "Servidor MCP para integrar IAs com o sistema fiscal brasileiro. Consulte CNPJ, NFe, NFSe, SPED, eSocial e mais via linguagem natural."
 authors = [
     { name = "Nikolas de Hor" }
