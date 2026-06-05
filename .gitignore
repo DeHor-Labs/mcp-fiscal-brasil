@@ -57,5 +57,33 @@ dmypy.json
 .hatch/
 
 # Distribuição
-dist/
 site/
+
+# Agent and local tooling caches
+.coverage.*
+coverage/
+.hypothesis/
+node_modules/
+.next/
+.turbo/
+.vite/
+tmp/
+temp/
+.codex/
+.codex-cache/
+.agents/cache/
+.aider.chat.history.md
+.aider.input.history
+.aider.tags.cache.v3/
+.claude/settings.local.json
+.claude/cache/
+.claude/logs/
+.gemini/cache/
+.gemini/tmp/
+.serena/cache/
+.continue/cache/
+.playwright-mcp/
+playwright-report/
+test-results/
+agent-browser*.png
+browser-use*.log
