@@ -14,7 +14,7 @@ def test_settings_defaults_load_without_env_file() -> None:
     assert settings.mcp_fiscal_rate_limit == 10
     assert settings.mcp_fiscal_http_timeout == 30.0
     assert settings.mcp_fiscal_max_retries == 3
-    assert settings.mcp_fiscal_file_base_dir == "/tmp/mcp-fiscal-brasil"
+    assert settings.mcp_fiscal_file_base_dir == "~/.local/share/mcp-fiscal-brasil/files"
     assert settings.brasilapi_base_url == "https://brasilapi.com.br/api"
     assert settings.receita_base_url == "https://receitaws.com.br/v1"
 

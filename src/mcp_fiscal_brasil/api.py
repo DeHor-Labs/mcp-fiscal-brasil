@@ -61,7 +61,10 @@ def _validated_cnpj(cnpj: str) -> str:
 
 
 def _allowed_file_base_dir() -> Path:
-    return Path(settings.mcp_fiscal_file_base_dir).expanduser().resolve()
+    base_dir = Path(settings.mcp_fiscal_file_base_dir).expanduser().resolve()
+    base_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+    base_dir.chmod(0o700)
+    return base_dir
 
 
 def _validated_input_file(path_value: str, *, label: str) -> Path:

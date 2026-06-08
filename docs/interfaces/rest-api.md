@@ -62,7 +62,7 @@ A rota `/` serve uma pagina htmx 2.0 com três demos interativas (CNPJ lookup, c
 docker run --rm -p 8000:8000 \
   -e MCP_FISCAL_CACHE_BACKEND=sqlite \
   -e MCP_FISCAL_RATE_LIMIT=20 \
-  ghcr.io/dehor-labs/mcp-fiscal-brasil:latest \
+  ghcr.io/dehor-labs/mcp-fiscal-brasil:0.2.1 \
   mcp-fiscal-api
 ```
 

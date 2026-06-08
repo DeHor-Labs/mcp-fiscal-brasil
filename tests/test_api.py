@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from mcp_fiscal_brasil import __version__
 from mcp_fiscal_brasil.agentic.schemas import ComplianceReport
 from mcp_fiscal_brasil.api import app
+from mcp_fiscal_brasil.api import settings as api_settings
 
 client = TestClient(app)
 
@@ -104,10 +105,13 @@ def test_nfe_validate_rejeita_caminho_fora_do_diretorio_permitido() -> None:
     assert response.status_code == 403
 
 
-def test_nfe_validate_arquivo_inexistente_dentro_do_diretorio_permitido() -> None:
+def test_nfe_validate_arquivo_inexistente_dentro_do_diretorio_permitido(
+    tmp_path, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(api_settings, "mcp_fiscal_file_base_dir", str(tmp_path))
     response = client.post(
         "/v1/nfe/validate",
-        json={"xml_path": "/tmp/mcp-fiscal-brasil/nao_existe.xml"},
+        json={"xml_path": str(tmp_path / "nao_existe.xml")},
     )
     assert response.status_code == 404
 
@@ -117,9 +121,12 @@ def test_sped_summarize_rejeita_caminho_fora_do_diretorio_permitido() -> None:
     assert response.status_code == 403
 
 
-def test_sped_summarize_arquivo_inexistente_dentro_do_diretorio_permitido() -> None:
+def test_sped_summarize_arquivo_inexistente_dentro_do_diretorio_permitido(
+    tmp_path, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(api_settings, "mcp_fiscal_file_base_dir", str(tmp_path))
     response = client.post(
         "/v1/sped/summarize",
-        json={"file_path": "/tmp/mcp-fiscal-brasil/nao_existe.txt"},
+        json={"file_path": str(tmp_path / "nao_existe.txt")},
     )
     assert response.status_code == 404

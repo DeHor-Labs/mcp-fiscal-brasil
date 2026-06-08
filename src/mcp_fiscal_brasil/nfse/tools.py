@@ -1,5 +1,40 @@
 """Ferramentas MCP para NFSe."""
 
+from mcp_fiscal_brasil.shared.validators import validate_cnpj
+
+
+def _validar_numero_nfse(numero: str) -> str:
+    numero_limpo = numero.strip()
+    if not numero_limpo:
+        raise ValueError("numero é obrigatório")
+    if not all(char.isalnum() or char in ".-/" for char in numero_limpo):
+        raise ValueError("numero deve conter apenas letras, números, ponto, hífen ou barra")
+    return numero_limpo
+
+
+def _validar_municipio_nfse(municipio: str) -> str:
+    municipio_limpo = municipio.strip()
+    if not municipio_limpo:
+        raise ValueError("municipio é obrigatório")
+    if not any(char.isalpha() for char in municipio_limpo):
+        raise ValueError("municipio deve conter letras")
+    return municipio_limpo
+
+
+def _validar_uf_nfse(uf: str) -> str:
+    uf_limpa = uf.strip().upper()
+    if len(uf_limpa) != 2 or not uf_limpa.isalpha():
+        raise ValueError("uf deve ser uma sigla com 2 letras")
+    return uf_limpa
+
+
+def _validar_cnpj_prestador(cnpj_prestador: str | None) -> str | None:
+    if cnpj_prestador is None:
+        return None
+    if not validate_cnpj(cnpj_prestador):
+        raise ValueError("cnpj_prestador inválido")
+    return "".join(char for char in cnpj_prestador if char.isdigit())
+
 
 async def consultar_nfse(
     numero: str,
@@ -23,6 +58,11 @@ async def consultar_nfse(
     Returns:
         Dicionário com orientações de consulta para o município.
     """
+    numero = _validar_numero_nfse(numero)
+    municipio = _validar_municipio_nfse(municipio)
+    uf_upper = _validar_uf_nfse(uf)
+    cnpj_prestador = _validar_cnpj_prestador(cnpj_prestador)
+
     # Portais de consulta por município/sistema (50+ capitais e grandes cidades)
     # Formato: "CIDADE/UF": {"portal": "url", "sistema": "tipo_sistema"}
     portais_conhecidos: dict[str, dict[str, str]] = {
@@ -150,8 +190,7 @@ async def consultar_nfse(
         },
     }
 
-    municipio_upper = municipio.upper().strip()
-    uf_upper = uf.upper().strip()
+    municipio_upper = municipio.upper()
 
     # Tenta buscar com formato "MUNICIPIO/UF"
     chave = f"{municipio_upper}/{uf_upper}"

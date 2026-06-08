@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     mcp_fiscal_rate_limit: int = 10
     mcp_fiscal_http_timeout: float = 30.0
     mcp_fiscal_max_retries: int = 3
-    mcp_fiscal_file_base_dir: str = "/tmp/mcp-fiscal-brasil"
+    mcp_fiscal_file_base_dir: str = "~/.local/share/mcp-fiscal-brasil/files"
     brasilapi_base_url: str = "https://brasilapi.com.br/api"
     receita_base_url: str = "https://receitaws.com.br/v1"
     ibge_cnae_base_url: str = "https://servicodados.ibge.gov.br/api/v2/cnae"
