@@ -102,8 +102,18 @@ def test_agentic_compliance_rejeita_cnpj_com_digito_invalido() -> None:
     compliance.assert_not_called()
 
 
-def test_nfe_validate_rejeita_caminho_fora_do_diretorio_permitido() -> None:
-    response = client.post("/v1/nfe/validate", json={"xml_path": "/tmp/nao_existe.xml"})
+def test_nfe_validate_rejeita_caminho_fora_do_diretorio_permitido(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_dir = tmp_path / "allowed"
+    base_dir.mkdir()
+    monkeypatch.setattr(api_settings, "mcp_fiscal_file_base_dir", str(base_dir))
+
+    response = client.post(
+        "/v1/nfe/validate",
+        json={"xml_path": str(tmp_path / "fora_do_diretorio.xml")},
+    )
     assert response.status_code == 403
 
 
@@ -138,8 +148,18 @@ def test_nfe_validate_retorna_erro_controlado_quando_base_dir_indisponivel(
     validate.assert_not_called()
 
 
-def test_sped_summarize_rejeita_caminho_fora_do_diretorio_permitido() -> None:
-    response = client.post("/v1/sped/summarize", json={"file_path": "/tmp/nao_existe.txt"})
+def test_sped_summarize_rejeita_caminho_fora_do_diretorio_permitido(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_dir = tmp_path / "allowed"
+    base_dir.mkdir()
+    monkeypatch.setattr(api_settings, "mcp_fiscal_file_base_dir", str(base_dir))
+
+    response = client.post(
+        "/v1/sped/summarize",
+        json={"file_path": str(tmp_path / "fora_do_diretorio.txt")},
+    )
     assert response.status_code == 403
 
 
