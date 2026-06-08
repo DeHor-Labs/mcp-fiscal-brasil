@@ -1,11 +1,11 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.nikolasdehor/mcp-fiscal-brasil",
+  "name": "io.github.dehor-labs/mcp-fiscal-brasil",
   "title": "MCP Fiscal Brasil",
   "description": "Servidor MCP para integrar IAs com o sistema fiscal brasileiro: CNPJ, NFe, NFSe, SPED, eSocial.",
   "version": "0.2.1",
   "repository": {
-    "url": "https://github.com/nikolasdehor/mcp-fiscal-brasil",
+    "url": "https://github.com/DeHor-Labs/mcp-fiscal-brasil",
     "source": "github"
   },
   "packages": [

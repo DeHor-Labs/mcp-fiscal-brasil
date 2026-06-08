@@ -62,7 +62,7 @@ A rota `/` serve uma pagina htmx 2.0 com três demos interativas (CNPJ lookup, c
 docker run --rm -p 8000:8000 \
   -e MCP_FISCAL_CACHE_BACKEND=sqlite \
   -e MCP_FISCAL_RATE_LIMIT=20 \
-  ghcr.io/nikolasdehor/mcp-fiscal-brasil:0.2.0 \
+  ghcr.io/dehor-labs/mcp-fiscal-brasil:latest \
   mcp-fiscal-api
 ```
 
@@ -88,4 +88,4 @@ location /api/fiscal/ {
 
 ## Autenticacao
 
-A v0.2.0 não implementa autenticação na API. **Não exponha publicamente sem layer de auth** (proxy com auth básica, OAuth, ou API gateway). Para uso interno na sua rede, esta seguro.
+A v0.2.x não implementa autenticação na API. **Não exponha publicamente sem layer de auth** (proxy com auth básica, OAuth, ou API gateway). Para uso interno na sua rede, esta seguro.

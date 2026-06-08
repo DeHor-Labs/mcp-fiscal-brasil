@@ -113,7 +113,7 @@ async def main():
 
     # Due diligence de fornecedor
     score = await risk_score_supplier("00000000000191", criterios_estritos=True)
-    print(f"Recomendacao: {score.recomendação}")
+    print(f"Recomendacao: {score.recomendacao}")
 
     # Planejamento tributário
     plano = compare_tax_regimes(

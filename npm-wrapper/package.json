@@ -1,6 +1,6 @@
 {
   "name": "mcp-fiscal-brasil",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Node.js wrapper para o CLI Python mcp-fiscal-brasil. Consultas fiscais brasileiras (CNPJ, NFe, SPED) em JS/TS.",
   "type": "module",
   "main": "dist/index.js",
@@ -27,16 +27,16 @@
     "mcp",
     "tax"
   ],
-  "author": "Nikolas de Hor <nikolasdehor79@gmail.com>",
+  "author": "Nikolas de Hor",
   "license": "MIT",
-  "homepage": "https://github.com/nikolasdehor/mcp-fiscal-brasil",
+  "homepage": "https://github.com/DeHor-Labs/mcp-fiscal-brasil",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nikolasdehor/mcp-fiscal-brasil.git",
+    "url": "git+https://github.com/DeHor-Labs/mcp-fiscal-brasil.git",
     "directory": "npm-wrapper"
   },
   "bugs": {
-    "url": "https://github.com/nikolasdehor/mcp-fiscal-brasil/issues"
+    "url": "https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues"
   },
   "engines": {
     "node": ">=18.0.0"

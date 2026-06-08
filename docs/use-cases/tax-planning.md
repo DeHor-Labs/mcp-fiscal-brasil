@@ -1,104 +1,60 @@
-# Planejamento tributário
+# Planejamento tributário com simulação de regime
 
-Como usar o `mcp-fiscal` para sugerir regime tributário a clientes ou para decisões internas de planejamento.
+Esse fluxo ajuda a responder perguntas comerciais com resposta rápida: "qual regime é mais econômico para este cenário?".
 
-## Cenario
+## O que comparar
 
-Cliente / equipe pergunta: "Qual o melhor regime para meu cenário?". Tradicionalmente: pegar planilhas, calcular para cada regime, comparar. Tempo: 30-60 minutos.
+`compare_tax_regimes` gera:
 
-Com `compare_tax_regimes`:
+- Regime aplicável ou motivo de não aplicabilidade
+- Aliquota e imposto anual estimado (simplificado)
+- Melhor cenário e economia versus pior cenário aplicável
+- Explicações objetivas de hipótese usada
 
-```python
-plano = compare_tax_regimes(
-    faturamento_anual=500_000,
-    setor="serviços",
-    folha_pagamento_anual=180_000,
-)
-```
-
-Resposta em milissegundos com alíquota efetiva e imposto estimado por regime.
-
-## Exemplo: assistente de planejamento
+## Exemplo em Python
 
 ```python
 from mcp_fiscal_brasil.agentic import compare_tax_regimes
 
-def sugerir_regime(cenário: dict) -> dict:
-    """Sugere regime tributário com base no cenário do cliente."""
+
+def comparar(cenario: dict) -> dict[str, object]:
     plano = compare_tax_regimes(
-        faturamento_anual=cenário["faturamento"],
-        setor=cenário["setor"],
-        folha_pagamento_anual=cenário.get("folha"),
+        faturamento_anual=cenario["faturamento_anual"],
+        setor=cenario["setor"],
+        folha_pagamento_anual=cenario.get("folha_pagamento_anual"),
     )
 
     return {
-        "recomendação": plano.melhor_opcao,
-        "economia_anual": plano.economia_anual_vs_pior,
-        "ranking": [
+        "melhor_opcao": plano.melhor_opcao,
+        "economia_anual_vs_pior": plano.economia_anual_vs_pior,
+        "resumo": [
             {
-                "regime": o.regime,
-                "imposto_anual": o.imposto_anual_estimado,
-                "aplicável": o.aplicável,
+                "regime": item.regime,
+                "aplicavel": item.aplicavel,
+                "imposto": item.imposto_anual_estimado,
+                "aliquota": item.aliquota_efetiva_estimada,
+                "pros": item.pros,
+                "contras": item.contras,
             }
-            for o in plano.opções
+            for item in plano.opcoes
         ],
-        "observações": plano.observações,
     }
 ```
 
-## Cenarios comuns
-
-### MEI vs Simples (microempresa de serviços)
+## Exemplo via REST
 
 ```bash
-mcp-fiscal regimes --faturamento 60000 --setor serviços --json
-mcp-fiscal regimes --faturamento 100000 --setor serviços --json
+curl "http://localhost:8000/v1/agentic/regimes?faturamento_anual=500000&setor=serviços&folha_pagamento_anual=180000"
 ```
 
-Esperado: para faturamento <= R$ 81 mil, MEI tende a ser melhor (se a atividade for permitida). Acima disso, Simples.
+## Onde usar em produto
 
-### Fator R em serviços
+- Pré-venda de serviços e precificação
+- Onboarding de clientes PME com cenário de crescimento
+- Apoio de decisão antes de consulta formal com contador
 
-```bash
-# Folha alta -> Anexo III
-mcp-fiscal regimes --faturamento 500000 --setor serviços --folha 200000
+## Limitações importantes
 
-# Folha baixa -> Anexo V (mais caro)
-mcp-fiscal regimes --faturamento 500000 --setor serviços --folha 30000
-```
-
-A diferenca de alíquota pode passar de 5pp.
-
-### Industria grande (sem Simples)
-
-```bash
-mcp-fiscal regimes --faturamento 10000000 --setor indústria --json
-```
-
-Simples saira como `aplicável=false`. Comparativo entre Lucro Presumido e Lucro Real.
-
-## Integracao com SaaS contabil
-
-```python
-from fastapi import FastAPI
-from mcp_fiscal_brasil.agentic import compare_tax_regimes
-
-app = FastAPI()
-
-@app.post("/api/planejamento-tributário")
-async def planejamento(payload: dict) -> dict:
-    plano = compare_tax_regimes(
-        faturamento_anual=payload["faturamento"],
-        setor=payload["setor"],
-        folha_pagamento_anual=payload.get("folha"),
-    )
-    return plano.model_dump(mode="json", exclude_none=True)
-```
-
-## Limitacoes
-
-- Calculo simplificado, **NAO substitui parecer contabil**
-- Não considera benefícios estaduais (ProEmprego, regimes especiais)
-- ICMS usado e média nacional (12%) - na prática varia 4-25% por UF
-- ISS usado e média (5%) - varia 2-5% por municipio
-- Aliquotas atualizadas em 2025; revisar a cada reforma tributária
+- Não considera benefícios estaduais, regimes especiais ou particularidades de ISS por município.
+- Usa premissas médias de ICMS/ISS e tabelas públicas (2025) para estimativa rápida.
+- Não substitui análise contábil final; para fechamento fiscal formal, valide com contador.

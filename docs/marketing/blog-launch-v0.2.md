@@ -17,7 +17,7 @@ Spoiler: no final do post, você consegue fazer isso aqui em 5 minutos:
 from mcp_fiscal_brasil.agentic import risk_score_supplier
 
 score = await risk_score_supplier("12.345.678/0001-90", criterios_estritos=True)
-if score.recomendação == "recusar":
+if score.recomendacao == "recusar":
     print(f"Bloqueado: {', '.join(score.fatores)}")
 ```
 
@@ -160,9 +160,9 @@ A rota `/` da REST API serve uma pagina demo com três formularios htmx 2.0:
 
 Sem build step. Dark mode. Pronta pra demos.
 
-**npm wrapper:**
+**Node.js wrapper preview:**
 
-Para apps Node.js/TypeScript, publiquei um pacote npm que envelopa o CLI Python:
+Para apps Node.js/TypeScript, deixei um wrapper em `npm-wrapper/` que envelopa o CLI Python. Ele ainda é preview de distribuição; para produção Node hoje, a REST API é o caminho mais estável:
 
 ```typescript
 import { lookupCNPJ, analyzeCompliance } from "mcp-fiscal-brasil";
@@ -175,7 +175,7 @@ const report = await analyzeCompliance(empresa.cnpj);
 
 Dockerfile multi-stage com usuário não-root, healthcheck e cache de pip. Compose com profile para REST API e MCP HTTP transport.
 
-Mais: site de documentação com mkdocs-material em **[nikolasdehor.github.io/mcp-fiscal-brasil/](https://nikolasdehor.github.io/mcp-fiscal-brasil/)**, com guia de instalação, configuração para Claude Desktop/Cursor, casos de uso reais e referencia completa.
+Mais: site de documentação com mkdocs-material em **[dehor-labs.github.io/mcp-fiscal-brasil/](https://dehor-labs.github.io/mcp-fiscal-brasil/)**, com guia de instalação, configuração para Claude Desktop/Cursor, casos de uso reais e referencia completa.
 
 ---
 
@@ -191,9 +191,9 @@ Com o `mcp-fiscal-brasil`:
 async def cadastrar_fornecedor(cnpj: str) -> dict:
     score = await risk_score_supplier(cnpj, criterios_estritos=True)
 
-    if score.recomendação == "recusar":
+    if score.recomendacao == "recusar":
         return {"status": "bloqueado", "motivos": score.fatores}
-    if score.recomendação == "investigar":
+    if score.recomendacao == "investigar":
         await fila_compliance.enqueue(cnpj, score)
 
     return {"status": "aprovado"}
@@ -307,7 +307,7 @@ V0.2.0 entregou o nucleo. Olhando pra frente:
 
 Eu mantenho esse projeto sozinho. Trabalho de outra coisa pra pagar as contas. Faco isso porque acredito que **automação fiscal não deveria ser refem de SaaS caros**. PMEs brasileiras pagam fortunas por sistemas que so consultam CNPJ. Com o `mcp-fiscal-brasil`, qualquer dev junior pode integrar consultas fiscais em qualquer app, gratuitamente.
 
-Se você usa, **deixa uma estrela no GitHub**: [github.com/nikolasdehor/mcp-fiscal-brasil](https://github.com/nikolasdehor/mcp-fiscal-brasil). Isso ajuda outras pessoas a descobrirem o projeto.
+Se você usa, **deixa uma estrela no GitHub**: [github.com/DeHor-Labs/mcp-fiscal-brasil](https://github.com/DeHor-Labs/mcp-fiscal-brasil). Isso ajuda outras pessoas a descobrirem o projeto.
 
 Se você quer contribuir, abra uma issue ou PR. Casos de uso reais são especialmente bem-vindos: conta como você usa, que pode entrar como tutorial na doc.
 
@@ -317,10 +317,10 @@ Se você e empresa e quer feature especifica, posso fazer consultoria. Mando con
 
 ## Links
 
-- **GitHub**: https://github.com/nikolasdehor/mcp-fiscal-brasil
-- **Documentacao**: https://nikolasdehor.github.io/mcp-fiscal-brasil/
+- **GitHub**: https://github.com/DeHor-Labs/mcp-fiscal-brasil
+- **Documentacao**: https://dehor-labs.github.io/mcp-fiscal-brasil/
 - **PyPI**: https://pypi.org/project/mcp-fiscal-brasil/
-- **Changelog**: https://github.com/nikolasdehor/mcp-fiscal-brasil/blob/main/CHANGELOG.md
+- **Changelog**: https://github.com/DeHor-Labs/mcp-fiscal-brasil/blob/main/CHANGELOG.md
 - **MCP Spec**: https://modelcontextprotocol.io
 
 Se você chegou até aqui, valeu pela paciência. Espero que o projeto seja útil. Qualquer feedback, abra issue ou me chama no LinkedIn.

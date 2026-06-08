@@ -24,4 +24,4 @@ Além de servidor MCP, ele funciona como SDK Python. Você pode importar o Fisca
 7/7
 O projeto é 100% open source (MIT). O objetivo é democratizar o acesso a dados fiscais para desenvolvedores brasileiros que estão construindo a nova geração de ferramentas baseadas em IA. 🇧🇷
 
-Confira no GitHub: https://github.com/nikolasdehor/mcp-fiscal-brasil
+Confira no GitHub: https://github.com/DeHor-Labs/mcp-fiscal-brasil

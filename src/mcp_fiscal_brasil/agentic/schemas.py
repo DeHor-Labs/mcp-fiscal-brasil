@@ -123,6 +123,40 @@ class SupplierRiskScore(BaseModel):
     data_analise: date = Field(default_factory=date.today)
 
 
+class SupplierRiskBatchItem(BaseModel):
+    """Resultado por fornecedor em avaliação em lote."""
+
+    cnpj: str = Field(description="CNPJ consultado (somente dígitos).")
+    resumo_compliance: ComplianceReport | None = Field(
+        default=None,
+        description="Resumo consolidado de compliance para este CNPJ, se a consulta teve sucesso.",
+    )
+    score_fornecedor: SupplierRiskScore | None = Field(
+        default=None,
+        description="Score de risco de fornecedor para este CNPJ, se a análise de risco tiver sucesso.",
+    )
+    erro: str | None = Field(
+        default=None,
+        description="Mensagem de erro agregada para este CNPJ quando há falha parcial ou total.",
+    )
+
+
+class SupplierRiskBatchResult(BaseModel):
+    """Resultado consolidado da consulta de múltiplos CNPJs."""
+
+    total_consultados: int = Field(description="Quantidade de CNPJs recebidos na solicitação.")
+    criterios_estritos: bool = Field(description="Flag usada para reduzir o score de risco.")
+    resultados: list[SupplierRiskBatchItem] = Field(
+        description="Resultado individual por CNPJ consultado."
+    )
+    total_processados: int = Field(
+        description="Quantidade de CNPJs com consulta concluída com sucesso."
+    )
+    erros: list[str] = Field(
+        default_factory=list, description="Erros agregados por CNPJ durante a análise."
+    )
+
+
 class NFeValidationIssue(BaseModel):
     """Problema individual detectado em validação de NFe."""
 

@@ -4,7 +4,7 @@ Contribuicoes são bem-vindas! Algumas formas de ajudar:
 
 ## Formas de contribuir
 
-- **Issues**: reporte bugs ou peca features em [github.com/nikolasdehor/mcp-fiscal-brasil/issues](https://github.com/nikolasdehor/mcp-fiscal-brasil/issues)
+- **Issues**: reporte bugs ou peca features em [github.com/DeHor-Labs/mcp-fiscal-brasil/issues](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues)
 - **Pull requests**: fork, branch, PR
 - **Documentacao**: melhorias na doc são MUITO bem-vindas
 - **Casos de uso**: compartilhe como você usa o `mcp-fiscal-brasil` em projetos reais
@@ -12,7 +12,7 @@ Contribuicoes são bem-vindas! Algumas formas de ajudar:
 ## Setup de desenvolvimento
 
 ```bash
-git clone https://github.com/nikolasdehor/mcp-fiscal-brasil
+git clone https://github.com/DeHor-Labs/mcp-fiscal-brasil
 cd mcp-fiscal-brasil
 
 # Instalar uv (https://docs.astral.sh/uv/)

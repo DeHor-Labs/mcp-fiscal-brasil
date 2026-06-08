@@ -2,7 +2,7 @@
 
 
 async def consultar_nfse(
-    número: str,
+    numero: str,
     municipio: str,
     uf: str,
     cnpj_prestador: str | None = None,
@@ -15,7 +15,7 @@ async def consultar_nfse(
     orientações sobre como consultar a NFSe no município informado.
 
     Args:
-        número: Número da NFSe
+        numero: Número da NFSe
         municipio: Nome do município (ex: 'São Paulo', 'Belo Horizonte')
         uf: Sigla do estado (ex: 'SP', 'MG')
         cnpj_prestador: CNPJ do prestador de serviço (opcional)
@@ -166,7 +166,7 @@ async def consultar_nfse(
         portal_info = portais_conhecidos.get("BRASIL")
 
     return {
-        "número": número,
+        "número": numero,
         "municipio": municipio,
         "uf": uf_upper,
         "status": "consulta_manual_necessaria",

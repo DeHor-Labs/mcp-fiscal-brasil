@@ -71,11 +71,11 @@ mcp-fiscal = "mcp_fiscal_brasil.cli:main"
 mcp-fiscal-api = "mcp_fiscal_brasil.api:run"
 
 [project.urls]
-Homepage = "https://github.com/nikolasdehor/mcp-fiscal-brasil"
-Repository = "https://github.com/nikolasdehor/mcp-fiscal-brasil"
-Issues = "https://github.com/nikolasdehor/mcp-fiscal-brasil/issues"
-Changelog = "https://github.com/nikolasdehor/mcp-fiscal-brasil/blob/main/CHANGELOG.md"
-Examples = "https://github.com/nikolasdehor/mcp-fiscal-brasil/tree/main/examples"
+Homepage = "https://github.com/DeHor-Labs/mcp-fiscal-brasil"
+Repository = "https://github.com/DeHor-Labs/mcp-fiscal-brasil"
+Issues = "https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues"
+Changelog = "https://github.com/DeHor-Labs/mcp-fiscal-brasil/blob/main/CHANGELOG.md"
+Examples = "https://github.com/DeHor-Labs/mcp-fiscal-brasil/tree/main/examples"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/mcp_fiscal_brasil"]

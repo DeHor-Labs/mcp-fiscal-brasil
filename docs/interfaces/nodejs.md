@@ -1,6 +1,11 @@
-# Node.js (npm wrapper)
+# Node.js wrapper preview
 
-Pacote npm `mcp-fiscal-brasil` que envelopa o CLI Python para uso em apps JavaScript/TypeScript.
+Wrapper Node.js/TypeScript que envelopa o CLI Python para uso em apps JavaScript/TypeScript.
+
+!!! warning "Preview de distribuição"
+
+    O código do wrapper está em `npm-wrapper/`, mas o pacote ainda não foi publicado no npm registry.
+    Para produção hoje, prefira a [REST API](rest-api.md) ou o SDK Python. Esta página documenta o contrato planejado e o uso local do wrapper.
 
 ## Pré-requisito
 
@@ -11,14 +16,12 @@ pipx install mcp-fiscal-brasil
 mcp-fiscal --help  # deve responder
 ```
 
-## Instalacao
+## Uso local
 
 ```bash
-npm install mcp-fiscal-brasil
-# ou
-pnpm add mcp-fiscal-brasil
-# ou
-yarn add mcp-fiscal-brasil
+cd npm-wrapper
+npm install
+npm run build
 ```
 
 ## Uso programatico
@@ -41,7 +44,7 @@ console.log(`Risco: ${report.risco_geral} (score ${report.score}/100)`);
 
 // Due diligence
 const score = await scoreSupplier("12345678000190", { estrito: true });
-console.log(score.recomendação);  // "aprovar" | "investigar" | etc
+console.log(score.recomendacao);  // "aprovar" | "investigar" | etc
 
 // Planejamento tributário
 const regimes = await compareRegimes({
@@ -52,11 +55,11 @@ const regimes = await compareRegimes({
 console.log(regimes.melhor_opcao);
 ```
 
-## CLI passthrough
+## CLI passthrough local
 
 ```bash
-npx mcp-fiscal cnpj 12345678000190
-npx mcp-fiscal regimes --faturamento 500000 --setor serviços
+node dist/cli.js cnpj 12345678000190
+node dist/cli.js regimes --faturamento 500000 --setor serviços
 ```
 
 ## Trade-offs

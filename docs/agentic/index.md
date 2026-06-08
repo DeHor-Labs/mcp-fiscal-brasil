@@ -1,45 +1,83 @@
 # Tools agenticas
 
-Tools de **alto nivel** desenhadas para uso por agentes de IA (Claude, GPT, Gemini). Cada tool combina múltiplos clientes de baixo nivel em uma chamada com saida estruturada e rica em descrições (otimizada para LLMs).
+Conjunto de ferramentas desenhado para uso por agentes de IA e serviços automatizados.
 
-## Disponiveis (v0.2.0)
+Cada tool combina múltiplas fontes e já entrega uma estrutura pronta para decisão, incluindo score, risco e resumo.
 
-| Tool | O que faz |
-|------|-----------|
-| [`analyze_cnpj_compliance`](compliance.md) | Relatorio consolidado: CNPJ + Simples + MEI + CNAE, score 0-100, risco |
-| [`compare_tax_regimes`](regimes.md) | Comparativo MEI/Simples/Lucro Presumido/Lucro Real |
-| [`risk_score_supplier`](supplier.md) | Due diligence de fornecedor com recomendação |
-| [`validate_nfe_full`](nfe.md) | NFe: parse XML + chave + situação do emissor |
-| [`summarize_sped`](sped.md) | Sumario executivo de arquivo SPED |
+## Catálogo (v0.2.x)
 
-## Por que agentic
+| Tool | Uso principal | Output principal |
+|------|---------------|----------------|
+| [`analyze_cnpj_compliance`](compliance.md) | Relatório fiscal consolidado de CNPJ | `risco_geral`, `score`, `achados`, `resumo_executivo` |
+| [`compare_tax_regimes`](regimes.md) | Simulação de carga tributária entre regimes | Ranking por custo estimado + melhor cenário |
+| [`risk_score_supplier`](supplier.md) | Due diligence de fornecedor para aprovação | Recomendação (`aprovar`, `aprovar_com_ressalvas`, `investigar`, `recusar`) |
+| `consultar_empresas_lote` | Triagem de carteira de fornecedores | Compliance + score + erro por CNPJ em uma chamada |
+| [`validate_nfe_full`](nfe.md) | Validação consolidada de XML de NFe | Validação estrutural, consistência da chave, situação do emissor |
+| [`summarize_sped`](sped.md) | Sumário executivo de arquivo SPED | Período, registros, blocos, inconsistências e alertas |
 
-Tools de baixo nivel (ex: `consultar_cnpj`, `validar_chave_nfe`) são úteis, mas exigem que o agente saiba combinar várias chamadas para uma decisão. Tools agenticas resolvem isso:
+## Quando usar cada uma
 
-- Composem múltiplos clientes em uma chamada
-- Retornam respostas com **score normalizado**, **risco classificado** e **resumo executivo**
-- Schema pydantic com `description` em cada campo (auto-explicativo para LLMs)
-- Capturam falhas parciais sem bloquear a analise (uma fonte offline não quebra a tool)
+1. **Antes de contratar/registrar um fornecedor**
+   1. `risk_score_supplier` para recomendação automática.
+   2. `consultar_empresas_lote` quando houver carteira inteira para triar.
+   3. `analyze_cnpj_compliance` para explicação dos achados, quando necessário.
+   4. Guardar fatores, score e fonte no log de auditoria.
 
-## Exemplo end-to-end
+2. **Antes de aprovar entrada de nota**
+   1. `validate_nfe_full` com o XML recebido.
+   2. Bloquear automaticamente em `valida_estruturalmente=False` ou severidade crítica.
 
-Cenario: agente IA precisa decidir se contratar um fornecedor.
+3. **Na rotina de fechamento**
+   1. `summarize_sped` por período.
+   2. Se houver inconsistências, direcionar revisão técnica antes do envio.
 
-**Sem agentic** (3+ chamadas):
-1. `consultar_cnpj(...)` -> dados cadastrais
-2. `consultar_simples_nacional(...)` -> regime
-3. `consultar_certidao_federal(...)` -> link
-4. agente combina manualmente, gera score, decide
+4. **Em reunião de planejamento tributário**
+   1. `compare_tax_regimes` com faturamento, setor e folha.
+   2. Exportar ranking e observações para discutir com contador.
 
-**Com agentic** (1 chamada):
+## Contratos e comportamento
+
+=== "Tolerância a falhas"
+
+    - `analyze_cnpj_compliance` pode seguir com fontes parciais (Simples/MEI), mas depende de CNPJ válido e consulta principal.
+    - `validate_nfe_full` retorna lista de issues e ainda pode seguir com dados úteis do XML.
+    - `summarize_sped` também funciona com arquivo SPED íntegro mínimo; inconsistências aparecem em `inconsistencias`.
+
+=== "Restrições técnicas"
+
+    - `risk_score_supplier` é uma avaliação de risco; não faz KYC, sanctions check ou onboarding final sozinho.
+    - `validate_nfe_full` **não** substitui assinatura digital avançada, eventos NFe ou validação XSD completa.
+    - `compare_tax_regimes` é estimativa simplificada para decisão preliminar (ex.: sem benefícios estaduais/regimes especiais).
+    - `analyze_cnpj_compliance` orienta; certidões orientativas são links, não emissão automática.
+
+## Exemplo integrado (1 fluxo, 1 resposta)
+
 ```python
-score = await risk_score_supplier("12345678000190", criterios_estritos=True)
-if score.recomendação == "recusar":
-    return "Bloqueado: " + ", ".join(score.fatores)
+async def compliance_gate(cnpj: str, nfe_xml_path: str | None = None) -> dict[str, str]:
+    """Gate de onboarding + documento fiscal numa chamada de contexto."""
+    supplier = await risk_score_supplier(cnpj, criterios_estritos=True)
+    report = await analyze_cnpj_compliance(cnpj)
+
+    if not nfe_xml_path:
+        return {
+            "status": "pendente",
+            "recomendacao": supplier.recomendacao,
+            "justificativa": report.resumo_executivo,
+        }
+
+    nfe = await validate_nfe_full(nfe_xml_path)
+    return {
+        "status": "aprovado" if nfe.chave_consistente else "bloqueado",
+        "fornecedor": supplier.recomendacao,
+        "fornecedor_score": str(supplier.score),
+        "nfe": nfe.resumo,
+        "risco_fornecedor": report.risco_geral,
+    }
 ```
 
-Em ferramentas como Claude Desktop, o agente IA pode chamar diretamente:
+## Casos de uso recomendados
 
-> "Faca due diligence no CNPJ 12.345.678/0001-90 com critérios estritos"
-
-E recebe a resposta consolidada em 1 turno.
+- [Due diligence em lote de fornecedores](../use-cases/due-diligence.md)
+- [Validação de fornecedores no ERP](../use-cases/supplier-validation.md)
+- [Planejamento tributário com cenários](../use-cases/tax-planning.md)
+- [Relatório de compliance consolidado](../use-cases/compliance-report.md)

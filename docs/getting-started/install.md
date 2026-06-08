@@ -35,10 +35,10 @@
 
     ```bash
     # Servidor MCP via stdio
-    docker run --rm -i ghcr.io/nikolasdehor/mcp-fiscal-brasil:0.2.0
+    docker run --rm -i ghcr.io/dehor-labs/mcp-fiscal-brasil:latest
 
     # REST API + Web UI demo
-    docker run --rm -p 8000:8000 ghcr.io/nikolasdehor/mcp-fiscal-brasil:0.2.0 mcp-fiscal-api
+    docker run --rm -p 8000:8000 ghcr.io/dehor-labs/mcp-fiscal-brasil:latest mcp-fiscal-api
     ```
 
 === "Como dependencia"
@@ -48,7 +48,7 @@
     ```toml
     [project]
     dependencies = [
-        "mcp-fiscal-brasil>=0.2.0",
+        "mcp-fiscal-brasil>=0.2.1",
     ]
     ```
 
@@ -63,7 +63,7 @@
 
 ```bash
 mcp-fiscal version
-# mcp-fiscal-brasil 0.2.0
+# mcp-fiscal-brasil 0.2.1
 ```
 
 ```bash

@@ -90,4 +90,4 @@ Goiânia, GO, Brazil
 ### Contributing
 The project is in an expansion phase. We plan to support direct invoice issuance (via A1 certificates) and integration with over 50 municipal portals for NFSe. Feel free to open issues or submit pull requests on the official repository.
 
-[Access MCP Fiscal Brasil on GitHub](https://github.com/nikolasdehor/mcp-fiscal-brasil)
+[Access MCP Fiscal Brasil on GitHub](https://github.com/DeHor-Labs/mcp-fiscal-brasil)

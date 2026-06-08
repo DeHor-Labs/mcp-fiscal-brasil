@@ -1,66 +1,79 @@
 # MCP Fiscal Brasil
 
-Servidor MCP, CLI, REST API e SDK para o sistema fiscal brasileiro.
+Hub fiscal brasileiro para automação com IA (CNPJ, NFe, SPED e regime tributário).
 
 [![PyPI](https://img.shields.io/pypi/v/mcp-fiscal-brasil?color=009c3b&label=PyPI)](https://pypi.org/project/mcp-fiscal-brasil/)
 [![Python](https://img.shields.io/badge/python-3.10%2B-002776?logo=python&logoColor=white)](https://www.python.org/)
 [![MCP](https://img.shields.io/badge/MCP-compatível-7c3aed)](https://modelcontextprotocol.io)
-[![Licenca MIT](https://img.shields.io/badge/licenca-MIT-FFDF00?labelColor=002776)](https://github.com/nikolasdehor/mcp-fiscal-brasil/blob/main/LICENSE)
+[![Licença MIT](https://img.shields.io/badge/licença-MIT-FFDF00?labelColor=002776)](https://github.com/DeHor-Labs/mcp-fiscal-brasil/blob/main/LICENSE)
 
-## O que e
+## O que é
 
-O `mcp-fiscal-brasil` integra dados fiscais brasileiros (CNPJ, NFe, SPED, Simples Nacional, CNAE, certidoes e mais) em **quatro interfaces** complementares:
+`mcp-fiscal-brasil` conecta os dados fiscais brasileiros em quatro interfaces para **decisões repetíveis de operação**:
 
 ```mermaid
 flowchart LR
-    A[Sua aplicação ou agente IA] -->|MCP| M[Servidor MCP]
+    A[Fluxo de negócios / agente IA] -->|MCP| M[Servidor MCP]
     A -->|HTTP| R[REST API]
-    A -->|stdin/stdout| C[CLI]
-    A -->|import| S[SDK Python]
+    A -->|CLI| C[CLI]
+    A -->|SDK| S[SDK Python]
     M --> Core[Core fiscal]
     R --> Core
     C --> Core
     S --> Core
-    Core --> APIs[BrasilAPI / ReceitaWS / IBGE / SEFAZ]
+    Core --> Fontes[BrasilAPI / ReceitaWS / IBGE / SEFAZ]
 ```
 
 ## Por que existe
 
-O Brasil tem o sistema fiscal mais complexo do mundo: 27 SEFAZs, NFe + NFSe + SPED + eSocial, cada municipio com seu portal próprio. Integrar IA com dados fiscais brasileiros antes desse projeto significava semanas de código de cola.
+O Brasil tem um ecossistema fiscal altamente fragmentado. Este projeto nasceu para reduzir o atrito de integrar esse contexto em assistentes de IA, rotinas de ERP e automações de operação fiscal.
 
-Com o `mcp-fiscal-brasil`, **uma linha de código** consulta CNPJ, válida NFe, analisa compliance, compara regimes tributários.
+## Módulo de posicionamento
 
-## Recursos chave (v0.2.0)
+Se você quer a visão completa de produto (o que resolve com segurança hoje e o que ainda é roadmap), comece por:
 
-=== "Tools agenticas"
+[:material-diagram-project: Posicionamento](positioning.md){ .md-button .md-button--primary }
 
-    Combinacoes pensadas para uso por agentes de IA:
+## Ferramentas agenticas (núcleo operacional)
 
-    - `analyze_cnpj_compliance` - relatório consolidado com score 0-100
-    - `compare_tax_regimes` - MEI vs Simples vs Lucro Presumido vs Real
-    - `risk_score_supplier` - due diligence com recomendação acionavel
-    - `validate_nfe_full` - parse XML + chave + situação do emissor
-    - `summarize_sped` - sumário executivo de arquivo SPED
+As ferramentas abaixo são as mais usadas em fluxos de produção:
 
-=== "Multiplas interfaces"
+- `analyze_cnpj_compliance` — relatório de compliance consolidado (CNPJ + Simples + MEI + CNAE)
+- `risk_score_supplier` — due diligence com recomendação por política de risco
+- `validate_nfe_full` — validação consolidada de XML/chave/situação do emissor
+- `summarize_sped` — leitura executiva de SPED com inconsistências estruturais
+- `compare_tax_regimes` — simulação MEI / Simples / Lucro Presumido / Lucro Real
 
-    Escolha como integrar:
+## Workflows recorrentes
 
-    - **MCP Server**: Claude Desktop, Cursor, qualquer cliente MCP
-    - **CLI**: `mcp-fiscal cnpj 12345678000190` no terminal
-    - **REST API**: FastAPI com OpenAPI docs
-    - **Web UI**: pagina htmx 2.0 servida pela API
-    - **npm wrapper**: usar em apps Node.js/TypeScript
+=== "Due diligence de fornecedor"
 
-=== "Production-grade"
+    - Entrada de fornecedor, contas a pagar, marketplace B2B
+    - Resultado: status binário/quaternário + fatores de decisão
+    - Tool: `risk_score_supplier`
 
-    Pensado para ambientes serios:
+=== "Validação de nota fiscal (entrada/recebimento)"
 
-    - HTTP retry exponencial (`tenacity`)
-    - Cache pluggavel (memory / redis / sqlite)
-    - Rate-limit per-host
-    - Logs estruturados JSON (`structlog`)
-    - Strict typing com `mypy --strict`
+    - Ingestão de XML, validação de chave e situação do emissor
+    - Resultado: parecer técnico com severidade e observações
+    - Tool: `validate_nfe_full`
+
+=== "Fechamento e consistência contábil"
+
+    - SPED grande em lote, revisão rápida antes de homologação
+    - Resultado: sumário estruturado por período, blocos, inconsistências
+    - Tool: `summarize_sped`
+
+=== "Planejamento tributário"
+
+    - Roteiros comerciais e de pricing com cenários de faturamento
+    - Resultado: ranking de regimes + economia estimada
+    - Tool: `compare_tax_regimes`
+
+!!! note "Observação de precisão"
+
+    As ferramentas abaixo são executivas e **não substituem** parecer contábil.
+    Elas não emitem certidões; para emissão manual, a entrega atual retorna URLs oficiais.
 
 ## Quick start
 
@@ -96,4 +109,5 @@ asyncio.run(main())
 
 [:material-rocket: Comece pelo guia rápido](getting-started/quickstart.md){ .md-button .md-button--primary }
 [:material-tools: Explore as tools agenticas](agentic/index.md){ .md-button }
-[:material-github: Ver no GitHub](https://github.com/nikolasdehor/mcp-fiscal-brasil){ .md-button }
+[:material-file-document-outline: Casos de uso fiscais](use-cases/due-diligence.md){ .md-button }
+[:material-github: Ver no GitHub](https://github.com/DeHor-Labs/mcp-fiscal-brasil){ .md-button }

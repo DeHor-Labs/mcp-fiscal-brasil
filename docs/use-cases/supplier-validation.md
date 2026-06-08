@@ -1,114 +1,81 @@
-# Validacao de fornecedor no ERP
+# Validar fornecedor antes de emitir/receber documento
 
-Integracao com sistemas ERP para validar fornecedores antes de emissão de NFe.
+Cenário típico: qualquer operação com terceiros (compra, pagamento, emissão de NFe) precisa de uma validação fiscal rápida antes de aprovar cadastro.
 
-## Cenario
+## Fluxo recomendado
 
-Antes de emitir NFe contra um CNPJ destinatário, você quer confirmar que:
+1. Validar sintaticamente o CNPJ (opcional localmente).
+2. Rodar `risk_score_supplier` para risco geral e recomendação.
+3. Em caso de recomendação não conclusiva, complementar com `analyze_cnpj_compliance`.
+4. Registrar decisão em trilha de auditoria.
 
-1. CNPJ existe e esta ativo
-2. Empresa não foi baixada / suspensa
-3. Endereco bate com o cadastro
-4. Atividade (CNAE) e compatível com a operação
-
-## Pré-emissão via webhook
-
-```python
-from fastapi import FastAPI, HTTPException
-from mcp_fiscal_brasil.agentic import analyze_cnpj_compliance
-
-app = FastAPI()
-
-@app.post("/erp/pré-emissão-nfe")
-async def validar_destinatario(payload: dict) -> dict:
-    cnpj_destinatario = payload["cnpj_destinatario"]
-    report = await analyze_cnpj_compliance(cnpj_destinatario)
-
-    if report.risco_geral == "critico":
-        raise HTTPException(
-            status_code=409,
-            detail={
-                "blocked": True,
-                "reason": report.resumo_executivo,
-                "achados": [a.titulo for a in report.achados],
-            },
-        )
-
-    return {
-        "allowed": True,
-        "score": report.score,
-        "risco": report.risco_geral,
-    }
+```mermaid
+flowchart TD
+    A[Evento do ERP] --> B[normalizar CNPJ]
+    B --> C[risk_score_supplier]
+    C --> D{recomendação}
+    D -->|aprovar| E[Aprovação automática]
+    D -->|aprovar_com_ressalvas| F[Aprovação com flag + notificação]
+    D -->|investigar| G[Fila manual + consulta humana]
+    D -->|recusar| H[Bloqueio + motivo]
+    C --> I[analyze_cnpj_compliance (opcional)]
+    I --> J[log de achados]
 ```
 
-## Conciliacao em lote (mensal)
+## Exemplo prático com Python
 
 ```python
-import asyncio
-from datetime import datetime
-
-async def reconciliacao_fornecedores(cnpjs_ativos: list[str]) -> dict:
-    """Roda 1x por mês para reavaliar fornecedores ativos."""
-    sem = asyncio.Semaphore(20)
-
-    async def _avaliar(cnpj: str):
-        async with sem:
-            try:
-                report = await analyze_cnpj_compliance(cnpj)
-                return cnpj, report
-            except Exception as e:
-                return cnpj, {"error": str(e)}
-
-    resultados = await asyncio.gather(*(_avaliar(c) for c in cnpjs_ativos))
-
-    alertas = [
-        (cnpj, r) for cnpj, r in resultados
-        if hasattr(r, "risco_geral") and r.risco_geral in ("alto", "critico")
-    ]
-
-    if alertas:
-        await notificar_compliance_team(alertas)
-
-    return {
-        "data": datetime.now().isoformat(),
-        "total": len(cnpjs_ativos),
-        "alertas": len(alertas),
-    }
-```
-
-## Renovacao automática de certidoes
-
-```python
-from mcp_fiscal_brasil.certidoes.tools import (
-    consultar_certidao_federal,
-    consultar_certidao_fgts,
-)
-
-async def renovar_certidoes(cnpj: str) -> dict:
-    """Obtem URLs atualizadas de certidoes negativas."""
-    federal = await consultar_certidao_federal(cnpj)
-    fgts = await consultar_certidao_fgts(cnpj)
-    return {"federal": federal, "fgts": fgts}
-```
-
-!!! note "Sobre certidoes"
-
-    O `mcp-fiscal-brasil` retorna **URLs para emissão** das certidoes (CND, FGTS, CNDT). A emissão em si requer captcha / login no portal correspondente - não automatizamos isso por questões legais e de tos. Use os URLs para guiar o usuário / contador.
-
-## Logs estruturados
-
-```python
+from mcp_fiscal_brasil.agentic import risk_score_supplier, analyze_cnpj_compliance
 import structlog
 
 log = structlog.get_logger()
 
-log.info(
-    "pre_emission_validation",
-    cnpj_destinatario=cnpj,
-    score=report.score,
-    risco=report.risco_geral,
-    decision="allowed" if report.risco_geral != "critico" else "blocked",
-)
+
+async def avaliar_fornecedor(cnpj: str) -> dict[str, object]:
+    score = await risk_score_supplier(cnpj, criterios_estritos=True)
+    if score.recomendacao in {"investigar", "recusar"}:
+        report = await analyze_cnpj_compliance(cnpj)
+    else:
+        report = None
+
+    log.info(
+        "supplier_evaluated",
+        cnpj=cnpj,
+        score=score.score,
+        risco=score.risco,
+        recomendacao=score.recomendacao,
+        fatores=score.fatores,
+        report_fontes=getattr(report, "fontes_consultadas", None),
+    )
+
+    return {
+        "cnpj": score.cnpj,
+        "recomendacao": score.recomendacao,
+        "score": score.score,
+        "riscos": score.fatores,
+        "resumo_compliance": None if report is None else report.resumo_executivo,
+    }
 ```
 
-Ideal para BI: tracker de "quantos cadastros foram bloqueados", "qual a média de score por mês", etc.
+## REST sem código
+
+```bash
+# 1) Score resumido
+curl -s "http://localhost:8000/v1/agentic/supplier/12345678000190?estrito=true"
+
+# 2) Compliance completo (caso necessário)
+curl -s "http://localhost:8000/v1/agentic/compliance/12345678000190"
+```
+
+## Escopo técnico (o que realmente roda hoje)
+
+- `risk_score_supplier` aplica redução de score por achados críticos/médios e retorna recomendação.
+- O score nasce de `analyze_cnpj_compliance` e de regras conservadoras.
+- Não há verificação de contas/cadastro positivo/negativo em órgão central além de CNPJ, Simples e MEI.
+- Para certidões (FGTS/CND/etc.), a resposta atual pode incluir URL de consulta, não emissão automática.
+
+## Sinais que aceleram o gate de aprovação
+
+- `risco == "baixo"` e fatores sem severidade alta -> aprovação sem revisão
+- `risco == "medio"` com fatores estáveis por período -> aprovação com ressalva
+- `recusar` ou `investigar` -> encaminhar fila de revisão e manter trilha de justificativa estruturada

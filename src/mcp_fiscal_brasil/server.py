@@ -13,6 +13,7 @@ from . import __version__
 from .agentic import (
     analyze_cnpj_compliance,
     compare_tax_regimes,
+    consultar_empresas_lote,
     risk_score_supplier,
     summarize_sped,
     validate_nfe_full,
@@ -218,7 +219,7 @@ async def tool_consultar_status_sefaz(uf: str) -> dict[str, Any]:
     ),
 )
 async def tool_consultar_nfse(
-    número: str,
+    numero: str,
     municipio: str,
     uf: str,
     cnpj_prestador: str | None = None,
@@ -238,7 +239,7 @@ async def tool_consultar_nfse(
     Returns:
         dict com orientacoes de consulta, portal e sistema do municipio e alternativas de automacao.
     """
-    return await consultar_nfse(número, municipio, uf, cnpj_prestador)
+    return await consultar_nfse(numero, municipio, uf, cnpj_prestador)
 
 
 # ---------------------------------------------------------------------------
@@ -482,6 +483,24 @@ async def tool_compare_tax_regimes(
 async def tool_risk_score_supplier(cnpj: str, criterios_estritos: bool = False) -> dict[str, Any]:
     """Score de risco para due diligence de fornecedor."""
     resultado = await risk_score_supplier(cnpj, criterios_estritos)
+    return resultado.model_dump(mode="json", exclude_none=True)
+
+
+@app.tool(
+    name="consultar_empresas_lote",
+    description=(
+        "Consulta em lote múltiplos CNPJs e devolve, em uma única chamada, "
+        "o resumo de compliance + score de risco de fornecedor para cada empresa. "
+        "Útil para triagem rápida de carteira de fornecedores, com erros por CNPJ retornados "
+        "se algum dado falhar."
+    ),
+)
+async def tool_consultar_empresas_lote(
+    cnpjs: list[str],
+    criterios_estritos: bool = False,
+) -> dict[str, Any]:
+    """Consulta em lote consolidada de compliance e risco de fornecedores."""
+    resultado = await consultar_empresas_lote(cnpjs, criterios_estritos=criterios_estritos)
     return resultado.model_dump(mode="json", exclude_none=True)
 
 

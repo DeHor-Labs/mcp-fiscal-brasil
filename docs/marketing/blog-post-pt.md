@@ -90,4 +90,4 @@ Goiânia, GO, Brasil
 ### Como contribuir
 O projeto está em fase de expansão. Planejamos suporte para emissão direta de notas (via certificado A1) e integração com mais de 50 prefeituras para NFSe. Sinta-se à vontade para abrir issues ou enviar pull requests no repositório oficial.
 
-[Acesse o MCP Fiscal Brasil no GitHub](https://github.com/nikolasdehor/mcp-fiscal-brasil)
+[Acesse o MCP Fiscal Brasil no GitHub](https://github.com/DeHor-Labs/mcp-fiscal-brasil)

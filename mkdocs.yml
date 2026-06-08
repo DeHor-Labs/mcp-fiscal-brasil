@@ -1,9 +1,9 @@
 site_name: MCP Fiscal Brasil
 site_description: Servidor MCP, CLI e REST API para o sistema fiscal brasileiro (CNPJ, NFe, SPED, Simples Nacional, compliance).
-site_url: https://nikolasdehor.github.io/mcp-fiscal-brasil/
+site_url: https://dehor-labs.github.io/mcp-fiscal-brasil/
 site_author: Nikolas de Hor
-repo_url: https://github.com/nikolasdehor/mcp-fiscal-brasil
-repo_name: nikolasdehor/mcp-fiscal-brasil
+repo_url: https://github.com/DeHor-Labs/mcp-fiscal-brasil
+repo_name: DeHor-Labs/mcp-fiscal-brasil
 edit_uri: edit/main/docs/
 
 theme:
@@ -44,7 +44,7 @@ theme:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/nikolasdehor
+      link: https://github.com/DeHor-Labs
     - icon: fontawesome/brands/linkedin
       link: https://www.linkedin.com/in/nikolasdehor
   generator: false
@@ -113,6 +113,7 @@ plugins:
 
 nav:
   - Inicio: index.md
+  - Posicionamento: positioning.md
   - Comece aqui:
       - Instalacao: getting-started/install.md
       - Configuracao: getting-started/config.md
@@ -145,6 +146,7 @@ nav:
       - Due diligence: use-cases/due-diligence.md
       - Planejamento tributario: use-cases/tax-planning.md
       - Validacao de fornecedor: use-cases/supplier-validation.md
+      - Relatorio de compliance: use-cases/compliance-report.md
   - Referencia API: reference/
   - Contribuir: contributing.md
   - Changelog: changelog.md

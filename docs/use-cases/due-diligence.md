@@ -1,114 +1,73 @@
-# Due diligence de fornecedores
+# Due diligence fiscal de fornecedores (lote)
 
-Como usar o `mcp-fiscal-brasil` para automatizar verificação de fornecedores em larga escala.
+Quando o time cadastra dezenas de fornecedores/mês, a revisão manual de cada CNPJ vira gargalo.
 
-## Cenario
+## Objetivo
 
-Sua empresa cadastra 100+ fornecedores por mês. Cada cadastro exige:
+- Padronizar decisão fiscal inicial para novos cadastros
+- Reduzir risco de erro operacional e fraudes óbvias
+- Criar trilha de auditoria para revisões futuras
 
-1. Consultar CNPJ na Receita
-2. Verificar regime tributário
-3. Conferir situação em certidoes (CND, FGTS, CNDT)
-4. Decidir aprovar / pedir documentos / recusar
+Com `mcp-fiscal-brasil`, isso vira uma rotina de dados + regra em poucos passos.
 
-Sem automação, isso e 30 minutos por fornecedor, feito por uma pessoa do compliance.
-
-Com o `mcp-fiscal`, e uma chamada:
+## Exemplo de lote
 
 ```python
-score = await risk_score_supplier(cnpj, criterios_estritos=True)
+from mcp_fiscal_brasil.agentic import consultar_empresas_lote
+
+
+async def avaliar_em_massa(cnpjs: list[str]) -> dict[str, list[str]]:
+    lote = await consultar_empresas_lote(cnpjs, criterios_estritos=True)
+
+    aprovados: list[str] = []
+    bloqueados_ou_revisao: list[str] = []
+
+    for item in lote.resultados:
+        score = item.score_fornecedor
+        if score is None or score.recomendacao in {"investigar", "recusar"}:
+            bloqueados_ou_revisao.append(item.cnpj)
+        else:
+            aprovados.append(item.cnpj)
+
+    return {
+        "aprovados": aprovados,
+        "bloqueados_ou_em_revisao": bloqueados_ou_revisao,
+        "erros": lote.erros,
+    }
 ```
 
-## Fluxo recomendado
-
-```mermaid
-flowchart TD
-    A[Cadastro de fornecedor] --> B[Validacao básica<br/>CNPJ formato + DV]
-    B --> C[risk_score_supplier]
-    C --> D{Recomendacao}
-    D -->|aprovar| E[Cadastro automático]
-    D -->|aprovar_com_ressalvas| F[Cadastro com flag<br/>+ notificação]
-    D -->|investigar| G[Fila de revisao manual<br/>compliance team]
-    D -->|recusar| H[Bloqueio<br/>+ log estruturado]
-```
-
-## Implementacao em Python
+## Exemplo com observabilidade mínima
 
 ```python
-from mcp_fiscal_brasil.agentic import risk_score_supplier
+from mcp_fiscal_brasil.agentic import analyze_cnpj_compliance
 import structlog
 
 log = structlog.get_logger()
 
 
-async def processar_cadastro_fornecedor(cnpj: str, contratante: dict) -> dict:
-    """Decide se cadastra um fornecedor."""
-    criterios_estritos = contratante.get("politica_anti_corrupcao", False)
-
-    score = await risk_score_supplier(cnpj, criterios_estritos=criterios_estritos)
-
+async def registrar_decisao(cnpj: str) -> None:
+    score = await analyze_cnpj_compliance(cnpj)
     log.info(
-        "supplier_evaluated",
-        cnpj=cnpj,
+        "due_diligence_completed",
+        cnpj=score.cnpj,
+        risco=score.risco_geral,
         score=score.score,
-        recomendação=score.recomendação,
-        contratante=contratante["id"],
+        achados=len(score.achados),
+        fontes=score.fontes_consultadas,
     )
-
-    if score.recomendação == "recusar":
-        return {"status": "bloqueado", "motivos": score.fatores}
-
-    if score.recomendação == "investigar":
-        await enfileirar_revisao_manual(cnpj, score)
-        return {"status": "pendente_revisao"}
-
-    if score.recomendação == "aprovar_com_ressalvas":
-        await notificar_compliance(cnpj, score)
-        return {"status": "aprovado", "flag": "ressalvas"}
-
-    return {"status": "aprovado"}
 ```
 
-## Batch processing
+## Padrão de resposta (esperado)
 
-```python
-import asyncio
+Saída do workflow de due diligence:
 
-async def avaliar_em_massa(cnpjs: list[str]) -> dict[str, str]:
-    """Avalia vários CNPJs em paralelo, com limite de concorrencia."""
-    sem = asyncio.Semaphore(10)  # max 10 simultaneos
+- `status` de aprovação (`aprovar`, `aprovar_com_ressalvas`, `investigar`, `recusar`)
+- `score` 0-100 para trilha de risco
+- `fatores` com explicações naturais + acionáveis
+- `fontes_consultadas` para rastreabilidade
 
-    async def _avaliar_um(cnpj: str) -> tuple[str, str]:
-        async with sem:
-            score = await risk_score_supplier(cnpj, criterios_estritos=True)
-            return cnpj, score.recomendação
+## Trade-offs e limites
 
-    resultados = await asyncio.gather(*(_avaliar_um(c) for c in cnpjs))
-    return dict(resultados)
-```
-
-## Auditoria
-
-O score inclui `fatores` (lista de strings) que explicam **porque** a recomendação foi essa. Armazene-os no log de auditoria:
-
-```python
-log.info(
-    "supplier_evaluation",
-    cnpj=score.cnpj,
-    razao_social=score.razao_social,
-    score=score.score,
-    risco=score.risco,
-    recomendação=score.recomendação,
-    fatores=score.fatores,
-    data_analise=score.data_analise.isoformat(),
-)
-```
-
-Audit trail completo em JSON estruturado, pronto pra Loki / CloudWatch / Datadog.
-
-## Tradeoffs e cuidados
-
-- **Cache**: ative cache (`MCP_FISCAL_CACHE_TTL=3600`) para não repetir consultas dentro de 1 hora
-- **Rate limit**: APIs publicas tem limites. Default e conservador, mas se rodar muitos batches, monitore
-- **Falsos positivos**: empresas recem-cadastradas as vezes tem `endereco_incompleto`. Combine com regras de negócio especificas
-- **Renovacao**: cadastros periodicos (anual / semestral) garantem que mudancas na situação sejam capturadas
+- Não há validação automática de reputação/AML nesta versão.
+- A API atual retorna dados de `certidoes` como orientações/links quando necessário.
+- Consistência dos dados depende de consulta externa; previna picos com cache e limite de concorrência.

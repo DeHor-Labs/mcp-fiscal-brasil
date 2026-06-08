@@ -319,7 +319,7 @@ a { color:var(--accent); }
   <div class="footer">
     <p>Dados de BrasilAPI, ReceitaWS, IBGE e fontes publicas |
        <a href="/docs">OpenAPI docs</a> |
-       <a href="https://github.com/nikolasdehor/mcp-fiscal-brasil">GitHub</a></p>
+       <a href="https://github.com/DeHor-Labs/mcp-fiscal-brasil">GitHub</a></p>
   </div>
 </div>
 </body>

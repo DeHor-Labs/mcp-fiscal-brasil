@@ -8,7 +8,7 @@ This file contains the formatted entries for submitting MCP Fiscal Brasil to var
 **Format:** `[Name](Link) [Icons] - [Description]`
 
 ```markdown
-- [mcp-fiscal-brasil](https://github.com/nikolasdehor/mcp-fiscal-brasil) 🐍 ☁️ 🏠 🍎 🪟 🐧 - The first MCP server for Brazilian fiscal systems (CNPJ, NFe, SPED, eSocial).
+- [mcp-fiscal-brasil](https://github.com/DeHor-Labs/mcp-fiscal-brasil) 🐍 ☁️ 🏠 🍎 🪟 🐧 - The first MCP server for Brazilian fiscal systems (CNPJ, NFe, SPED, eSocial).
 ```
 
 ---
@@ -22,7 +22,7 @@ This file contains the formatted entries for submitting MCP Fiscal Brasil to var
 - **Display Name:** MCP Fiscal Brasil
 - **Category:** Skills
 - **Sub-Category:** Finance / Compliance
-- **Primary Link:** https://github.com/nikolasdehor/mcp-fiscal-brasil
+- **Primary Link:** https://github.com/DeHor-Labs/mcp-fiscal-brasil
 - **Author:** Nikolas de Hor (https://github.com/nikolasdehor)
 - **License:** MIT
 - **Description:** A dedicated MCP server to integrate AI assistants with the Brazilian fiscal landscape, enabling real-time CNPJ queries, NFe validation, and SPED analysis.
@@ -39,7 +39,7 @@ This file contains the formatted entries for submitting MCP Fiscal Brasil to var
 **Format:** `[Name](Link) - [Description]`
 
 ```markdown
-- [mcp-fiscal-brasil](https://github.com/nikolasdehor/mcp-fiscal-brasil) - Servidor MCP para integração de IAs com o sistema fiscal brasileiro (CNPJ, NFe, SPED, eSocial).
+- [mcp-fiscal-brasil](https://github.com/DeHor-Labs/mcp-fiscal-brasil) - Servidor MCP para integração de IAs com o sistema fiscal brasileiro (CNPJ, NFe, SPED, eSocial).
 ```
 
 ---
@@ -49,5 +49,5 @@ This file contains the formatted entries for submitting MCP Fiscal Brasil to var
 **Format:** Standard Awesome List
 
 ```markdown
-- [MCP Fiscal Brasil](https://github.com/nikolasdehor/mcp-fiscal-brasil) - Bridge entre assistentes de IA e APIs fiscais brasileiras para consulta de CNPJ, validação de NFe e auditoria de SPED.
+- [MCP Fiscal Brasil](https://github.com/DeHor-Labs/mcp-fiscal-brasil) - Bridge entre assistentes de IA e APIs fiscais brasileiras para consulta de CNPJ, validação de NFe e auditoria de SPED.
 ```

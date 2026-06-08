@@ -345,7 +345,7 @@ class FiscalBrasil:
         from .nfse.tools import consultar_nfse
 
         resultado = await consultar_nfse(
-            número="",
+            numero="",
             municipio=municipio,
             uf=uf,
         )

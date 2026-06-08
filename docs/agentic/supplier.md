@@ -30,7 +30,7 @@ class SupplierRiskScore(BaseModel):
     risco: Literal["baixo", "medio", "alto", "critico"]
     score: int  # 0-100
     fatores: list[str]  # positivos e negativos
-    recomendação: Literal[
+    recomendacao: Literal[
         "aprovar",
         "aprovar_com_ressalvas",
         "investigar",
@@ -62,10 +62,10 @@ mcp-fiscal supplier 12345678000190 --estrito --json
 ```python
 async def cadastrar_fornecedor(cnpj: str) -> bool:
     score = await risk_score_supplier(cnpj, criterios_estritos=True)
-    if score.recomendação == "recusar":
+    if score.recomendacao == "recusar":
         log.warning("supplier_rejected", cnpj=cnpj, fatores=score.fatores)
         return False
-    if score.recomendação == "investigar":
+    if score.recomendacao == "investigar":
         await notificar_compliance_team(cnpj, score)
     return True
 ```

@@ -2,7 +2,7 @@
 
 Cada fonte de dado fiscal e um módulo Python em `src/mcp_fiscal_brasil/`.
 
-## Disponiveis (v0.2.0)
+## Disponiveis (v0.2.x)
 
 | Modulo | Fonte | Tipo |
 |--------|-------|------|
@@ -32,4 +32,4 @@ src/mcp_fiscal_brasil/<módulo>/
 └── tools.py       # tools MCP (quando aplicável)
 ```
 
-Para detalhes da arquitetura interna, veja o código no [GitHub](https://github.com/nikolasdehor/mcp-fiscal-brasil/tree/main/src/mcp_fiscal_brasil).
+Para detalhes da arquitetura interna, veja o código no [GitHub](https://github.com/DeHor-Labs/mcp-fiscal-brasil/tree/main/src/mcp_fiscal_brasil).

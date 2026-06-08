@@ -17,20 +17,25 @@ from .schemas import (
     ComplianceReport,
     NFeValidationReport,
     SPEDSummary,
+    SupplierRiskBatchItem,
+    SupplierRiskBatchResult,
     SupplierRiskScore,
     TaxRegimeComparison,
 )
 from .sped import summarize_sped
-from .supplier import risk_score_supplier
+from .supplier import consultar_empresas_lote, risk_score_supplier
 
 __all__ = [
     "ComplianceReport",
     "NFeValidationReport",
     "SPEDSummary",
+    "SupplierRiskBatchItem",
+    "SupplierRiskBatchResult",
     "SupplierRiskScore",
     "TaxRegimeComparison",
     "analyze_cnpj_compliance",
     "compare_tax_regimes",
+    "consultar_empresas_lote",
     "risk_score_supplier",
     "summarize_sped",
     "validate_nfe_full",

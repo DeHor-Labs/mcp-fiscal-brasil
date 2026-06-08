@@ -16,6 +16,6 @@ O projeto é de código aberto (MIT) e está em constante evolução. Nossa vis�
 
 Convido a comunidade de desenvolvedores e profissionais de tecnologia a explorarem o repositório, contribuírem com feedbacks ou pull requests.
 
-Acesse o projeto no GitHub: https://github.com/nikolasdehor/mcp-fiscal-brasil
+Acesse o projeto no GitHub: https://github.com/DeHor-Labs/mcp-fiscal-brasil
 
 #Python #MCP #Fiscal #IA #SoftwareEngineering #Brazil #NFe #SPED

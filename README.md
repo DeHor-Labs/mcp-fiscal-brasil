@@ -1,30 +1,50 @@
-mcp-name: io.github.nikolasdehor/mcp-fiscal-brasil
+mcp-name: io.github.dehor-labs/mcp-fiscal-brasil
 
 <p align="center">
   <img src="assets/banner.svg" width="800" alt="MCP Fiscal Brasil">
 </p>
 
 <p align="center">
-  <strong>O primeiro servidor MCP para o sistema fiscal brasileiro</strong>
+  <strong>A camada open source para agentes de IA trabalharem com compliance fiscal brasileiro</strong>
 </p>
 
 <p align="center">
   <a href="https://pypi.org/project/mcp-fiscal-brasil/"><img src="https://img.shields.io/pypi/v/mcp-fiscal-brasil?color=009c3b&label=PyPI" alt="PyPI version"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10%2B-002776?logo=python&logoColor=white" alt="Python 3.10+"></a>
+  <a href="https://github.com/DeHor-Labs/mcp-fiscal-brasil/actions/workflows/ci.yml"><img src="https://github.com/DeHor-Labs/mcp-fiscal-brasil/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/licenca-MIT-FFDF00?labelColor=002776" alt="License MIT"></a>
   <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-compatível-7c3aed" alt="MCP Compatible"></a>
-  <img src="https://img.shields.io/github/stars/nikolasdehor/mcp-fiscal-brasil?style=flat&color=009c3b" alt="Stars">
-  <img src="https://img.shields.io/github/issues/nikolasdehor/mcp-fiscal-brasil?color=FFDF00&labelColor=002776" alt="Issues">
+  <img src="https://img.shields.io/github/stars/DeHor-Labs/mcp-fiscal-brasil?style=flat&color=009c3b" alt="Stars">
+  <img src="https://img.shields.io/github/issues/DeHor-Labs/mcp-fiscal-brasil?color=FFDF00&labelColor=002776" alt="Issues">
 </p>
 
 <p align="center">
-  <a href="https://nikolasdehor.github.io/mcp-fiscal-brasil/">📚 Documentação</a> ·
+  <a href="https://dehor-labs.github.io/mcp-fiscal-brasil/">📚 Documentação</a> ·
   <a href="#-instalação">Instalação</a> ·
   <a href="#-ferramentas-disponíveis">Ferramentas</a> ·
-  <a href="#-demonstracao">Exemplos</a> ·
+  <a href="#-workflows-agênticos">Workflows</a> ·
   <a href="#-roadmap">Roadmap</a> ·
   <a href="#-contribuindo">Contribuindo</a>
 </p>
+
+---
+
+## O que é
+
+`mcp-fiscal-brasil` conecta assistentes de IA, ERPs, CRMs e automações internas ao universo fiscal brasileiro: **CNPJ, CPF, Simples Nacional, NFe, NFSe, SPED, eSocial, certidões e due diligence de fornecedores**.
+
+Ele não tenta ser um catálogo genérico de dados públicos. A proposta é ser uma vertical de produto: transformar consultas fiscais fragmentadas em **tools seguras, composáveis e prontas para agentes**.
+
+### Workflows que vendem sozinho
+
+| Workflow | Tool principal | Resultado |
+|----------|----------------|-----------|
+| Due diligence de fornecedor | `risk_score_supplier` | Score 0-100, risco, fatores e recomendação de contratação |
+| Triagem em lote | `consultar_empresas_lote` | Vários CNPJs em uma chamada, com compliance + score por empresa |
+| Compliance de CNPJ | `analyze_cnpj_compliance` | CNPJ + Simples/MEI + CNAE em relatório acionável |
+| Validação de NFe | `validate_nfe_full` | XML + chave + emissor, com issues estruturadas |
+| Sumário de SPED | `summarize_sped` | Resumo executivo, período, empresa, blocos e inconsistências |
+| Planejamento tributário | `compare_tax_regimes` | Comparativo MEI, Simples, Lucro Presumido e Lucro Real |
 
 ---
 
@@ -32,7 +52,7 @@ mcp-name: io.github.nikolasdehor/mcp-fiscal-brasil
 
 Web UI demo hospedada (Render free tier, pode demorar 30s no primeiro acesso pra acordar):
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/nikolasdehor/mcp-fiscal-brasil)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/DeHor-Labs/mcp-fiscal-brasil)
 
 Você pode clicar no botão acima pra hostear sua própria instância em 3 cliques no Render.com.
 
@@ -40,13 +60,13 @@ Veja [docs/getting-started/deploy.md](docs/getting-started/deploy.md) para outra
 
 ---
 
-## ✨ Novidades v0.2.0
+## ✨ Novidades v0.2.x
 
 Versão de evolução com 4 frentes:
 
 - **8 novas fontes de dados**: CNAE, CPF, Simples Nacional, MEI, IBGE, CEP, Empresa consolidada, Certidões
-- **Tools agênticas** (alto nível): `analyze_cnpj_compliance`, `compare_tax_regimes`, `risk_score_supplier`, `validate_nfe_full`, `summarize_sped`
-- **Múltiplas interfaces**: além do servidor MCP, agora CLI (`mcp-fiscal`), REST API (`mcp-fiscal-api`) com Web UI demo, e pacote npm (`mcp-fiscal-brasil`)
+- **Tools agênticas** (alto nível): `analyze_cnpj_compliance`, `risk_score_supplier`, `consultar_empresas_lote`, `compare_tax_regimes`, `validate_nfe_full`, `summarize_sped`
+- **Múltiplas interfaces**: além do servidor MCP, agora CLI (`mcp-fiscal`), REST API (`mcp-fiscal-api`) com Web UI demo, e wrapper Node.js em preview (`npm-wrapper/`)
 - **Production-grade**: HTTP client com retry exponencial, cache pluggável, rate-limit por host, logs JSON estruturados
 
 ```bash
@@ -68,7 +88,7 @@ Veja [CHANGELOG.md](CHANGELOG.md) para detalhes.
 
 ## Por que este projeto existe?
 
-O Brasil tem o sistema fiscal mais complexo do mundo. São **27 SEFAZs** estaduais, **NFe + NFSe + SPED + eSocial**, cada município com seu próprio portal de serviços, e mais de **500 mil PMEs** tentando manter conformidade fiscal todos os dias.
+O Brasil tem uma das infraestruturas fiscais mais complexas do mundo. São **27 SEFAZs** estaduais, **NFe + NFSe + SPED + eSocial**, milhares de municípios com portais próprios e milhões de empresas tentando manter conformidade fiscal todos os dias.
 
 Antes deste projeto, integrar IA com qualquer dado fiscal brasileiro exigia desenvolvimento customizado, autenticação em múltiplos portais, e conhecimento profundo de cada API governamental. Cada consulta era um projeto.
 
@@ -122,9 +142,18 @@ IA:    Status SEFAZ SP: OPERACIONAL
 
 ## 🛠 Ferramentas Disponíveis
 
-**14 ferramentas** cobrindo os principais módulos do sistema fiscal brasileiro.
+Ferramentas de baixo nível para dados fiscais e ferramentas agênticas de alto nível para decisão operacional.
 
----
+### Tools agênticas
+
+| Ferramenta | Quando usar |
+|------------|-------------|
+| `analyze_cnpj_compliance` | Relatório consolidado de compliance fiscal de um CNPJ |
+| `risk_score_supplier` | Aprovar, investigar ou recusar fornecedor |
+| `consultar_empresas_lote` | Triar carteira de fornecedores com score e erro por CNPJ |
+| `compare_tax_regimes` | Comparar regimes tributários por cenário |
+| `validate_nfe_full` | Validar uma NFe completa a partir do XML |
+| `summarize_sped` | Transformar SPED em resumo executivo |
 
 ### ✅ Ferramentas Funcionais (usáveis agora)
 
@@ -191,7 +220,7 @@ uv add mcp-fiscal-brasil
 ### A partir do código-fonte
 
 ```bash
-git clone https://github.com/nikolasdehor/mcp-fiscal-brasil.git
+git clone https://github.com/DeHor-Labs/mcp-fiscal-brasil.git
 cd mcp-fiscal-brasil
 pip install -e .
 ```
@@ -214,7 +243,7 @@ Edite `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) 
 }
 ```
 
-Reinicie o Claude Desktop. As 14 ferramentas fiscais aparecem automaticamente.
+Reinicie o Claude Desktop. As ferramentas fiscais e agênticas aparecem automaticamente.
 
 ### Claude Code (CLI)
 
@@ -255,7 +284,7 @@ Adicione ao `settings.json`:
 ```bash
 docker run --rm -i \
   -e MCP_FISCAL_LOG_LEVEL=INFO \
-  ghcr.io/nikolasdehor/mcp-fiscal-brasil:latest
+  ghcr.io/dehor-labs/mcp-fiscal-brasil:latest
 ```
 
 ---
@@ -272,14 +301,16 @@ Todas as variáveis são opcionais. O servidor funciona sem nenhuma configuraç�
 
 ---
 
-## Dois Modos de Uso
+## Modos de Uso
 
-O mcp-fiscal-brasil funciona de **duas formas**:
+O `mcp-fiscal-brasil` funciona de quatro formas:
 
 | Modo | Para quem | Como |
 |------|-----------|------|
 | **MCP Server** | Usuários de IA (Claude, Cursor, GPT) | Instala e configura no assistente |
 | **SDK Python** | Desenvolvedores de apps fiscais/contábeis | Importa e usa no código |
+| **CLI** | Operação, scripts e automações locais | Usa `mcp-fiscal ...` |
+| **REST API + Web UI** | Integração HTTP e demo pública | Usa `mcp-fiscal-api` |
 
 ---
 
@@ -413,10 +444,11 @@ ReceitaWS       estaduais municipais Federal  local   local  governamentais
 
 ## 📍 Roadmap
 
-- [x] **v0.1.0** - Consultas CNPJ, CPF, NFe, Simples, SPED (atual)
-- [ ] **v0.2.0** - NFSe 50+ municípios, eSocial catálogo completo
-- [ ] **v0.3.0** - Emissão NFe/NFSe (requer certificado digital A1)
-- [ ] **v1.0.0** - eSocial completo, LGPD audit, compliance suite
+- [x] **v0.1.x** - Consultas CNPJ, CPF, NFe, Simples, SPED
+- [x] **v0.2.x** - CLI, REST API, Web UI demo, wrapper Node.js em preview e tools agênticas
+- [ ] **v0.3.x** - Lote de empresas, cache persistente, mais fontes públicas e relatórios exportáveis
+- [ ] **v0.4.x** - NFSe por provedor/município, validação XSD NFe/SPED e eSocial versionado
+- [ ] **v1.0.0** - Suite fiscal com LGPD audit, contratos de API estáveis e cobertura operacional ampliada
 
 ---
 
@@ -425,13 +457,13 @@ ReceitaWS       estaduais municipais Federal  local   local  governamentais
 Contribuições são bem-vindas!
 
 ```bash
-# 1. Fork e clone
-git clone https://github.com/SEU_USUARIO/mcp-fiscal-brasil.git
+# 1. Clone o repo ou seu fork
+git clone https://github.com/DeHor-Labs/mcp-fiscal-brasil.git
 cd mcp-fiscal-brasil
 
 # 2. Instale dependências de desenvolvimento
 pip install -e ".[dev]"
-pré-commit install
+pre-commit install
 
 # 3. Crie sua branch
 git checkout -b feature/meu-recurso
@@ -444,7 +476,7 @@ mypy src/
 # 5. Abra um Pull Request
 ```
 
-Veja as [issues abertas](https://github.com/nikolasdehor/mcp-fiscal-brasil/issues) - especialmente as marcadas com `good first issue`.
+Veja as [issues abertas](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues) - especialmente as marcadas com `good first issue`.
 
 Cada módulo segue o padrão `client.py` + `schemas.py` + `tools.py`, o que torna simples adicionar novos módulos fiscais.
 

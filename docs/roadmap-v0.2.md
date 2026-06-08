@@ -253,7 +253,7 @@ Docker:
 - Alterar `Dockerfile` para suportar `stdio` e `http` por variável, com usuário não root e healthcheck real.
 - Alterar `docker-compose.yml` para usar apenas variáveis consumidas pelo código ou documentar claramente chaves futuras.
 - Criar `.dockerignore` para reduzir build context.
-- Criar `.github/workflows/docker.yml` para publicar `ghcr.io/nikolasdehor/mcp-fiscal-brasil`.
+- Criar `.github/workflows/docker.yml` para publicar `ghcr.io/dehor-labs/mcp-fiscal-brasil`.
 
 GitHub Actions e publicação:
 
