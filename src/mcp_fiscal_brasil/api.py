@@ -23,6 +23,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
 from . import __version__
+from ._core.config import settings
 from .agentic import (
     analyze_cnpj_compliance,
     compare_tax_regimes,
@@ -35,6 +36,7 @@ from .cnpj.tools import consultar_cnpj
 from .cpf.tools import validar_cpf_tool
 from .ibge.client import IBGEClient
 from .nfe.tools import validar_chave_nfe
+from .shared.validators import validate_cnpj
 from .simples.client import SimplesClient
 
 app = FastAPI(
@@ -45,6 +47,40 @@ app = FastAPI(
         "MCP, expostas via HTTP. Util para frontends, no-code e legados."
     ),
 )
+
+
+def _only_digits(value: str) -> str:
+    return "".join(char for char in value if char.isdigit())
+
+
+def _validated_cnpj(cnpj: str) -> str:
+    digits = _only_digits(cnpj)
+    if len(digits) != 14 or not validate_cnpj(digits):
+        raise HTTPException(status_code=400, detail="CNPJ inválido")
+    return digits
+
+
+def _allowed_file_base_dir() -> Path:
+    return Path(settings.mcp_fiscal_file_base_dir).expanduser().resolve()
+
+
+def _validated_input_file(path_value: str, *, label: str) -> Path:
+    base_dir = _allowed_file_base_dir()
+    file_path = Path(path_value).expanduser().resolve()
+
+    try:
+        file_path.relative_to(base_dir)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=403,
+            detail=f"{label} fora do diretório permitido",
+        ) from exc
+
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail=f"{label} não encontrado")
+    if not file_path.is_file():
+        raise HTTPException(status_code=400, detail=f"{label} não é um arquivo")
+    return file_path
 
 
 # ---------------------------------------------------------------------------
@@ -72,7 +108,7 @@ def health() -> HealthResponse:
 @app.get("/v1/cnpj/{cnpj}", tags=["cnpj"], summary="Consulta dados cadastrais")
 async def cnpj_lookup(cnpj: str) -> dict[str, Any]:
     """Consulta dados cadastrais de uma empresa pelo CNPJ."""
-    resultado = await consultar_cnpj(cnpj)
+    resultado = await consultar_cnpj(_validated_cnpj(cnpj))
     return resultado.model_dump(mode="json", exclude_none=True)
 
 
@@ -111,7 +147,7 @@ async def cep_lookup(cep: str) -> dict[str, Any]:
 async def simples_lookup(cnpj: str) -> dict[str, Any]:
     """Consulta situacao da empresa no Simples Nacional."""
     client = SimplesClient()
-    resultado = await client.get_simples_status(cnpj)
+    resultado = await client.get_simples_status(_validated_cnpj(cnpj))
     return resultado.model_dump(mode="json", exclude_none=True)
 
 
@@ -147,9 +183,8 @@ class NFeValidateRequest(BaseModel):
 @app.post("/v1/nfe/validate", tags=["nfe", "agentic"], summary="Validacao consolidada de NFe")
 async def nfe_validate_full(req: NFeValidateRequest) -> dict[str, Any]:
     """Parse XML + válida chave + verifica situacao do emissor."""
-    if not Path(req.xml_path).exists():
-        raise HTTPException(status_code=404, detail=f"Arquivo não encontrado: {req.xml_path}")
-    resultado = await validate_nfe_full(req.xml_path)
+    xml_path = _validated_input_file(req.xml_path, label="Arquivo XML")
+    resultado = await validate_nfe_full(xml_path)
     return resultado.model_dump(mode="json", exclude_none=True)
 
 
@@ -165,9 +200,8 @@ class SPEDSummarizeRequest(BaseModel):
 @app.post("/v1/sped/summarize", tags=["sped", "agentic"], summary="Sumario executivo de SPED")
 async def sped_summarize(req: SPEDSummarizeRequest) -> dict[str, Any]:
     """Sumario executivo de arquivo SPED."""
-    if not Path(req.file_path).exists():
-        raise HTTPException(status_code=404, detail=f"Arquivo não encontrado: {req.file_path}")
-    resultado = await summarize_sped(req.file_path)
+    file_path = _validated_input_file(req.file_path, label="Arquivo SPED")
+    resultado = await summarize_sped(file_path)
     return resultado.model_dump(mode="json", exclude_none=True)
 
 
@@ -183,7 +217,7 @@ async def sped_summarize(req: SPEDSummarizeRequest) -> dict[str, Any]:
 )
 async def agentic_compliance(cnpj: str) -> dict[str, Any]:
     """Compliance fiscal consolidado (CNPJ + Simples + MEI + CNAE)."""
-    resultado = await analyze_cnpj_compliance(cnpj)
+    resultado = await analyze_cnpj_compliance(_validated_cnpj(cnpj))
     return resultado.model_dump(mode="json", exclude_none=True)
 
 
@@ -196,7 +230,7 @@ async def agentic_supplier(
     cnpj: str, estrito: bool = Query(False, description="Criterios estritos")
 ) -> dict[str, Any]:
     """Score de risco para due diligence de fornecedor."""
-    resultado = await risk_score_supplier(cnpj, criterios_estritos=estrito)
+    resultado = await risk_score_supplier(_validated_cnpj(cnpj), criterios_estritos=estrito)
     return resultado.model_dump(mode="json", exclude_none=True)
 
 

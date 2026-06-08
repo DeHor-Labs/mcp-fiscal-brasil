@@ -14,6 +14,7 @@ def test_settings_defaults_load_without_env_file() -> None:
     assert settings.mcp_fiscal_rate_limit == 10
     assert settings.mcp_fiscal_http_timeout == 30.0
     assert settings.mcp_fiscal_max_retries == 3
+    assert settings.mcp_fiscal_file_base_dir == "/tmp/mcp-fiscal-brasil"
     assert settings.brasilapi_base_url == "https://brasilapi.com.br/api"
     assert settings.receita_base_url == "https://receitaws.com.br/v1"
 
@@ -25,6 +26,7 @@ def test_settings_env_vars_override_defaults(monkeypatch) -> None:  # type: igno
     monkeypatch.setenv("MCP_FISCAL_RATE_LIMIT", "3")
     monkeypatch.setenv("MCP_FISCAL_HTTP_TIMEOUT", "5.5")
     monkeypatch.setenv("MCP_FISCAL_MAX_RETRIES", "4")
+    monkeypatch.setenv("MCP_FISCAL_FILE_BASE_DIR", "/tmp/fiscal-inputs")
     monkeypatch.setenv("BRASILAPI_BASE_URL", "https://brasilapi.example.test")
     monkeypatch.setenv("RECEITA_BASE_URL", "https://receita.example.test")
 
@@ -36,6 +38,7 @@ def test_settings_env_vars_override_defaults(monkeypatch) -> None:  # type: igno
     assert settings.mcp_fiscal_rate_limit == 3
     assert settings.mcp_fiscal_http_timeout == 5.5
     assert settings.mcp_fiscal_max_retries == 4
+    assert settings.mcp_fiscal_file_base_dir == "/tmp/fiscal-inputs"
     assert settings.brasilapi_base_url == "https://brasilapi.example.test"
     assert settings.receita_base_url == "https://receita.example.test"
 
@@ -51,6 +54,7 @@ def test_settings_env_file_is_respected(tmp_path: Path) -> None:
                 "MCP_FISCAL_RATE_LIMIT=7",
                 "MCP_FISCAL_HTTP_TIMEOUT=9.5",
                 "MCP_FISCAL_MAX_RETRIES=5",
+                "MCP_FISCAL_FILE_BASE_DIR=/tmp/fiscal-env-inputs",
                 "BRASILAPI_BASE_URL=https://brasilapi.env.test",
                 "RECEITA_BASE_URL=https://receita.env.test",
             ]
@@ -66,5 +70,6 @@ def test_settings_env_file_is_respected(tmp_path: Path) -> None:
     assert settings.mcp_fiscal_rate_limit == 7
     assert settings.mcp_fiscal_http_timeout == 9.5
     assert settings.mcp_fiscal_max_retries == 5
+    assert settings.mcp_fiscal_file_base_dir == "/tmp/fiscal-env-inputs"
     assert settings.brasilapi_base_url == "https://brasilapi.env.test"
     assert settings.receita_base_url == "https://receita.env.test"

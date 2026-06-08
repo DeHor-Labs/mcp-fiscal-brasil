@@ -166,7 +166,7 @@ async def consultar_nfse(
         portal_info = portais_conhecidos.get("BRASIL")
 
     return {
-        "número": numero,
+        "numero": numero,
         "municipio": municipio,
         "uf": uf_upper,
         "status": "consulta_manual_necessaria",

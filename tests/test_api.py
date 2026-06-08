@@ -69,7 +69,7 @@ def test_agentic_regimes_faturamento_zero() -> None:
 
 def test_agentic_compliance_via_api() -> None:
     fake = ComplianceReport(
-        cnpj="12345678000190",
+        cnpj="11222333000181",
         razao_social="EMPRESA TESTE",
         risco_geral="baixo",
         score=85,
@@ -78,18 +78,48 @@ def test_agentic_compliance_via_api() -> None:
         fontes_consultadas=["BrasilAPI"],
     )
     with patch("mcp_fiscal_brasil.api.analyze_cnpj_compliance", AsyncMock(return_value=fake)):
-        response = client.get("/v1/agentic/compliance/12345678000190")
+        response = client.get("/v1/agentic/compliance/11222333000181")
     assert response.status_code == 200
     data = response.json()
     assert data["razao_social"] == "EMPRESA TESTE"
     assert data["score"] == 85
 
 
-def test_nfe_validate_arquivo_inexistente() -> None:
+def test_cnpj_lookup_rejeita_cnpj_invalido() -> None:
+    with patch("mcp_fiscal_brasil.api.consultar_cnpj", AsyncMock()) as consultar:
+        response = client.get("/v1/cnpj/123")
+    assert response.status_code == 400
+    consultar.assert_not_called()
+
+
+def test_agentic_compliance_rejeita_cnpj_com_digito_invalido() -> None:
+    with patch("mcp_fiscal_brasil.api.analyze_cnpj_compliance", AsyncMock()) as compliance:
+        response = client.get("/v1/agentic/compliance/12345678000190")
+    assert response.status_code == 400
+    compliance.assert_not_called()
+
+
+def test_nfe_validate_rejeita_caminho_fora_do_diretorio_permitido() -> None:
     response = client.post("/v1/nfe/validate", json={"xml_path": "/tmp/nao_existe.xml"})
+    assert response.status_code == 403
+
+
+def test_nfe_validate_arquivo_inexistente_dentro_do_diretorio_permitido() -> None:
+    response = client.post(
+        "/v1/nfe/validate",
+        json={"xml_path": "/tmp/mcp-fiscal-brasil/nao_existe.xml"},
+    )
     assert response.status_code == 404
 
 
-def test_sped_summarize_arquivo_inexistente() -> None:
+def test_sped_summarize_rejeita_caminho_fora_do_diretorio_permitido() -> None:
     response = client.post("/v1/sped/summarize", json={"file_path": "/tmp/nao_existe.txt"})
+    assert response.status_code == 403
+
+
+def test_sped_summarize_arquivo_inexistente_dentro_do_diretorio_permitido() -> None:
+    response = client.post(
+        "/v1/sped/summarize",
+        json={"file_path": "/tmp/mcp-fiscal-brasil/nao_existe.txt"},
+    )
     assert response.status_code == 404

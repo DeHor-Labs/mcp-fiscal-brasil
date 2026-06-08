@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from mcp_fiscal_brasil import server as mcp_server
 from mcp_fiscal_brasil.agentic import (
     analyze_cnpj_compliance,
     compare_tax_regimes,
@@ -21,6 +22,8 @@ from mcp_fiscal_brasil.agentic.regimes import (
 from mcp_fiscal_brasil.agentic.schemas import (
     ComplianceFinding,
     ComplianceReport,
+    SupplierRiskBatchItem,
+    SupplierRiskBatchResult,
     TaxRegimeComparison,
 )
 from mcp_fiscal_brasil.cnpj.schemas import AtividadeCNAE, CNPJResponse
@@ -138,6 +141,48 @@ async def test_consultar_empresas_lote_retoma_resumos_e_erros() -> None:
     assert resultado.resultados[0].score_fornecedor.recomendacao == "aprovar"
     assert resultado.resultados[2].score_fornecedor.recomendacao == "recusar"
     assert mock_compliance.call_count == 3
+
+
+@pytest.mark.asyncio
+async def test_tool_consultar_empresas_lote_valida_e_repassa_cnpjs() -> None:
+    retorno = SupplierRiskBatchResult(
+        total_consultados=2,
+        criterios_estritos=True,
+        total_processados=2,
+        resultados=[
+            SupplierRiskBatchItem(cnpj="33000167000101"),
+            SupplierRiskBatchItem(cnpj="33000167000101"),
+        ],
+    )
+
+    with patch(
+        "mcp_fiscal_brasil.server.consultar_empresas_lote",
+        AsyncMock(return_value=retorno),
+    ) as mock_tool:
+        resposta = await mcp_server.tool_consultar_empresas_lote(
+            ["33.000.167/0001-01", "33.000.167/0001-01"],
+            criterios_estritos=True,
+        )
+
+    assert resposta["total_consultados"] == 2
+    assert resposta["criterios_estritos"] is True
+    mock_tool.assert_awaited_once_with(
+        ["33000167000101", "33000167000101"],
+        criterios_estritos=True,
+    )
+
+
+@pytest.mark.asyncio
+async def test_tool_consultar_empresas_lote_rejeita_cnpjs_invalidos() -> None:
+    with pytest.raises(ValueError, match=r"CNPJ\(s\) inválido\(s\) no lote"):
+        await mcp_server.tool_consultar_empresas_lote(["12.345.678/0001-90", "11.111.111/1111-11"])
+
+
+@pytest.mark.asyncio
+async def test_tool_consultar_empresas_lote_rejeita_tamanho_excedido() -> None:
+    lotes_validos = ["33.000.167/0001-01"] * 51
+    with pytest.raises(ValueError, match="máximo permitido é 50"):
+        await mcp_server.tool_consultar_empresas_lote(lotes_validos)
 
 
 # ---------------------------------------------------------------------------

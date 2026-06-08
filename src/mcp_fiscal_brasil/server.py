@@ -26,11 +26,40 @@ from .cpf.tools import validar_cpf_tool
 from .esocial.tools import listar_eventos_esocial, validar_evento_esocial
 from .nfe.tools import consultar_nfe, consultar_status_sefaz, validar_chave_nfe
 from .nfse.tools import consultar_nfse
+from .shared.validators import validate_cnpj
 from .simples.tools import consultar_simples_nacional
 from .sped.tools import analisar_sped, listar_registros_sped
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
+
+MAX_CNPJS_POR_LOTE = 50
+
+
+def _normalizar_e_validar_cnpjs(cnpjs: list[str]) -> list[str]:
+    if len(cnpjs) > MAX_CNPJS_POR_LOTE:
+        raise ValueError(
+            f"Tamanho do lote inválido: recebeu {len(cnpjs)} CNPJs, máximo permitido é "
+            f"{MAX_CNPJS_POR_LOTE}."
+        )
+
+    invalidos: list[str] = []
+    normalizados: list[str] = []
+
+    for cnpj in cnpjs:
+        if not validate_cnpj(cnpj):
+            invalidos.append(cnpj)
+            continue
+        normalizados.append("".join(caractere for caractere in cnpj if caractere.isdigit()))
+
+    if invalidos:
+        raise ValueError(
+            "CNPJ(s) inválido(s) no lote. "
+            f"Verifique o formato e o dígito verificador: {', '.join(invalidos)}"
+        )
+
+    return normalizados
+
 
 app = FastMCP(
     name="MCP Fiscal Brasil",
@@ -500,7 +529,11 @@ async def tool_consultar_empresas_lote(
     criterios_estritos: bool = False,
 ) -> dict[str, Any]:
     """Consulta em lote consolidada de compliance e risco de fornecedores."""
-    resultado = await consultar_empresas_lote(cnpjs, criterios_estritos=criterios_estritos)
+    cnpjs_normalizados = _normalizar_e_validar_cnpjs(cnpjs)
+    resultado = await consultar_empresas_lote(
+        cnpjs_normalizados,
+        criterios_estritos=criterios_estritos,
+    )
     return resultado.model_dump(mode="json", exclude_none=True)
 
 

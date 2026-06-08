@@ -27,6 +27,8 @@ npm install
 npm run build
 ```
 
+Antes de usar o CLI abaixo, rode `npm run build` neste diretório (ou execute `npm link` após o build para expor `mcp-fiscal` no `PATH`).
+
 ## Uso programatico
 
 ```ts
@@ -52,6 +54,9 @@ console.log(`Melhor regime: ${regimes.melhor_opcao}`);
 node dist/cli.js cnpj 12345678000190
 node dist/cli.js compliance 12345678000190
 node dist/cli.js regimes --faturamento 500000 --setor servicos
+
+# Ou (após npm link):
+mcp-fiscal cnpj 12345678000190
 ```
 
 ## Funcoes disponiveis

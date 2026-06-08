@@ -8,7 +8,7 @@ from ..shared.schemas import BaseResponse
 class NFSeResponse(BaseResponse):
     """Dados de uma NFSe consultada."""
 
-    número: str
+    numero: str
     municipio: str
     uf: str
     prestador_cnpj: str | None = None

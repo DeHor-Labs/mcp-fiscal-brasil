@@ -11,7 +11,7 @@ Cada tool combina múltiplas fontes e já entrega uma estrutura pronta para deci
 | [`analyze_cnpj_compliance`](compliance.md) | Relatório fiscal consolidado de CNPJ | `risco_geral`, `score`, `achados`, `resumo_executivo` |
 | [`compare_tax_regimes`](regimes.md) | Simulação de carga tributária entre regimes | Ranking por custo estimado + melhor cenário |
 | [`risk_score_supplier`](supplier.md) | Due diligence de fornecedor para aprovação | Recomendação (`aprovar`, `aprovar_com_ressalvas`, `investigar`, `recusar`) |
-| `consultar_empresas_lote` | Triagem de carteira de fornecedores | Compliance + score + erro por CNPJ em uma chamada |
+| [`consultar_empresas_lote`](../use-cases/due-diligence.md) | Triagem de carteira de fornecedores | Compliance + score + erro por CNPJ em uma chamada |
 | [`validate_nfe_full`](nfe.md) | Validação consolidada de XML de NFe | Validação estrutural, consistência da chave, situação do emissor |
 | [`summarize_sped`](sped.md) | Sumário executivo de arquivo SPED | Período, registros, blocos, inconsistências e alertas |
 

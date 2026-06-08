@@ -52,9 +52,11 @@ docker run -d \
   -p 80:8000 \
   -e MCP_FISCAL_CACHE_TTL=600 \
   -e MCP_FISCAL_RATE_LIMIT=10 \
-  ghcr.io/dehor-labs/mcp-fiscal-brasil:latest \
+  ghcr.io/dehor-labs/mcp-fiscal-brasil:0.2.1 \
   mcp-fiscal-api
 ```
+
+Em VPS/produção, sempre prefira tags semânticas travadas (`0.2.1`) ou digest SHA256 para evitar deploys não determinísticos.
 
 Ou via docker-compose (`docker-compose.yml` do repo):
 

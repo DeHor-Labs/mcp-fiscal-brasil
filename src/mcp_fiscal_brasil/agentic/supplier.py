@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Literal
+
+from mcp_fiscal_brasil._core import get_logger
 
 from .compliance import analyze_cnpj_compliance
 from .schemas import (
@@ -20,6 +23,11 @@ def _normaliza_cnpj(cnpj: str) -> str:
 
 def _erro_consulta(cnpj: str, erro: Exception | str) -> str:
     return f"{_normaliza_cnpj(cnpj)}: {erro}"
+
+
+logger = get_logger(__name__)
+
+_MAX_CONCORRENTE = 4
 
 
 def _recomendacao(
@@ -123,31 +131,43 @@ async def consultar_empresas_lote(
         cnpjs: Lista de CNPJs (com ou sem formatação).
         criterios_estritos: Se True, repassa para risco e ajusta mais conservadoramente.
     """
-    resultados: list[SupplierRiskBatchItem] = []
-    erros: list[str] = []
+    semaforo = asyncio.Semaphore(_MAX_CONCORRENTE)
 
-    for cnpj in cnpjs:
+    async def _processa_um(indice: int, cnpj: str) -> tuple[int, SupplierRiskBatchItem]:
         item = SupplierRiskBatchItem(cnpj=_normaliza_cnpj(cnpj))
 
-        try:
-            compliance = await analyze_cnpj_compliance(cnpj)
-            item.resumo_compliance = compliance
-            item.score_fornecedor = _score_from_compliance(
-                compliance,
-                criterios_estritos=criterios_estritos,
-            )
-        except Exception as exc:
-            item.erro = _erro_consulta(cnpj, exc)
-            erros.append(item.erro)
+        async with semaforo:
+            try:
+                compliance = await analyze_cnpj_compliance(cnpj)
+                item.resumo_compliance = compliance
+                item.score_fornecedor = _score_from_compliance(
+                    compliance,
+                    criterios_estritos=criterios_estritos,
+                )
+            except Exception as exc:
+                item.erro = _erro_consulta(cnpj, exc)
+                logger.error(
+                    "consultar_empresas_lote.item_falhou",
+                    cnpj=item.cnpj,
+                    indice=indice,
+                    error=str(exc),
+                    error_type=type(exc).__name__,
+                    exc_info=True,
+                )
 
-        resultados.append(item)
+        return indice, item
 
-    total_processados = sum(1 for item in resultados if item.erro is None)
+    tarefas = [_processa_um(indice, cnpj) for indice, cnpj in enumerate(cnpjs)]
+    resultados = sorted(await asyncio.gather(*tarefas))
+    resultados_ordenados = [item for _, item in resultados]
+
+    erros = [item.erro for item in resultados_ordenados if item.erro is not None]
+    total_processados = sum(1 for item in resultados_ordenados if item.erro is None)
 
     return SupplierRiskBatchResult(
         total_consultados=len(cnpjs),
         criterios_estritos=criterios_estritos,
-        resultados=resultados,
+        resultados=resultados_ordenados,
         total_processados=total_processados,
         erros=erros,
     )

@@ -40,6 +40,7 @@ As ferramentas abaixo são as mais usadas em fluxos de produção:
 
 - `analyze_cnpj_compliance` — relatório de compliance consolidado (CNPJ + Simples + MEI + CNAE)
 - `risk_score_supplier` — due diligence com recomendação por política de risco
+- [`consultar_empresas_lote`](use-cases/due-diligence.md) — triagem em lote de fornecedores com score e flags de risco
 - `validate_nfe_full` — validação consolidada de XML/chave/situação do emissor
 - `summarize_sped` — leitura executiva de SPED com inconsistências estruturais
 - `compare_tax_regimes` — simulação MEI / Simples / Lucro Presumido / Lucro Real

@@ -88,4 +88,17 @@ location /api/fiscal/ {
 
 ## Autenticacao
 
-A v0.2.x não implementa autenticação na API. **Não exponha publicamente sem layer de auth** (proxy com auth básica, OAuth, ou API gateway). Para uso interno na sua rede, esta seguro.
+A v0.2.x não implementa autenticação na API. **Não exponha publicamente sem layer de auth** (proxy com auth básica, OAuth, ou API gateway), pois há risco real de:
+
+- **Exfiltração de dados fiscais sensíveis** (CNPJ, CPF, situação fiscal e metadados de cadastro) se o acesso ficar aberto.
+- **Abuso de rate-limit upstream** das APIs públicas (BrasilAPI/ReceitaWS/etc.), com impacto operacional para terceiros.
+- **Prompt-injection / tool-confusion** quando usada como backend de LLM/agentic, por receber comandos e parâmetros de fontes não confiáveis.
+
+Recomendações mínimas antes de produção:
+
+1. Expor via **proxy/API gateway** com autenticação (OAuth2/OIDC, API key ou mTLS), e rotear para a API só após validação de identidade.
+2. Aplicar **rate limiting** por cliente, IP, rota e projeto, com throttling/quotas.
+3. Implementar **validação e filtragem de entrada** (tipos, tamanho, charset, regex, schema JSON e rejeição de payloads malformados).
+4. Habilitar **monitoramento + alertas** (análises de tráfego, picos por IP/token, aumento de erros, uso anômalo de endpoints sensíveis).
+
+Para uso interno na sua rede e com controles adicionais (auth + observabilidade), o risco é reduzido, mas ainda exige revisão de exposição.
