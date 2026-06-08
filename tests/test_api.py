@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from fastapi.testclient import TestClient
 
 from mcp_fiscal_brasil import __version__
+from mcp_fiscal_brasil._core.config import settings as api_settings
 from mcp_fiscal_brasil.agentic.schemas import ComplianceReport
 from mcp_fiscal_brasil.api import app
-from mcp_fiscal_brasil.api import settings as api_settings
 
 client = TestClient(app)
 
@@ -106,8 +108,9 @@ def test_nfe_validate_rejeita_caminho_fora_do_diretorio_permitido() -> None:
 
 
 def test_nfe_validate_arquivo_inexistente_dentro_do_diretorio_permitido(
-    tmp_path, monkeypatch
-) -> None:  # type: ignore[no-untyped-def]
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(api_settings, "mcp_fiscal_file_base_dir", str(tmp_path))
     response = client.post(
         "/v1/nfe/validate",
@@ -116,14 +119,34 @@ def test_nfe_validate_arquivo_inexistente_dentro_do_diretorio_permitido(
     assert response.status_code == 404
 
 
+def test_nfe_validate_retorna_erro_controlado_quando_base_dir_indisponivel(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    blocked_base = tmp_path / "base-file"
+    blocked_base.write_text("not a directory")
+    monkeypatch.setattr(api_settings, "mcp_fiscal_file_base_dir", str(blocked_base))
+
+    with patch("mcp_fiscal_brasil.api.validate_nfe_full", AsyncMock()) as validate:
+        response = client.post(
+            "/v1/nfe/validate",
+            json={"xml_path": str(blocked_base / "nfe.xml")},
+        )
+
+    assert response.status_code == 500
+    assert "Diretório base de arquivos indisponível" in response.json()["detail"]
+    validate.assert_not_called()
+
+
 def test_sped_summarize_rejeita_caminho_fora_do_diretorio_permitido() -> None:
     response = client.post("/v1/sped/summarize", json={"file_path": "/tmp/nao_existe.txt"})
     assert response.status_code == 403
 
 
 def test_sped_summarize_arquivo_inexistente_dentro_do_diretorio_permitido(
-    tmp_path, monkeypatch
-) -> None:  # type: ignore[no-untyped-def]
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(api_settings, "mcp_fiscal_file_base_dir", str(tmp_path))
     response = client.post(
         "/v1/sped/summarize",

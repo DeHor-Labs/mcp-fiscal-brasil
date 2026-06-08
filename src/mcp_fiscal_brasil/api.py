@@ -23,6 +23,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
 from . import __version__
+from ._core import get_logger
 from ._core.config import settings
 from .agentic import (
     analyze_cnpj_compliance,
@@ -38,6 +39,8 @@ from .ibge.client import IBGEClient
 from .nfe.tools import validar_chave_nfe
 from .shared.validators import validate_cnpj
 from .simples.client import SimplesClient
+
+logger = get_logger(__name__)
 
 app = FastAPI(
     title="MCP Fiscal Brasil",
@@ -61,9 +64,21 @@ def _validated_cnpj(cnpj: str) -> str:
 
 
 def _allowed_file_base_dir() -> Path:
-    base_dir = Path(settings.mcp_fiscal_file_base_dir).expanduser().resolve()
-    base_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
-    base_dir.chmod(0o700)
+    try:
+        base_dir = Path(settings.mcp_fiscal_file_base_dir).expanduser().resolve()
+        base_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+        base_dir.chmod(0o700)
+    except OSError as exc:
+        logger.error(
+            "file_base_dir_unavailable",
+            base_dir=settings.mcp_fiscal_file_base_dir,
+            error=str(exc),
+            error_type=type(exc).__name__,
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=f"Diretório base de arquivos indisponível: {exc}",
+        ) from exc
     return base_dir
 
 
