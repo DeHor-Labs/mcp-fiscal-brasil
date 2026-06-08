@@ -117,6 +117,21 @@ def test_nfe_validate_rejeita_caminho_fora_do_diretorio_permitido(
     assert response.status_code == 403
 
 
+def test_nfe_validate_rejeita_path_traversal_relativo(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_dir = tmp_path / "allowed"
+    base_dir.mkdir()
+    monkeypatch.setattr(api_settings, "mcp_fiscal_file_base_dir", str(base_dir))
+
+    response = client.post(
+        "/v1/nfe/validate",
+        json={"xml_path": str(base_dir / "../escape.xml")},
+    )
+    assert response.status_code == 403
+
+
 def test_nfe_validate_arquivo_inexistente_dentro_do_diretorio_permitido(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
