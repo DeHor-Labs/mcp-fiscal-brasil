@@ -11,7 +11,7 @@ except ModuleNotFoundError:  # pragma: no cover
 
 
 def main() -> int:
-    root = pathlib.Path.cwd()
+    root = pathlib.Path(__file__).resolve().parents[1]
 
     with (root / "pyproject.toml").open("rb") as fp:
         project_data = tomllib.load(fp)
@@ -30,6 +30,15 @@ def main() -> int:
         "server.json": server_data["version"],
         "npm-wrapper/package.json": npm_data["version"],
     }
+
+    for idx, package_data in enumerate(server_data.get("packages", [])):
+        package_version = package_data.get("version")
+        package_name = package_data.get("identifier", f"package-{idx}")
+        package_path = f"server.json.packages[{idx}] ({package_name})"
+        if package_version is None:
+            print(f"FALHA: {package_path} não declara version.")
+            return 1
+        versions[f"{package_path}.version"] = package_version
 
     unique_versions = set(versions.values())
     release_version = project_data["project"]["version"]
