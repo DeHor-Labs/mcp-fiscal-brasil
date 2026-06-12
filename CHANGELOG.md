@@ -20,6 +20,12 @@ Release de consolidação dos fluxos agenticos fiscais e da publicação do paco
 - Validação de entradas NFSe e padronização do campo `numero`.
 - Processamento em lote com concorrência controlada, limite de lote e logs estruturados de falha.
 
+## [0.2.1] - 2026-05-29
+
+### Changed
+- Ajuste de consistência de release metadata entre `pyproject.toml`, `server.json` e `npm-wrapper/package.json` (todos com versão `0.2.1`).
+- Corrigida a documentação de histórico de releases para incluir uma entrada de `0.2.1` com foco em alinhamento de versionamento e integridade de artefatos.
+
 ## [0.2.0] - 2026-05-20
 
 Release focada em produzir o MCP fiscal brasileiro mais completo do mercado.

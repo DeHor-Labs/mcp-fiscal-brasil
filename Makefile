@@ -1,4 +1,4 @@
-.PHONY: dev install test lint format typecheck build serve clean
+.PHONY: dev install test lint format typecheck build serve check check-release-metadata clean
 
 # Instala dependencias de desenvolvimento
 dev:
@@ -32,6 +32,10 @@ typecheck:
 
 # Lint + typecheck
 check: lint typecheck
+
+# Valida metadados de release/versionamento
+check-release-metadata:
+	@python scripts/check_release_metadata.py
 
 # Build do pacote
 build:
