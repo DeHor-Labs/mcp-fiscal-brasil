@@ -80,6 +80,7 @@ Examples = "https://github.com/DeHor-Labs/mcp-fiscal-brasil/tree/main/examples"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/mcp_fiscal_brasil"]
+include = ["src/mcp_fiscal_brasil/tabelas/data/*.db"]
 
 [tool.ruff]
 target-version = "py310"
