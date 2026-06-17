@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 def register(app: Any) -> None:
     """Registra as ferramentas CNAE no servidor FastMCP."""
 
-    @app.tool(  # type: ignore[misc]
+    @app.tool(  # type: ignore
         name="consultar_cnae",
         description=(
             "Consulta uma atividade econômica CNAE pelo código de subclasse (7 dígitos). "
@@ -37,7 +37,7 @@ def register(app: Any) -> None:
         result = await consultar_cnae(codigo)
         return result.model_dump(mode="json")
 
-    @app.tool(  # type: ignore[misc]
+    @app.tool(  # type: ignore
         name="buscar_cnae",
         description=(
             "Busca atividades econômicas CNAE por texto na descrição. "

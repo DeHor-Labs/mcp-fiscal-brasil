@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 def register(app: Any) -> None:
     """Registra as ferramentas MEI no servidor FastMCP."""
 
-    @app.tool(  # type: ignore[misc]
+    @app.tool(  # type: ignore
         name="consultar_status_mei",
         description=(
             "Consulta o status de MEI (Microempreendedor Individual) e Simples Nacional "

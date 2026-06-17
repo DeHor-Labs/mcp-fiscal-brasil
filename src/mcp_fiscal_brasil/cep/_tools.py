@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 def register(app: Any) -> None:
     """Registra as ferramentas CEP no servidor FastMCP."""
 
-    @app.tool(  # type: ignore[misc]
+    @app.tool(  # type: ignore
         name="consultar_cep",
         description=(
             "Consulta o endereço completo a partir de um CEP brasileiro. "

@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 def register(app: Any) -> None:
     """Registra as ferramentas IBGE no servidor FastMCP."""
 
-    @app.tool(  # type: ignore[misc]
+    @app.tool(  # type: ignore
         name="consultar_municipios_ibge",
         description=(
             "Consulta municípios brasileiros via API IBGE Localidades. "
@@ -39,7 +39,7 @@ def register(app: Any) -> None:
         result = await consultar_municipios_ibge(uf)
         return [item.model_dump(mode="json", exclude_none=True) for item in result]
 
-    @app.tool(  # type: ignore[misc]
+    @app.tool(  # type: ignore
         name="consultar_estado_ibge",
         description=(
             "Consulta os dados de um estado brasileiro pela sigla da UF via API IBGE. "

@@ -15,7 +15,7 @@ logger = get_logger(__name__)
 def register(app: Any) -> None:
     """Registra as ferramentas BCB no servidor FastMCP."""
 
-    @app.tool(  # type: ignore[misc]
+    @app.tool(  # type: ignore
         name="taxa_selic",
         description=(
             "Consulta a taxa Selic efetiva diária do Banco Central do Brasil (BCB/SGS série 11) "
@@ -43,7 +43,7 @@ def register(app: Any) -> None:
         result = await taxa_selic(data_inicio, data_fim)
         return [item.model_dump(mode="json") for item in result]
 
-    @app.tool(  # type: ignore[misc]
+    @app.tool(  # type: ignore
         name="ipca_periodo",
         description=(
             "Consulta o IPCA (Índice de Preços ao Consumidor Amplo) acumulado mensal "
@@ -70,7 +70,7 @@ def register(app: Any) -> None:
         result = await ipca_periodo(data_inicio, data_fim)
         return [item.model_dump(mode="json") for item in result]
 
-    @app.tool(  # type: ignore[misc]
+    @app.tool(  # type: ignore
         name="ptax_data",
         description=(
             "Consulta a cotação PTAX oficial do Banco Central do Brasil (compra e venda) "
@@ -97,7 +97,7 @@ def register(app: Any) -> None:
         result = await ptax_data(data, moeda)
         return result.model_dump(mode="json")
 
-    @app.tool(  # type: ignore[misc]
+    @app.tool(  # type: ignore
         name="calcular_correcao_monetaria",
         description=(
             "Calcula a correção monetária de um valor entre duas datas usando IPCA ou Selic. "
