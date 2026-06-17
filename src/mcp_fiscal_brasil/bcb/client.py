@@ -13,8 +13,8 @@ from .schemas import CorrecaoMonetariaResponse, PTAXResponse, SerieBCB
 logger = get_logger(__name__)
 
 # Séries SGS do BCB
-_SERIE_SELIC = 11   # Taxa Selic efetiva diária
-_SERIE_IPCA = 433   # IPCA acumulado mensal (%)
+_SERIE_SELIC = 11  # Taxa Selic efetiva diária
+_SERIE_IPCA = 433  # IPCA acumulado mensal (%)
 
 # Base OData para cotações PTAX
 _PTAX_BASE_URL = "https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata"
@@ -74,7 +74,9 @@ class BCBClient:
         data_fim: date | None = None,
     ) -> list[SerieBCB]:
         """Consulta o IPCA acumulado mensal (SGS série 433)."""
-        logger.info("bcb_ipca_periodo_started", data_inicio=str(data_inicio), data_fim=str(data_fim))
+        logger.info(
+            "bcb_ipca_periodo_started", data_inicio=str(data_inicio), data_fim=str(data_fim)
+        )
         return await self._consultar_serie(
             serie_id=_SERIE_IPCA,
             data_inicio=data_inicio,
@@ -173,9 +175,7 @@ class BCBClient:
         elif indice_upper == "SELIC":
             serie = await self.taxa_selic(data_inicio, data_fim)
         else:
-            raise ValueError(
-                f"Índice '{indice}' não suportado. Use 'IPCA' ou 'SELIC'."
-            )
+            raise ValueError(f"Índice '{indice}' não suportado. Use 'IPCA' ou 'SELIC'.")
 
         # Calcula fator acumulado: produto de (1 + taxa/100) para cada período
         fator = 1.0

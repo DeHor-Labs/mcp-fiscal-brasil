@@ -21,13 +21,19 @@ fontes completas via --tipi e --cest.
 
 import argparse
 import csv
-import io
 import sqlite3
 import sys
 from pathlib import Path
 
 # Caminho do banco de saída (relativo à raiz do projeto)
-DEFAULT_OUTPUT = Path(__file__).parent.parent / "src" / "mcp_fiscal_brasil" / "tabelas" / "data" / "tabelas_fiscais.db"
+DEFAULT_OUTPUT = (
+    Path(__file__).parent.parent
+    / "src"
+    / "mcp_fiscal_brasil"
+    / "tabelas"
+    / "data"
+    / "tabelas_fiscais.db"
+)
 
 # ---------------------------------------------------------------------------
 # Schema SQLite
@@ -85,16 +91,40 @@ NCM_AMOSTRA = [
     # Capítulo 22 - Bebidas
     ("22011000", "Águas minerais e águas gaseificadas", 0.0, "L", None),
     ("22019000", "Outras águas", 0.0, "L", None),
-    ("22021000", "Águas, incluindo as águas minerais e as gaseificadas, com adição de açúcar", 12.0, "L", None),
+    (
+        "22021000",
+        "Águas, incluindo as águas minerais e as gaseificadas, com adição de açúcar",
+        12.0,
+        "L",
+        None,
+    ),
     ("22029000", "Outras bebidas não alcoólicas", 12.0, "L", None),
     ("22030000", "Cervejas de malte", 30.0, "L", None),
     ("22041000", "Vinhos espumantes e vinhos espumosos", 20.0, "L", None),
-    ("22042100", "Outros vinhos; mostos de uvas, em recipientes de capacidade não superior a 2 l", 20.0, "L", None),
+    (
+        "22042100",
+        "Outros vinhos; mostos de uvas, em recipientes de capacidade não superior a 2 l",
+        20.0,
+        "L",
+        None,
+    ),
     ("22043000", "Outros mostos de uvas", 0.0, "L", None),
     ("22051000", "Vermutes e outros vinhos de uvas frescas aromatizados", 20.0, "L", None),
     ("22060000", "Outras bebidas fermentadas", 20.0, "L", None),
-    ("22071000", "Álcool etílico não desnaturado, de teor alcoólico em volume >= 80%", 0.0, "L", None),
-    ("22072000", "Álcool etílico e aguardentes desnaturados, de qualquer teor alcoólico", 0.0, "L", None),
+    (
+        "22071000",
+        "Álcool etílico não desnaturado, de teor alcoólico em volume >= 80%",
+        0.0,
+        "L",
+        None,
+    ),
+    (
+        "22072000",
+        "Álcool etílico e aguardentes desnaturados, de qualquer teor alcoólico",
+        0.0,
+        "L",
+        None,
+    ),
     ("22082000", "Aguardentes de vinho ou de bagaço de uvas", 60.0, "L", None),
     ("22083000", "Uísques (whiskies)", 80.0, "L", None),
     ("22084000", "Rum e outros aguardentes provenientes de cana-de-açúcar", 60.0, "L", None),
@@ -109,38 +139,128 @@ NCM_AMOSTRA = [
     ("39023000", "Copolímeros de propileno, em formas primárias", 4.0, "KG", None),
     ("39031100", "Poliestireno expansível, em formas primárias", 4.0, "KG", None),
     ("39031900", "Outro poliestireno, em formas primárias", 4.0, "KG", None),
-    ("39041000", "Poli(cloreto de vinila), não misturado com outras substâncias, em formas primárias", 4.0, "KG", None),
+    (
+        "39041000",
+        "Poli(cloreto de vinila), não misturado com outras substâncias, em formas primárias",
+        4.0,
+        "KG",
+        None,
+    ),
     ("39069000", "Outros polímeros acrílicos, em formas primárias", 4.0, "KG", None),
-    ("39076100", "Poli(tereftalato de etileno) com valor de viscosidade >= 78 ml/g", 4.0, "KG", None),
+    (
+        "39076100",
+        "Poli(tereftalato de etileno) com valor de viscosidade >= 78 ml/g",
+        4.0,
+        "KG",
+        None,
+    ),
     ("39079900", "Outros poliésteres saturados, em formas primárias", 4.0, "KG", None),
     # Capítulo 61 - Vestuário de malha
-    ("61011000", "Sobretudos, capas e impermeáveis de lã ou de pelos finos, de malha, para homens", 12.0, "UN", None),
-    ("61012000", "Sobretudos, capas e impermeáveis de algodão, de malha, para homens", 12.0, "UN", None),
-    ("61013000", "Sobretudos, capas e impermeáveis de fibras sintéticas, de malha, para homens", 12.0, "UN", None),
-    ("61021000", "Sobretudos de lã ou de pelos finos, de malha, para mulheres ou meninas", 12.0, "UN", None),
+    (
+        "61011000",
+        "Sobretudos, capas e impermeáveis de lã ou de pelos finos, de malha, para homens",
+        12.0,
+        "UN",
+        None,
+    ),
+    (
+        "61012000",
+        "Sobretudos, capas e impermeáveis de algodão, de malha, para homens",
+        12.0,
+        "UN",
+        None,
+    ),
+    (
+        "61013000",
+        "Sobretudos, capas e impermeáveis de fibras sintéticas, de malha, para homens",
+        12.0,
+        "UN",
+        None,
+    ),
+    (
+        "61021000",
+        "Sobretudos de lã ou de pelos finos, de malha, para mulheres ou meninas",
+        12.0,
+        "UN",
+        None,
+    ),
     ("61022000", "Sobretudos de algodão, de malha, para mulheres ou meninas", 12.0, "UN", None),
-    ("61034100", "Fatos (ternos) de lã ou de pelos finos, de malha, para homens ou rapazes", 12.0, "UN", None),
-    ("61041100", "Tailleurs de lã ou de pelos finos, de malha, para mulheres ou meninas", 12.0, "UN", None),
+    (
+        "61034100",
+        "Fatos (ternos) de lã ou de pelos finos, de malha, para homens ou rapazes",
+        12.0,
+        "UN",
+        None,
+    ),
+    (
+        "61041100",
+        "Tailleurs de lã ou de pelos finos, de malha, para mulheres ou meninas",
+        12.0,
+        "UN",
+        None,
+    ),
     ("61051000", "Camisas de algodão, de malha, para homens ou rapazes", 12.0, "UN", None),
-    ("61052000", "Camisas de fibras sintéticas ou artificiais, de malha, para homens ou rapazes", 12.0, "UN", None),
+    (
+        "61052000",
+        "Camisas de fibras sintéticas ou artificiais, de malha, para homens ou rapazes",
+        12.0,
+        "UN",
+        None,
+    ),
     ("61061000", "Camiseiros de algodão, de malha, para mulheres ou meninas", 12.0, "UN", None),
     ("61091000", "T-shirts e camisetas interiores de algodão, de malha", 12.0, "UN", None),
-    ("61099000", "T-shirts e camisetas interiores de outras matérias têxteis, de malha", 12.0, "UN", None),
-    ("61103000", "Camisolas, pulôveres, cardigãs de fibras sintéticas ou artificiais, de malha", 12.0, "UN", None),
+    (
+        "61099000",
+        "T-shirts e camisetas interiores de outras matérias têxteis, de malha",
+        12.0,
+        "UN",
+        None,
+    ),
+    (
+        "61103000",
+        "Camisolas, pulôveres, cardigãs de fibras sintéticas ou artificiais, de malha",
+        12.0,
+        "UN",
+        None,
+    ),
     ("61121100", "Agasalhos de desporto de algodão, de malha", 12.0, "UN", None),
     ("61124100", "Biquínis de fibras sintéticas, de malha", 12.0, "UN", None),
-    ("61130000", "Vestuário confeccionado com tecidos de malha de borracha ou de plástico", 12.0, "UN", None),
+    (
+        "61130000",
+        "Vestuário confeccionado com tecidos de malha de borracha ou de plástico",
+        12.0,
+        "UN",
+        None,
+    ),
     # Capítulo 84 - Máquinas e aparelhos
     ("84071000", "Motores de explosão para aeronaves", 0.0, "UN", None),
     ("84073200", "Motores de explosão de cilindrada <= 50 cm3", 6.0, "UN", None),
     ("84073300", "Motores de explosão de cilindrada > 50 cm3 e <= 250 cm3", 6.0, "UN", None),
     ("84073400", "Motores de explosão de cilindrada > 250 cm3", 6.0, "UN", None),
     ("84081000", "Motores de pistão de ignição por compressão para aeronaves", 0.0, "UN", None),
-    ("84082000", "Motores de pistão de ignição por compressão para veículos do cap. 87", 6.0, "UN", None),
+    (
+        "84082000",
+        "Motores de pistão de ignição por compressão para veículos do cap. 87",
+        6.0,
+        "UN",
+        None,
+    ),
     ("84099190", "Outras partes para motores de explosão", 6.0, "UN", None),
     ("84151000", "Aparelhos de ar condicionado de parede ou de janela", 15.0, "UN", None),
-    ("84152000", "Aparelhos de ar condicionado do tipo dos utilizados para o conforto das pessoas", 15.0, "UN", None),
-    ("84158100", "Outros aparelhos de ar condicionado com dispositivo de refrigeração", 15.0, "UN", None),
+    (
+        "84152000",
+        "Aparelhos de ar condicionado do tipo dos utilizados para o conforto das pessoas",
+        15.0,
+        "UN",
+        None,
+    ),
+    (
+        "84158100",
+        "Outros aparelhos de ar condicionado com dispositivo de refrigeração",
+        15.0,
+        "UN",
+        None,
+    ),
     ("84159000", "Partes de aparelhos de ar condicionado", 15.0, "UN", None),
     ("84193100", "Secadores para produtos agrícolas", 0.0, "UN", None),
     ("84211100", "Centrifugadoras para separar o creme do leite", 4.0, "UN", None),
@@ -149,36 +269,114 @@ NCM_AMOSTRA = [
     ("84221900", "Outras máquinas de lavar louça", 15.0, "UN", None),
     ("84231000", "Balanças para pessoas, incluindo as balanças para bebês", 5.0, "UN", None),
     ("84232000", "Básculas de pesagem contínua sobre transportador", 5.0, "UN", None),
-    ("84433100", "Máquinas das que efetuam duas ou mais das operações de impressão, cópia ou transmissão de fax", 15.0, "UN", None),
+    (
+        "84433100",
+        "Máquinas das que efetuam duas ou mais das operações de impressão, cópia ou transmissão de fax",
+        15.0,
+        "UN",
+        None,
+    ),
     ("84433200", "Outras impressoras", 15.0, "UN", None),
     ("84433900", "Outras máquinas de impressão", 15.0, "UN", None),
     ("84472000", "Máquinas de tricotar de trama", 4.0, "UN", None),
-    ("84713000", "Máquinas automáticas para processamento de dados, portáteis, de peso <= 10 kg", 15.0, "UN", "001"),
-    ("84714100", "Outras máquinas automáticas para processamento de dados com UC, teclado e monitor", 15.0, "UN", None),
-    ("84714200", "Outras máquinas automáticas para processamento de dados, sem teclado", 15.0, "UN", None),
-    ("84715000", "Unidades de processamento (exceto as subposições 8471.41 e 8471.49)", 15.0, "UN", None),
+    (
+        "84713000",
+        "Máquinas automáticas para processamento de dados, portáteis, de peso <= 10 kg",
+        15.0,
+        "UN",
+        "001",
+    ),
+    (
+        "84714100",
+        "Outras máquinas automáticas para processamento de dados com UC, teclado e monitor",
+        15.0,
+        "UN",
+        None,
+    ),
+    (
+        "84714200",
+        "Outras máquinas automáticas para processamento de dados, sem teclado",
+        15.0,
+        "UN",
+        None,
+    ),
+    (
+        "84715000",
+        "Unidades de processamento (exceto as subposições 8471.41 e 8471.49)",
+        15.0,
+        "UN",
+        None,
+    ),
     ("84716000", "Unidades de entrada ou de saída", 15.0, "UN", None),
     ("84717000", "Unidades de memória", 15.0, "UN", None),
-    ("84718000", "Outras unidades de máquinas automáticas para processamento de dados", 15.0, "UN", None),
-    ("84719000", "Outras unidades de máquinas automáticas para processamento de dados", 15.0, "UN", None),
+    (
+        "84718000",
+        "Outras unidades de máquinas automáticas para processamento de dados",
+        15.0,
+        "UN",
+        None,
+    ),
+    (
+        "84719000",
+        "Outras unidades de máquinas automáticas para processamento de dados",
+        15.0,
+        "UN",
+        None,
+    ),
     # Capítulo 85 - Máquinas e aparelhos elétricos
-    ("85021100", "Grupos eletrógenos de motor de êmbolo com ignição por compressão <= 75 kVA", 5.0, "UN", None),
+    (
+        "85021100",
+        "Grupos eletrógenos de motor de êmbolo com ignição por compressão <= 75 kVA",
+        5.0,
+        "UN",
+        None,
+    ),
     ("85042100", "Transformadores de dielétrico líquido <= 650 kVA", 5.0, "UN", None),
     ("85044000", "Conversores estáticos", 5.0, "UN", None),
     ("85044010", "Carregadores de acumuladores", 5.0, "UN", None),
     ("85072000", "Outros acumuladores de chumbo", 10.0, "UN", None),
     ("85081100", "Aspiradores de pó de potência <= 1.500 W e capacidade <= 20 l", 20.0, "UN", None),
-    ("85094000", "Trituradores e misturadores de alimentos; espremedores de frutas ou legumes", 20.0, "UN", None),
+    (
+        "85094000",
+        "Trituradores e misturadores de alimentos; espremedores de frutas ou legumes",
+        20.0,
+        "UN",
+        None,
+    ),
     ("85098000", "Outros aparelhos eletromecânicos de uso doméstico", 20.0, "UN", None),
-    ("85109000", "Partes de aparelhos de barbear, de cortar o cabelo e de depilar", 15.0, "UN", None),
+    (
+        "85109000",
+        "Partes de aparelhos de barbear, de cortar o cabelo e de depilar",
+        15.0,
+        "UN",
+        None,
+    ),
     ("85165000", "Fornos de micro-ondas", 20.0, "UN", None),
     ("85167200", "Torradeiras", 20.0, "UN", None),
     ("85167900", "Outros aparelhos eletrotérmicos de uso doméstico", 20.0, "UN", None),
     ("85168000", "Resistências de aquecimento", 15.0, "UN", None),
     ("85171100", "Telefones sem fio", 16.0, "UN", None),
-    ("85171200", "Telefones celulares e outros sem fio, exceto os da sub. 8517.11", 16.0, "UN", None),
-    ("85176100", "Estações de base de aparelhos para radiotelefonia, radiotelegrafia", 16.0, "UN", None),
-    ("85176200", "Aparelhos para recepção, conversão, emissão/transmissão de voz, imagem", 16.0, "UN", None),
+    (
+        "85171200",
+        "Telefones celulares e outros sem fio, exceto os da sub. 8517.11",
+        16.0,
+        "UN",
+        None,
+    ),
+    (
+        "85176100",
+        "Estações de base de aparelhos para radiotelefonia, radiotelegrafia",
+        16.0,
+        "UN",
+        None,
+    ),
+    (
+        "85176200",
+        "Aparelhos para recepção, conversão, emissão/transmissão de voz, imagem",
+        16.0,
+        "UN",
+        None,
+    ),
     ("85258000", "Câmeras fotográficas e câmeras de televisão", 15.0, "UN", None),
     ("85285200", "Monitores de raios catódicos", 15.0, "UN", None),
     ("85285900", "Outros monitores", 15.0, "UN", None),
@@ -189,7 +387,13 @@ NCM_AMOSTRA = [
     ("85362000", "Disjuntores automáticos", 10.0, "UN", None),
     ("85363000", "Outros aparelhos para proteção de circuitos elétricos", 10.0, "UN", None),
     ("85366100", "Tomadas de corrente", 10.0, "UN", None),
-    ("85369000", "Outros aparelhos para proteção ou conexão de circuitos elétricos", 10.0, "UN", None),
+    (
+        "85369000",
+        "Outros aparelhos para proteção ou conexão de circuitos elétricos",
+        10.0,
+        "UN",
+        None,
+    ),
     ("85414000", "Dispositivos fotossensíveis a semicondutores", 5.0, "UN", None),
     ("85415000", "Outros diodos semicondutores", 5.0, "UN", None),
     # Capítulo 87 - Veículos automóveis
@@ -201,8 +405,20 @@ NCM_AMOSTRA = [
     ("87033200", "Automóveis com motor diesel > 1.500 cm3 e <= 2.500 cm3", 25.0, "UN", None),
     ("87033300", "Automóveis com motor diesel > 2.500 cm3", 35.0, "UN", None),
     ("87041000", "Caminhões basculantes para utilização fora de estradas", 0.0, "UN", None),
-    ("87042100", "Outros veículos para transporte de mercadorias com motor de explosão <= 5 t", 5.0, "UN", None),
-    ("87042200", "Outros veículos para transporte de mercadorias com motor de explosão > 5 t", 5.0, "UN", None),
+    (
+        "87042100",
+        "Outros veículos para transporte de mercadorias com motor de explosão <= 5 t",
+        5.0,
+        "UN",
+        None,
+    ),
+    (
+        "87042200",
+        "Outros veículos para transporte de mercadorias com motor de explosão > 5 t",
+        5.0,
+        "UN",
+        None,
+    ),
     ("87051000", "Caminhões-guindastes", 0.0, "UN", None),
     ("87060010", "Chassis com motor para veículos automotores do código 8703", 25.0, "UN", None),
     ("87089900", "Outras partes e acessórios para veículos automóveis", 10.0, "UN", None),
@@ -223,16 +439,46 @@ NCM_AMOSTRA = [
 CEST_AMOSTRA = [
     # (cest, descricao, segmento, ncm_relacionados)
     # Segmento 01 - Autopeças
-    ("0100100", "Catalisadores em suporte de cerâmica ou metal para conversão catalítica de gases de escape de veículos automotores", "01", ["38151200", "38151900"]),
-    ("0100200", "Tubos e seus acessórios (por exemplo, uniões, cotovelos, flanges, curvas), para sistemas de escapamento de veículos automotores", "01", ["87089900", "73063000"]),
-    ("0100300", "Partes e peças dos sistemas de freios de veículos automotores", "01", ["87089900"]),
-    ("0100400", "Amortecedores de suspensão de veículos automotores", "01", ["87089900", "87084000"]),
-    ("0100500", "Almofadas, cintos e outros componentes para os sistemas de suspensão de veículos automotores", "01", ["87089900"]),
+    (
+        "0100100",
+        "Catalisadores em suporte de cerâmica ou metal para conversão catalítica de gases de escape de veículos automotores",
+        "01",
+        ["38151200", "38151900"],
+    ),
+    (
+        "0100200",
+        "Tubos e seus acessórios (por exemplo, uniões, cotovelos, flanges, curvas), para sistemas de escapamento de veículos automotores",
+        "01",
+        ["87089900", "73063000"],
+    ),
+    (
+        "0100300",
+        "Partes e peças dos sistemas de freios de veículos automotores",
+        "01",
+        ["87089900"],
+    ),
+    (
+        "0100400",
+        "Amortecedores de suspensão de veículos automotores",
+        "01",
+        ["87089900", "87084000"],
+    ),
+    (
+        "0100500",
+        "Almofadas, cintos e outros componentes para os sistemas de suspensão de veículos automotores",
+        "01",
+        ["87089900"],
+    ),
     ("0100600", "Embreagens e seus componentes", "01", ["87083000"]),
     ("0100700", "Eixos com diferencial para veículos automotores", "01", ["87084000"]),
     ("0101000", "Baterias chumbo-ácido para veículos automotores", "01", ["85072000"]),
     ("0101100", "Bujões de radiadores de veículos automotores", "01", ["87089900"]),
-    ("0101200", "Escovas de limpadores de para-brisa de veículos automotores", "01", ["85129000", "39269000"]),
+    (
+        "0101200",
+        "Escovas de limpadores de para-brisa de veículos automotores",
+        "01",
+        ["85129000", "39269000"],
+    ),
     # Segmento 02 - Bebidas alcoólicas
     ("0200100", "Cerveja e chope", "02", ["22030000"]),
     ("0200200", "Chopp em barril", "02", ["22030000"]),
@@ -270,13 +516,23 @@ CEST_AMOSTRA = [
     ("1000500", "Desodorantes e antitranspirantes", "10", ["33071000"]),
     ("1000600", "Cremes dentais e escovas de dente", "10", ["33062000", "90212100"]),
     # Segmento 17 - Veículos automotores
-    ("1700100", "Automóveis de passageiros", "17", ["87032100", "87032200", "87032300", "87032400"]),
+    (
+        "1700100",
+        "Automóveis de passageiros",
+        "17",
+        ["87032100", "87032200", "87032300", "87032400"],
+    ),
     ("1700200", "Caminhonetes e utilitários", "17", ["87042100", "87042200"]),
     ("1700300", "Motocicletas", "17", ["87111000", "87112000", "87113000", "87114000", "87115000"]),
     ("1700400", "Ônibus e micro-ônibus", "17", ["87021000", "87022000"]),
     ("1700500", "Caminhões", "17", ["87042100", "87042200"]),
     # Segmento 21 - Vestuário e acessórios
-    ("2100100", "Vestuário e acessórios de malha", "21", ["61051000", "61052000", "61091000", "61109000"]),
+    (
+        "2100100",
+        "Vestuário e acessórios de malha",
+        "21",
+        ["61051000", "61052000", "61091000", "61109000"],
+    ),
     ("2100200", "Calçados esportivos", "21", ["64021900", "64029900"]),
     ("2100300", "Bolsas e mochilas", "21", ["42021100", "42021200"]),
     ("2100400", "Óculos de sol", "21", ["90041000"]),
@@ -355,7 +611,10 @@ def _importar_cest_csv(conn: sqlite3.Connection, path: Path) -> int:
                 (cest, descricao, segmento),
             )
             ncms_raw = row.get("ncm", "")
-            for ncm in (n.strip().replace(".", "").replace("-", "") for n in ncms_raw.replace(";", ",").split(",")):
+            for ncm in (
+                n.strip().replace(".", "").replace("-", "")
+                for n in ncms_raw.replace(";", ",").split(",")
+            ):
                 if ncm.isdigit():
                     conn.execute(
                         "INSERT OR IGNORE INTO cest_ncm (cest, ncm) VALUES (?,?)",
@@ -398,7 +657,9 @@ def build(output: Path, tipi_csv: Path | None = None, cest_csv: Path | None = No
                         (cest, descricao, segmento),
                     )
                     for ncm in ncms:
-                        conn.execute("INSERT OR IGNORE INTO cest_ncm (cest, ncm) VALUES (?,?)", (cest, ncm))
+                        conn.execute(
+                            "INSERT OR IGNORE INTO cest_ncm (cest, ncm) VALUES (?,?)", (cest, ncm)
+                        )
             print(
                 f"CEST de amostra inseridos: {n_cest} segmentos, {n_rel} relações NCM "
                 f"(use --cest <cest.csv> para a tabela completa)"
@@ -411,10 +672,18 @@ def build(output: Path, tipi_csv: Path | None = None, cest_csv: Path | None = No
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT, help="Caminho de saída do banco SQLite")
-    parser.add_argument("--tipi", type=Path, default=None, help="CSV da TIPI completo (Receita Federal)")
-    parser.add_argument("--cest", type=Path, default=None, help="CSV do CEST completo (Convênio ICMS 92/2015)")
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument(
+        "--output", type=Path, default=DEFAULT_OUTPUT, help="Caminho de saída do banco SQLite"
+    )
+    parser.add_argument(
+        "--tipi", type=Path, default=None, help="CSV da TIPI completo (Receita Federal)"
+    )
+    parser.add_argument(
+        "--cest", type=Path, default=None, help="CSV do CEST completo (Convênio ICMS 92/2015)"
+    )
     args = parser.parse_args()
 
     if args.tipi and not args.tipi.exists():

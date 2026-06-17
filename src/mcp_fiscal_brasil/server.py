@@ -18,17 +18,24 @@ from .agentic import (
     summarize_sped,
     validate_nfe_full,
 )
+from .bcb import _tools as bcb_tools
+from .cep import _tools as cep_tools
 from .certidoes.tools import consultar_certidao_federal, consultar_certidao_fgts
+from .cnae import _tools as cnae_tools
 
 # Importa todas as ferramentas dos modulos fiscais
 from .cnpj.tools import consultar_cnpj, listar_cnpjs_por_nome
 from .cpf.tools import validar_cpf_tool
+from .empresa import _tools as empresa_tools
 from .esocial.tools import listar_eventos_esocial, validar_evento_esocial
+from .ibge import _tools as ibge_tools
+from .mei import _tools as mei_tools
 from .nfe.tools import consultar_nfe, consultar_status_sefaz, validar_chave_nfe
 from .nfse.tools import consultar_nfse
 from .shared.validators import normalizar_cnpj, validate_cnpj_qualquer
 from .simples.tools import consultar_simples_nacional
 from .sped.tools import analisar_sped, listar_registros_sped
+from .tabelas import _tools as tabelas_tools
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -107,8 +114,12 @@ async def tool_consultar_cnpj(cnpj: str) -> dict[str, Any]:
 @app.tool(
     name="listar_cnpjs_por_nome",
     description=(
-        "Busca empresas pelo nome ou razão social. "
-        "Nota: esta funcionalidade tem disponibilidade limitada em APIs públicas."
+        "Busca empresas pelo nome empresarial ou razão social. "
+        "Quando usar: quando só se conhece o nome da empresa e não o CNPJ; "
+        "não usar quando o CNPJ já é conhecido (prefira consultar_cnpj). "
+        "Comportamento: APIs públicas gratuitas não cobrem busca textual por nome; "
+        "a ferramenta retorna orientação para obter o CNPJ via fontes adequadas. "
+        "Parâmetros: nome (obrigatório), uf (sigla do estado, opcional)."
     ),
 )
 async def tool_listar_cnpjs_por_nome(nome: str, uf: str | None = None) -> list[dict[str, str]]:
@@ -470,7 +481,17 @@ async def tool_consultar_certidao_fgts(cnpj: str) -> dict[str, str]:
     ),
 )
 async def tool_analyze_cnpj_compliance(cnpj: str) -> dict[str, Any]:
-    """Analise consolidada de compliance fiscal."""
+    """Analise consolidada de compliance fiscal de um CNPJ.
+
+    Combina dados da Receita Federal, Simples Nacional e CNAE para produzir
+    um relatorio com score 0-100, classificacao de risco e achados acionaveis.
+
+    Args:
+        cnpj: Numero do CNPJ com 14 digitos, com ou sem formatacao.
+
+    Returns:
+        dict com score, risco, situacao, regime, cnae e lista de achados.
+    """
     resultado = await analyze_cnpj_compliance(cnpj)
     return resultado.model_dump(mode="json", exclude_none=True)
 
@@ -510,7 +531,19 @@ async def tool_compare_tax_regimes(
     ),
 )
 async def tool_risk_score_supplier(cnpj: str, criterios_estritos: bool = False) -> dict[str, Any]:
-    """Score de risco para due diligence de fornecedor."""
+    """Calcula score de risco para due diligence de fornecedor.
+
+    Agrega o ComplianceReport do CNPJ com pesos conservadores de contratacao.
+    Com criterios_estritos=True, aplica reducao adicional de 10 pontos para
+    politicas anti-corrupcao (ex: Lei 12.846/2013).
+
+    Args:
+        cnpj: Numero do CNPJ com 14 digitos, com ou sem formatacao.
+        criterios_estritos: Se True, aplica pesos mais rigorosos. Padrao: False.
+
+    Returns:
+        dict com score, recomendacao e justificativa da classificacao.
+    """
     resultado = await risk_score_supplier(cnpj, criterios_estritos)
     return resultado.model_dump(mode="json", exclude_none=True)
 
@@ -528,7 +561,18 @@ async def tool_consultar_empresas_lote(
     cnpjs: list[str],
     criterios_estritos: bool = False,
 ) -> dict[str, Any]:
-    """Consulta em lote consolidada de compliance e risco de fornecedores."""
+    """Consulta em lote consolidada de compliance e risco para ate 50 CNPJs.
+
+    Para cada CNPJ valido, executa analyze_cnpj_compliance + risk_score_supplier
+    em paralelo. CNPJs com falha retornam erro individual sem abortar o lote.
+
+    Args:
+        cnpjs: Lista de CNPJs (max 50), com ou sem formatacao.
+        criterios_estritos: Se True, usa pesos rigorosos no score de risco.
+
+    Returns:
+        dict com resultados por CNPJ e lista de erros individuais.
+    """
     cnpjs_normalizados = _normalizar_e_validar_cnpjs(cnpjs)
     resultado = await consultar_empresas_lote(
         cnpjs_normalizados,
@@ -564,6 +608,19 @@ async def tool_summarize_sped(file_path: str) -> dict[str, Any]:
     """Sumarizacao executiva de arquivo SPED."""
     resultado = await summarize_sped(file_path)
     return resultado.model_dump(mode="json", exclude_none=True)
+
+
+# ---------------------------------------------------------------------------
+# Modulos adicionais (Onda 1) - registrados via padrao register(app)
+# ---------------------------------------------------------------------------
+
+tabelas_tools.register(app)
+bcb_tools.register(app)
+cep_tools.register(app)
+cnae_tools.register(app)
+ibge_tools.register(app)
+mei_tools.register(app)
+empresa_tools.register(app)
 
 
 def main() -> None:

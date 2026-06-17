@@ -15,7 +15,6 @@ from mcp_fiscal_brasil.ibge.tools import consultar_estado_ibge, consultar_munici
 from mcp_fiscal_brasil.mei.schemas import MEIStatus
 from mcp_fiscal_brasil.mei.tools import consultar_status_mei
 
-
 # ---------------------------------------------------------------------------
 # CEP tools
 # ---------------------------------------------------------------------------
@@ -48,7 +47,9 @@ async def test_consultar_cep_delega_ao_client() -> None:
 
 @pytest.mark.asyncio
 async def test_consultar_cnae_delega_ao_client() -> None:
-    esperado = CNAEActivity(código="6201501", descrição="Desenvolvimento de programas de computador sob encomenda")
+    esperado = CNAEActivity(
+        código="6201501", descrição="Desenvolvimento de programas de computador sob encomenda"
+    )
     with patch(
         "mcp_fiscal_brasil.cnae.tools._client.get_activity",
         new_callable=AsyncMock,
@@ -62,8 +63,13 @@ async def test_consultar_cnae_delega_ao_client() -> None:
 @pytest.mark.asyncio
 async def test_buscar_cnae_delega_ao_client() -> None:
     esperado = [
-        CNAEActivity(código="6201501", descrição="Desenvolvimento de programas de computador sob encomenda"),
-        CNAEActivity(código="6202300", descrição="Desenvolvimento e licenciamento de programas de computador customizáveis"),
+        CNAEActivity(
+            código="6201501", descrição="Desenvolvimento de programas de computador sob encomenda"
+        ),
+        CNAEActivity(
+            código="6202300",
+            descrição="Desenvolvimento e licenciamento de programas de computador customizáveis",
+        ),
     ]
     with patch(
         "mcp_fiscal_brasil.cnae.tools._client.get_activities",
@@ -191,13 +197,16 @@ async def test_consultar_empresa_completa_retorna_info() -> None:
 
 def test_cep_register_nao_levanta_excecao() -> None:
     from mcp_fiscal_brasil.cep._tools import register
+
     calls: list[str] = []
 
     class FakeApp:
         def tool(self, **kwargs):  # type: ignore[override]
             calls.append(kwargs.get("name", ""))
+
             def decorator(fn):  # type: ignore[return]
                 return fn
+
             return decorator
 
     register(FakeApp())
@@ -206,13 +215,16 @@ def test_cep_register_nao_levanta_excecao() -> None:
 
 def test_bcb_register_nao_levanta_excecao() -> None:
     from mcp_fiscal_brasil.bcb._tools import register
+
     calls: list[str] = []
 
     class FakeApp:
         def tool(self, **kwargs):  # type: ignore[override]
             calls.append(kwargs.get("name", ""))
+
             def decorator(fn):  # type: ignore[return]
                 return fn
+
             return decorator
 
     register(FakeApp())
@@ -221,13 +233,16 @@ def test_bcb_register_nao_levanta_excecao() -> None:
 
 def test_cnae_register_nao_levanta_excecao() -> None:
     from mcp_fiscal_brasil.cnae._tools import register
+
     calls: list[str] = []
 
     class FakeApp:
         def tool(self, **kwargs):  # type: ignore[override]
             calls.append(kwargs.get("name", ""))
+
             def decorator(fn):  # type: ignore[return]
                 return fn
+
             return decorator
 
     register(FakeApp())
@@ -236,13 +251,16 @@ def test_cnae_register_nao_levanta_excecao() -> None:
 
 def test_ibge_register_nao_levanta_excecao() -> None:
     from mcp_fiscal_brasil.ibge._tools import register
+
     calls: list[str] = []
 
     class FakeApp:
         def tool(self, **kwargs):  # type: ignore[override]
             calls.append(kwargs.get("name", ""))
+
             def decorator(fn):  # type: ignore[return]
                 return fn
+
             return decorator
 
     register(FakeApp())
@@ -251,13 +269,16 @@ def test_ibge_register_nao_levanta_excecao() -> None:
 
 def test_mei_register_nao_levanta_excecao() -> None:
     from mcp_fiscal_brasil.mei._tools import register
+
     calls: list[str] = []
 
     class FakeApp:
         def tool(self, **kwargs):  # type: ignore[override]
             calls.append(kwargs.get("name", ""))
+
             def decorator(fn):  # type: ignore[return]
                 return fn
+
             return decorator
 
     register(FakeApp())
@@ -266,13 +287,16 @@ def test_mei_register_nao_levanta_excecao() -> None:
 
 def test_empresa_register_nao_levanta_excecao() -> None:
     from mcp_fiscal_brasil.empresa._tools import register
+
     calls: list[str] = []
 
     class FakeApp:
         def tool(self, **kwargs):  # type: ignore[override]
             calls.append(kwargs.get("name", ""))
+
             def decorator(fn):  # type: ignore[return]
                 return fn
+
             return decorator
 
     register(FakeApp())
