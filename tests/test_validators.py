@@ -51,12 +51,12 @@ class TestValidateCNPJ:
 
 class TestValidateChaveNFe:
     def test_chave_valida_44_digitos(self) -> None:
-        # Chave com DV correto (calculado)
-        # Usamos uma chave conhecida
-        chave = "31060107364617000135550000000194291370923172"
-        # Esta chave especifica pode ou não ser válida dependendo do DV
-        # Testamos o formato
+        # Chave real da NF-e com DV correto: cUF=35 (SP), AAMM=2401,
+        # CNPJ=12345678000195, mod=55, serie=001, nNF=000000123, tpEmis=1,
+        # cNF=00000001, cDV=1 (calculado pelo módulo 11)
+        chave = "35240112345678000195550010000001231000000011"
         assert len(chave) == 44
+        assert validate_chave_nfe(chave) is True
 
     def test_chave_tamanho_errado(self) -> None:
         assert validate_chave_nfe("1234") is False
@@ -107,9 +107,13 @@ class TestValidateCNPJAlfanumerico:
         # XY987EF00002 + DVs 79
         assert validate_cnpj_alfanumerico("XY987EF0000279") is True
 
-    def test_cnpj_alfanumerico_dv_errado(self) -> None:
-        # DV correto é 08, usar 09 deve ser inválido
+    def test_cnpj_alfanumerico_dv2_errado(self) -> None:
+        # DV1 correto é 0, DV2 correto é 8 -> usar DV2=9 invalida
         assert validate_cnpj_alfanumerico("AB123CD0000109") is False
+
+    def test_cnpj_alfanumerico_dv1_errado(self) -> None:
+        # DV1 correto é 0 -> usar DV1=1 invalida (AB123CD000011X com qualquer DV2)
+        assert validate_cnpj_alfanumerico("AB123CD0000118") is False
 
     def test_cnpj_alfanumerico_tamanho_errado(self) -> None:
         assert validate_cnpj_alfanumerico("AB123CD00001") is False

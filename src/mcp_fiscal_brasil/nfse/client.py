@@ -59,9 +59,6 @@ class NFSeNacionalClient:
         Endpoint: GET /nfse/{chaveAcesso}
         Retorna None se a nota não for encontrada, se houver erro de autenticação
         (certificado não configurado) ou qualquer falha de rede.
+        O método _get já trata todas as exceções; não é necessário try/except aqui.
         """
-        try:
-            return await self._get(f"/nfse/{chave_acesso}")
-        except Exception as exc:
-            logger.debug("Erro inesperado em consultar_por_chave (%s): %s", chave_acesso, exc)
-            return None
+        return await self._get(f"/nfse/{chave_acesso}")

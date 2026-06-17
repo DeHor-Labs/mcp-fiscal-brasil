@@ -2,7 +2,9 @@
 
 Baseado na NT 2025.002 - Adequação NF-e/NFC-e ao IBS, CBS e IS.
 Grupo UB: det/imposto/IBSCBS com subgrupos IBSUF, IBSMun, CBS.
+IS (Imposto Seletivo): det/imposto/IS - IRMÃO de IBSCBS (não dentro).
 Totais Grupo W03: vBCIBSCBS, vIBSUF, vIBSMun, vIBS, vCBS, vIS.
+Obrigatoriedade: produção CRT3 em 03/08/2026, homologação 01/07/2026, Simples/MEI 04/01/2027.
 """
 
 from mcp_fiscal_brasil.nfe.xml_parser import parse_nfe_xml
@@ -57,12 +59,12 @@ XML_NFE_COM_IBSCBS = """
             <pAliq>5.80</pAliq>
             <vCBS>58.00</vCBS>
           </CBS>
-          <IS>
-            <vBCIS>1000.00</vBCIS>
-            <pIS>1.00</pIS>
-            <vIS>10.00</vIS>
-          </IS>
         </IBSCBS>
+        <IS>
+          <vBCIS>1000.00</vBCIS>
+          <pIS>1.00</pIS>
+          <vIS>10.00</vIS>
+        </IS>
       </imposto>
     </det>
     <total>
@@ -188,3 +190,138 @@ class TestNFeIBSCBS:
         assert resp.totais.valor_nota == 1000.0
         assert resp.itens[0].aliquota_icms == 12.0
         assert resp.itens[0].valor_icms == 120.0
+
+    def test_parse_item_is_como_irmao_de_ibscbs(self) -> None:
+        """IS em det/imposto/IS (irmão de IBSCBS) deve ser extraído corretamente.
+
+        Posição correta per NT 2025.002: IS é irmão de IBSCBS, não filho.
+        """
+        resp = parse_nfe_xml(XML_NFE_COM_IBSCBS, "35240112345678000195550010000001231000000012")
+        item = resp.itens[0]
+        assert item.aliquota_is == 1.0
+        assert item.valor_is == 10.0
+
+    def test_parse_nfe_com_namespace_real(self) -> None:
+        """NF-e com namespace real http://www.portalfiscal.inf.br/nfe deve ser parseada."""
+        resp = parse_nfe_xml(XML_NFE_COM_NAMESPACE, "35240112345678000195550010000001231000000011")
+        assert resp.número == "999"
+        assert len(resp.itens) == 1
+        assert resp.itens[0].valor_total == 1000.0
+        assert resp.itens[0].aliquota_icms == 12.0
+
+    def test_parse_ibscbs_parcial_sem_ibsuf_ibsmun(self) -> None:
+        """NF-e com apenas CBS em IBSCBS (sem IBSUF/IBSMun): campos ausentes = None."""
+        resp = parse_nfe_xml(XML_NFE_IBSCBS_PARCIAL, "35240112345678000195550010000001231000000011")
+        item = resp.itens[0]
+        assert item.aliquota_ibs_uf is None
+        assert item.valor_ibs_uf is None
+        assert item.aliquota_ibs_mun is None
+        assert item.valor_ibs_mun is None
+        assert item.aliquota_cbs == 5.80
+        assert item.valor_cbs == 58.0
+
+
+# XML com namespace real do portal fiscal (cobre caminho com namespace no parser)
+XML_NFE_COM_NAMESPACE = """<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
+  <NFe xmlns="http://www.portalfiscal.inf.br/nfe">
+    <infNFe Id="NFe35240112345678000195550010000001231000000011" versao="4.00">
+      <ide>
+        <mod>55</mod>
+        <serie>1</serie>
+        <nNF>999</nNF>
+        <dhEmi>2026-01-15T10:00:00-03:00</dhEmi>
+        <natOp>Venda</natOp>
+        <tpNF>1</tpNF>
+      </ide>
+      <emit>
+        <CNPJ>12345678000195</CNPJ>
+        <xNome>EMPRESA NAMESPACE LTDA</xNome>
+      </emit>
+      <det nItem="1">
+        <prod>
+          <cProd>PROD-NS-01</cProd>
+          <xProd>Produto com namespace</xProd>
+          <NCM>84713012</NCM>
+          <CFOP>5102</CFOP>
+          <uCom>UN</uCom>
+          <qCom>1.0000</qCom>
+          <vUnCom>1000.00</vUnCom>
+          <vProd>1000.00</vProd>
+        </prod>
+        <imposto>
+          <ICMS>
+            <ICMS00>
+              <CST>00</CST>
+              <pICMS>12.00</pICMS>
+              <vICMS>120.00</vICMS>
+            </ICMS00>
+          </ICMS>
+        </imposto>
+      </det>
+      <total>
+        <ICMSTot>
+          <vProd>1000.00</vProd>
+          <vICMS>120.00</vICMS>
+          <vNF>1000.00</vNF>
+        </ICMSTot>
+      </total>
+    </infNFe>
+  </NFe>
+</nfeProc>
+"""
+
+# XML com IBSCBS parcial (apenas CBS, sem IBSUF e IBSMun)
+XML_NFE_IBSCBS_PARCIAL = """
+<NFe>
+  <infNFe Id="NFe35240112345678000195550010000001231000000011">
+    <ide>
+      <mod>55</mod>
+      <serie>1</serie>
+      <nNF>999</nNF>
+      <dhEmi>2026-01-15T10:00:00-03:00</dhEmi>
+      <natOp>Venda parcial RT</natOp>
+      <tpNF>1</tpNF>
+    </ide>
+    <emit>
+      <CNPJ>12345678000195</CNPJ>
+      <xNome>EMPRESA PARCIAL LTDA</xNome>
+    </emit>
+    <det nItem="1">
+      <prod>
+        <cProd>PROD-PARCIAL-01</cProd>
+        <xProd>Produto CBS apenas</xProd>
+        <NCM>84713012</NCM>
+        <CFOP>5102</CFOP>
+        <uCom>UN</uCom>
+        <qCom>1.0000</qCom>
+        <vUnCom>1000.00</vUnCom>
+        <vProd>1000.00</vProd>
+      </prod>
+      <imposto>
+        <ICMS>
+          <ICMS00>
+            <CST>00</CST>
+            <pICMS>12.00</pICMS>
+            <vICMS>120.00</vICMS>
+          </ICMS00>
+        </ICMS>
+        <IBSCBS>
+          <CBS>
+            <vBC>1000.00</vBC>
+            <pAliq>5.80</pAliq>
+            <vCBS>58.00</vCBS>
+          </CBS>
+        </IBSCBS>
+      </imposto>
+    </det>
+    <total>
+      <ICMSTot>
+        <vProd>1000.00</vProd>
+        <vICMS>120.00</vICMS>
+        <vNF>1000.00</vNF>
+      </ICMSTot>
+    </total>
+  </infNFe>
+</NFe>
+"""

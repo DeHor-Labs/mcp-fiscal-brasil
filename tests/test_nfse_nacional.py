@@ -50,14 +50,19 @@ class TestNFSeNacionalClient:
         assert resultado is None
 
     @pytest.mark.asyncio
-    async def test_consultar_por_chave_retorna_none_em_erro(self) -> None:
-        """Quando a API lança exceção, deve retornar None (aciona fallback)."""
+    async def test_consultar_por_chave_retorna_none_quando_get_retorna_none(self) -> None:
+        """Quando _get retorna None (erro de rede, auth, 404), consultar_por_chave repassa None.
+
+        _get já captura todas as exceções internamente e retorna None. O double try/except
+        em consultar_por_chave foi removido pois era caminho morto (Fix 6).
+        """
         client = NFSeNacionalClient()
         with patch.object(client, "_get", new_callable=AsyncMock) as mock_get:
-            mock_get.side_effect = Exception("Timeout de conexão")
+            mock_get.return_value = None
             resultado = await client.consultar_por_chave("CHAVE_COM_ERRO")
 
         assert resultado is None
+        mock_get.assert_called_once_with("/nfse/CHAVE_COM_ERRO")
 
 
 class TestConsultarNFSeComFallback:

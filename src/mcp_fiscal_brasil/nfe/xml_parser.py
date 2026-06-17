@@ -106,11 +106,26 @@ def _parse_item(det: etree._Element, ns: dict[str, str]) -> ItemNFe:
             icms_el = icms_group[0]  # ICMS00, ICMS10, etc.
 
         # Campos Reforma Tributária (NT 2025.002) - opcionais
+        # Obrigatoriedade NF-e: produção CRT3 em 03/08/2026, homologação 01/07/2026,
+        # Simples/MEI em 04/01/2027.
         ibscbs_el = _find_any(imposto, "nfe:IBSCBS", "IBSCBS", ns)
         if ibscbs_el is not None:
-            ibsuf_el = _find_any(ibscbs_el, "nfe:IBSUF", "IBSUF", ns)
-            ibsmun_el = _find_any(ibscbs_el, "nfe:IBSMun", "IBSMun", ns)
-            cbs_el = _find_any(ibscbs_el, "nfe:CBS", "CBS", ns)
+            # NT v1.40 usa tanto IBSUF quanto gIBSUF - aceita ambas as variantes
+            ibsuf_el = _find_any(ibscbs_el, "nfe:gIBSUF", "gIBSUF", ns) or _find_any(
+                ibscbs_el, "nfe:IBSUF", "IBSUF", ns
+            )
+            ibsmun_el = _find_any(ibscbs_el, "nfe:gIBSMun", "gIBSMun", ns) or _find_any(
+                ibscbs_el, "nfe:IBSMun", "IBSMun", ns
+            )
+            cbs_el = _find_any(ibscbs_el, "nfe:gCBS", "gCBS", ns) or _find_any(
+                ibscbs_el, "nfe:CBS", "CBS", ns
+            )
+
+        # IS (Imposto Seletivo) é IRMÃO de IBSCBS em det/imposto/IS per NT 2025.002.
+        # Como fallback, busca também dentro de IBSCBS para compatibilidade
+        # com implementações que posicionaram incorretamente.
+        is_el = _find_any(imposto, "nfe:IS", "IS", ns)
+        if is_el is None and ibscbs_el is not None:
             is_el = _find_any(ibscbs_el, "nfe:IS", "IS", ns)
 
     return ItemNFe(
@@ -143,6 +158,7 @@ def _parse_item(det: etree._Element, ns: dict[str, str]) -> ItemNFe:
         ),
         aliquota_cbs=_safe_float(_xpath_text_any(cbs_el, "nfe:pAliq/text()", "pAliq/text()", ns)),
         valor_cbs=_safe_float(_xpath_text_any(cbs_el, "nfe:vCBS/text()", "vCBS/text()", ns)),
+        # IS usa pIS/vIS (não pAliq como IBS/CBS) - NT 2025.002 seção UB04
         aliquota_is=_safe_float(_xpath_text_any(is_el, "nfe:pIS/text()", "pIS/text()", ns)),
         valor_is=_safe_float(_xpath_text_any(is_el, "nfe:vIS/text()", "vIS/text()", ns)),
     )

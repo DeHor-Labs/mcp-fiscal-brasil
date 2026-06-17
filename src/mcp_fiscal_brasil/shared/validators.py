@@ -95,8 +95,10 @@ def validate_cnpj_alfanumerico(cnpj: str) -> bool:
     As 2 últimas são dígitos verificadores numéricos calculados pelo módulo 11,
     usando o valor ASCII de cada caractere subtraído de 48.
 
-    Aceita também CNPJs numéricos puros (14 dígitos), garantindo backward compat.
-    NÃO aceita letras minúsculas nem máscaras (pontos, barra, traço).
+    Esta função NÃO aceita máscaras (pontos, barra, traço) nem letras minúsculas.
+    Aceita CNPJs numéricos puros (14 dígitos sem máscara) como caso especial,
+    pois o algoritmo é compatível com ambos os formatos.
+    Para validar qualquer CNPJ com ou sem máscara, use validate_cnpj_qualquer.
     """
     if len(cnpj) != 14:
         return False
@@ -156,6 +158,17 @@ def validate_cnpj_qualquer(cnpj: str) -> bool:
         return validate_cnpj_alfanumerico(cnpj_sem_mascara)
 
     return False
+
+
+def normalizar_cnpj(cnpj: str) -> str:
+    """
+    Remove a máscara de um CNPJ (numérico ou alfanumérico) e normaliza para maiúsculas.
+
+    Para CNPJs numéricos: remove pontos, barra e traço.
+    Para CNPJs alfanuméricos (IN RFB 2.229/2024): preserva as letras, remove máscara.
+    Não valida o CNPJ - use validate_cnpj_qualquer antes se necessário.
+    """
+    return "".join(c for c in cnpj if c.isalnum()).upper()
 
 
 def validate_chave_nfe(chave: str) -> bool:

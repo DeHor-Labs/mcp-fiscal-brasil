@@ -1,7 +1,11 @@
 """Ferramentas MCP para NFSe."""
 
+import logging
+
 from mcp_fiscal_brasil.nfse.client import NFSeNacionalClient
 from mcp_fiscal_brasil.shared.validators import validate_cnpj
+
+logger = logging.getLogger(__name__)
 
 
 def _validar_numero_nfse(numero: str) -> str:
@@ -65,8 +69,9 @@ async def consultar_nfse(
     cnpj_prestador = _validar_cnpj_prestador(cnpj_prestador)
 
     # Tenta a API do Ambiente de Dados Nacional (ADN) primeiro.
-    # A API exige certificado ICP-Brasil + mTLS; sem certificado retorna None
-    # e caímos no fallback com portais municipais.
+    # A API exige certificado ICP-Brasil + mTLS; sem certificado retorna None.
+    # Qualquer falha aciona o fallback estático de portais municipais.
+    api_fallback_motivo: str | None = None
     try:
         cliente_nacional = NFSeNacionalClient()
         dados_api = await cliente_nacional.consultar_por_chave(numero)
@@ -79,8 +84,19 @@ async def consultar_nfse(
                 "status": "encontrada",
                 **dados_api,
             }
-    except Exception:
-        pass  # Qualquer falha aciona o fallback estático abaixo
+        # None indica nota não encontrada ou certificado ausente
+        api_fallback_motivo = "API Nacional retornou None (nota não encontrada ou certificado ICP-Brasil não configurado)"
+        logger.info(
+            "API Nacional NFS-e: nota %s não encontrada ou sem certificado - usando fallback",
+            numero,
+        )
+    except Exception as exc:
+        api_fallback_motivo = f"API Nacional indisponível: {exc}"
+        logger.warning(
+            "Falha ao consultar API Nacional NFS-e para nota %s: %s - usando fallback",
+            numero,
+            exc,
+        )
 
     # Portais de consulta por município/sistema (50+ capitais e grandes cidades)
     # Formato: "CIDADE/UF": {"portal": "url", "sistema": "tipo_sistema"}
@@ -184,7 +200,10 @@ async def consultar_nfse(
         },
         "CARUARU/PE": {"portal": "https://nfse.caruaru.pe.gov.br/", "sistema": "ABRASF"},
         # Cidades da Paraíba
-        "CAMPINA GRANDE/PB": {"portal": "https://nfse.campinagde.pb.gov.br/", "sistema": "ABRASF"},
+        "CAMPINA GRANDE/PB": {
+            "portal": "https://nfse.campinagrande.pb.gov.br/",
+            "sistema": "ABRASF",
+        },
         # Cidades do Rio Grande do Norte
         "PARNAMIRIM/RN": {"portal": "https://nfse.parnamirim.rn.gov.br/", "sistema": "ABRASF"},
         # Cidades de Alagoas
@@ -227,7 +246,9 @@ async def consultar_nfse(
         "numero": numero,
         "municipio": municipio,
         "uf": uf_upper,
+        "fonte": "fallback_portal_municipal",
         "status": "consulta_manual_necessaria",
+        "api_nacional_motivo": api_fallback_motivo,
         "motivo": (
             "NFSe não possui API pública padronizada nacional. "
             "Cada município gerencia seu próprio sistema de emissão e consulta."
