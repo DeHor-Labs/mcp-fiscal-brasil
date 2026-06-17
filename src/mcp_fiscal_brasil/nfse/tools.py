@@ -2,7 +2,7 @@
 
 import logging
 
-from mcp_fiscal_brasil.nfse.client import NFSeNacionalClient
+from mcp_fiscal_brasil.nfse.client import NFSeNacionalClient, NFSeNacionalUnavailableError
 from mcp_fiscal_brasil.shared.validators import validate_cnpj
 
 logger = logging.getLogger(__name__)
@@ -69,8 +69,9 @@ async def consultar_nfse(
     cnpj_prestador = _validar_cnpj_prestador(cnpj_prestador)
 
     # Tenta a API do Ambiente de Dados Nacional (ADN) primeiro.
-    # A API exige certificado ICP-Brasil + mTLS; sem certificado retorna None.
-    # Qualquer falha aciona o fallback estático de portais municipais.
+    # A API exige certificado ICP-Brasil + mTLS.
+    # - None -> 404 (nota não encontrada): fallback com motivo específico
+    # - NFSeNacionalUnavailableError -> 5xx/timeout/rede: fallback com motivo de indisponibilidade
     api_fallback_motivo: str | None = None
     try:
         cliente_nacional = NFSeNacionalClient()
@@ -84,16 +85,23 @@ async def consultar_nfse(
                 "status": "encontrada",
                 **dados_api,
             }
-        # None indica nota não encontrada ou certificado ausente
-        api_fallback_motivo = "API Nacional retornou None (nota não encontrada ou certificado ICP-Brasil não configurado)"
+        # None = HTTP 404: nota não encontrada na base nacional
+        api_fallback_motivo = "Nota não encontrada na API Nacional (HTTP 404 - ausente ou certificado ICP-Brasil não configurado)"
         logger.info(
-            "API Nacional NFS-e: nota %s não encontrada ou sem certificado - usando fallback",
+            "API Nacional NFS-e: nota %s retornou 404 - usando fallback municipal",
             numero,
         )
-    except Exception as exc:
+    except NFSeNacionalUnavailableError as exc:
         api_fallback_motivo = f"API Nacional indisponível: {exc}"
         logger.warning(
-            "Falha ao consultar API Nacional NFS-e para nota %s: %s - usando fallback",
+            "API Nacional NFS-e indisponível para nota %s: %s - usando fallback municipal",
+            numero,
+            exc,
+        )
+    except Exception as exc:
+        api_fallback_motivo = f"Erro inesperado na API Nacional: {exc}"
+        logger.warning(
+            "Erro inesperado ao consultar API Nacional NFS-e para nota %s: %s - usando fallback",
             numero,
             exc,
         )

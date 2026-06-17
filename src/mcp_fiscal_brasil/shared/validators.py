@@ -141,6 +141,14 @@ def validate_cnpj_qualquer(cnpj: str) -> bool:
 
     CNPJs numéricos (somente dígitos, com ou sem máscara) usam validate_cnpj.
     CNPJs alfanuméricos (contêm letras A-Z, sem máscara) usam validate_cnpj_alfanumerico.
+
+    Tratamento de máscara (comportamento intencional e defensivo):
+    - Este dispatcher remove apenas os separadores padrão de CNPJ: ponto, barra e traço.
+    - Outros caracteres como espaços tornam o input inválido (retorna False).
+    - Isso é diferente de normalizar_cnpj, que usa isalnum() e remove qualquer
+      caractere não alfanumérico. A validação rejeita inputs com formato estranho
+      antes de normalizar, mantendo fronteiras de entrada bem definidas.
+    - Para normalizar antes de validar, use normalizar_cnpj() + validate_cnpj_alfanumerico().
     """
     if not cnpj:
         return False

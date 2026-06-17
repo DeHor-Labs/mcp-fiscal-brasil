@@ -5,6 +5,7 @@ import pytest
 from mcp_fiscal_brasil.shared.validators import (
     format_cnpj,
     format_cpf,
+    normalizar_cnpj,
     validate_chave_nfe,
     validate_cnpj,
     validate_cnpj_alfanumerico,
@@ -128,8 +129,10 @@ class TestValidateCNPJAlfanumerico:
         assert validate_cnpj_alfanumerico("33000167000101") is True
 
     def test_cnpj_alfanumerico_todos_iguais_invalido(self) -> None:
-        # Sequências onde TODOS os 14 caracteres são idênticos são inválidas
-        assert validate_cnpj_alfanumerico("AAAAAAAAAAAAAA") is False
+        # Sequências com 14 chars idênticos devem ser rejeitadas pelo check de uniformidade.
+        # Usar "00000000000000" (numérico uniforme) para testar especificamente esse caminho,
+        # pois "AAAAAAAAAAAAAA" seria rejeitado antes pelo check de DVs (cnpj[12:] deve ser dígito).
+        assert validate_cnpj_alfanumerico("00000000000000") is False
 
 
 class TestValidateCNPJQualquer:
@@ -152,3 +155,24 @@ class TestValidateCNPJQualquer:
 
     def test_cnpj_tamanho_errado_invalido(self) -> None:
         assert validate_cnpj_qualquer("123") is False
+
+
+class TestNormalizarCNPJ:
+    """Testes para normalizar_cnpj: remove máscara e normaliza para maiúsculas."""
+
+    def test_cnpj_numerico_com_mascara(self) -> None:
+        # Máscara padrão numérica: pontos, barra e traço removidos
+        assert normalizar_cnpj("33.000.167/0001-01") == "33000167000101"
+
+    def test_cnpj_alfanumerico_com_mascara(self) -> None:
+        # Máscara alfanumérica: caracteres não-alfanuméricos (pontos, barra, traço) removidos
+        # "AB.123.CD0/0001-08" tem 18 chars; sem máscara = "AB123CD0000108" (14 chars)
+        assert normalizar_cnpj("AB.123.CD0/0001-08") == "AB123CD0000108"
+
+    def test_minusculas_convertidas_para_maiusculas(self) -> None:
+        # Letras minúsculas devem ser convertidas para maiúsculas
+        assert normalizar_cnpj("ab123cd0000108") == "AB123CD0000108"
+
+    def test_ja_normalizado_retorna_igual(self) -> None:
+        # CNPJ já normalizado (sem máscara, maiúsculas) deve retornar igual
+        assert normalizar_cnpj("33000167000101") == "33000167000101"

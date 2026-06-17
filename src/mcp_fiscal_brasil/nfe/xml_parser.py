@@ -110,16 +110,20 @@ def _parse_item(det: etree._Element, ns: dict[str, str]) -> ItemNFe:
         # Simples/MEI em 04/01/2027.
         ibscbs_el = _find_any(imposto, "nfe:IBSCBS", "IBSCBS", ns)
         if ibscbs_el is not None:
-            # NT v1.40 usa tanto IBSUF quanto gIBSUF - aceita ambas as variantes
-            ibsuf_el = _find_any(ibscbs_el, "nfe:gIBSUF", "gIBSUF", ns) or _find_any(
-                ibscbs_el, "nfe:IBSUF", "IBSUF", ns
+            # NT v1.40 usa tanto IBSUF quanto gIBSUF - aceita ambas as variantes.
+            # Usa is not None explícito pra evitar FutureWarning do lxml (truth-testing).
+            _ibsuf_g = _find_any(ibscbs_el, "nfe:gIBSUF", "gIBSUF", ns)
+            ibsuf_el = (
+                _ibsuf_g if _ibsuf_g is not None else _find_any(ibscbs_el, "nfe:IBSUF", "IBSUF", ns)
             )
-            ibsmun_el = _find_any(ibscbs_el, "nfe:gIBSMun", "gIBSMun", ns) or _find_any(
-                ibscbs_el, "nfe:IBSMun", "IBSMun", ns
+            _ibsmun_g = _find_any(ibscbs_el, "nfe:gIBSMun", "gIBSMun", ns)
+            ibsmun_el = (
+                _ibsmun_g
+                if _ibsmun_g is not None
+                else _find_any(ibscbs_el, "nfe:IBSMun", "IBSMun", ns)
             )
-            cbs_el = _find_any(ibscbs_el, "nfe:gCBS", "gCBS", ns) or _find_any(
-                ibscbs_el, "nfe:CBS", "CBS", ns
-            )
+            _cbs_g = _find_any(ibscbs_el, "nfe:gCBS", "gCBS", ns)
+            cbs_el = _cbs_g if _cbs_g is not None else _find_any(ibscbs_el, "nfe:CBS", "CBS", ns)
 
         # IS (Imposto Seletivo) é IRMÃO de IBSCBS em det/imposto/IS per NT 2025.002.
         # Como fallback, busca também dentro de IBSCBS para compatibilidade

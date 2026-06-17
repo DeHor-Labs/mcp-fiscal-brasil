@@ -220,6 +220,47 @@ class TestNFeIBSCBS:
         assert item.aliquota_cbs == 5.80
         assert item.valor_cbs == 58.0
 
+    def test_parse_item_com_tags_g_variantes_nt_v140(self) -> None:
+        """Variantes gIBSUF/gIBSMun/gCBS da NT v1.40 devem ser extraídas corretamente.
+
+        O parser aceita tanto IBSUF quanto gIBSUF (e equivalentes) para retrocompatibilidade.
+        """
+        xml = (
+            XML_NFE_COM_IBSCBS.replace("<IBSUF>", "<gIBSUF>")
+            .replace("</IBSUF>", "</gIBSUF>")
+            .replace("<IBSMun>", "<gIBSMun>")
+            .replace("</IBSMun>", "</gIBSMun>")
+            .replace("<CBS>", "<gCBS>")
+            .replace("</CBS>", "</gCBS>")
+        )
+        resp = parse_nfe_xml(xml, "35240112345678000195550010000001231000000012")
+        item = resp.itens[0]
+        assert item.aliquota_ibs_uf == 9.0
+        assert item.valor_ibs_uf == 90.0
+        assert item.aliquota_ibs_mun == 3.65
+        assert item.valor_ibs_mun == 36.5
+        assert item.aliquota_cbs == 5.80
+        assert item.valor_cbs == 58.0
+
+    def test_parse_item_is_dentro_de_ibscbs_fallback_compatibilidade(self) -> None:
+        """IS posicionado DENTRO de IBSCBS (posição incorreta) ainda deve ser extraído.
+
+        O parser usa fallback: busca IS em imposto/IS (posição correta per NT 2025.002)
+        e, se não encontrar, tenta imposto/IBSCBS/IS (posição de implementações anteriores).
+        """
+        # Move o bloco IS para dentro de IBSCBS (antes do fechamento </IBSCBS>)
+        xml = XML_NFE_COM_IBSCBS.replace(
+            "        </IBSCBS>\n        <IS>",
+            "        <IS>",
+        ).replace(
+            "        </IS>\n      </imposto>",
+            "        </IS>\n        </IBSCBS>\n      </imposto>",
+        )
+        resp = parse_nfe_xml(xml, "35240112345678000195550010000001231000000012")
+        item = resp.itens[0]
+        assert item.aliquota_is == 1.0
+        assert item.valor_is == 10.0
+
 
 # XML com namespace real do portal fiscal (cobre caminho com namespace no parser)
 XML_NFE_COM_NAMESPACE = """<?xml version="1.0" encoding="UTF-8"?>

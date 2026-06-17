@@ -85,15 +85,22 @@ class TestConsultarNFSeComFallback:
         assert resultado["numero"] == "99999"
         assert resultado["municipio"] == "São Paulo"
         assert resultado["uf"] == "SP"
-        # Fallback deve informar onde consultar manualmente
-        assert "portal_municipio" in resultado or "status" in resultado
+        # Fallback deve informar explicitamente a fonte, status e motivo
+        assert resultado["fonte"] == "fallback_portal_municipal"
+        assert resultado["status"] == "consulta_manual_necessaria"
+        assert resultado["api_nacional_motivo"] is not None
+        assert "portal_municipio" in resultado
 
     @pytest.mark.asyncio
     async def test_fallback_estatico_quando_api_nacional_lanca_excecao(self) -> None:
-        """Quando o cliente da API lança exceção, cai no fallback."""
+        """Quando o cliente da API lança exceção de indisponibilidade, cai no fallback."""
+        from mcp_fiscal_brasil.nfse.client import NFSeNacionalUnavailableError
+
         with patch("mcp_fiscal_brasil.nfse.tools.NFSeNacionalClient") as mock_client_class:
             mock_instance = MagicMock()
-            mock_instance.consultar_por_chave = AsyncMock(side_effect=Exception("Erro de rede"))
+            mock_instance.consultar_por_chave = AsyncMock(
+                side_effect=NFSeNacionalUnavailableError("status=503 path=/nfse/55555")
+            )
             mock_client_class.return_value = mock_instance
 
             resultado = await consultar_nfse(
@@ -103,7 +110,10 @@ class TestConsultarNFSeComFallback:
             )
 
         assert resultado["numero"] == "55555"
-        assert "status" in resultado
+        assert resultado["fonte"] == "fallback_portal_municipal"
+        assert resultado["status"] == "consulta_manual_necessaria"
+        assert resultado["api_nacional_motivo"] is not None
+        assert "indisponível" in resultado["api_nacional_motivo"]
 
     @pytest.mark.asyncio
     async def test_api_nacional_quando_retorna_dados(self) -> None:
