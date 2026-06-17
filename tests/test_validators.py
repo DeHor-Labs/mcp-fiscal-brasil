@@ -7,6 +7,8 @@ from mcp_fiscal_brasil.shared.validators import (
     format_cpf,
     validate_chave_nfe,
     validate_cnpj,
+    validate_cnpj_alfanumerico,
+    validate_cnpj_qualquer,
     validate_cpf,
 )
 
@@ -87,3 +89,62 @@ class TestFormatCNPJ:
     def test_tamanho_errado_levanta_erro(self) -> None:
         with pytest.raises(ValueError):
             format_cnpj("123")
+
+
+class TestValidateCNPJAlfanumerico:
+    """Testes para validação de CNPJ alfanumérico (IN RFB 2.229/2024, vigência jul/2026).
+
+    CNPJs fictícios com DVs calculados pelo algoritmo módulo 11 com conversão ASCII-48:
+    - AB123CD0000108 (DVs calculados: 0,8)
+    - XY987EF0000279 (DVs calculados: 7,9)
+    """
+
+    def test_cnpj_alfanumerico_valido(self) -> None:
+        # AB123CD00001 + DVs 08
+        assert validate_cnpj_alfanumerico("AB123CD0000108") is True
+
+    def test_cnpj_alfanumerico_segundo_exemplo_valido(self) -> None:
+        # XY987EF00002 + DVs 79
+        assert validate_cnpj_alfanumerico("XY987EF0000279") is True
+
+    def test_cnpj_alfanumerico_dv_errado(self) -> None:
+        # DV correto é 08, usar 09 deve ser inválido
+        assert validate_cnpj_alfanumerico("AB123CD0000109") is False
+
+    def test_cnpj_alfanumerico_tamanho_errado(self) -> None:
+        assert validate_cnpj_alfanumerico("AB123CD00001") is False
+        assert validate_cnpj_alfanumerico("AB123CD000010812345") is False
+
+    def test_cnpj_alfanumerico_letras_minusculas_invalido(self) -> None:
+        # CNPJ alfanumérico usa somente letras maiúsculas
+        assert validate_cnpj_alfanumerico("ab123cd0000108") is False
+
+    def test_cnpj_numerico_aceito_por_alfanumerico(self) -> None:
+        # CNPJs numéricos existentes continuam válidos (backward compat)
+        assert validate_cnpj_alfanumerico("33000167000101") is True
+
+    def test_cnpj_alfanumerico_todos_iguais_invalido(self) -> None:
+        # Sequências onde TODOS os 14 caracteres são idênticos são inválidas
+        assert validate_cnpj_alfanumerico("AAAAAAAAAAAAAA") is False
+
+
+class TestValidateCNPJQualquer:
+    """Testes para o dispatcher que detecta formato e delega."""
+
+    def test_cnpj_numerico_valido(self) -> None:
+        assert validate_cnpj_qualquer("33.000.167/0001-01") is True
+
+    def test_cnpj_numerico_invalido(self) -> None:
+        assert validate_cnpj_qualquer("33.000.167/0001-02") is False
+
+    def test_cnpj_alfanumerico_valido(self) -> None:
+        assert validate_cnpj_qualquer("AB123CD0000108") is True
+
+    def test_cnpj_alfanumerico_invalido(self) -> None:
+        assert validate_cnpj_qualquer("AB123CD0000109") is False
+
+    def test_cnpj_vazio_invalido(self) -> None:
+        assert validate_cnpj_qualquer("") is False
+
+    def test_cnpj_tamanho_errado_invalido(self) -> None:
+        assert validate_cnpj_qualquer("123") is False

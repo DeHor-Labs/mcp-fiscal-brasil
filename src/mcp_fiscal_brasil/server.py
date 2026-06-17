@@ -26,7 +26,7 @@ from .cpf.tools import validar_cpf_tool
 from .esocial.tools import listar_eventos_esocial, validar_evento_esocial
 from .nfe.tools import consultar_nfe, consultar_status_sefaz, validar_chave_nfe
 from .nfse.tools import consultar_nfse
-from .shared.validators import validate_cnpj
+from .shared.validators import validate_cnpj_qualquer
 from .simples.tools import consultar_simples_nacional
 from .sped.tools import analisar_sped, listar_registros_sped
 
@@ -47,10 +47,11 @@ def _normalizar_e_validar_cnpjs(cnpjs: list[str]) -> list[str]:
     normalizados: list[str] = []
 
     for cnpj in cnpjs:
-        if not validate_cnpj(cnpj):
+        if not validate_cnpj_qualquer(cnpj):
             invalidos.append(cnpj)
             continue
-        normalizados.append("".join(caractere for caractere in cnpj if caractere.isdigit()))
+        # Para alfanuméricos, preservar letras; para numéricos, remover máscara
+        normalizados.append("".join(c for c in cnpj if c.isalnum()).upper())
 
     if invalidos:
         raise ValueError(

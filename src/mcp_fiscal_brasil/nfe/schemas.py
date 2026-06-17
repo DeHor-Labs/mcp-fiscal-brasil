@@ -37,6 +37,15 @@ class ItemNFe(BaseModel):
     valor_pis: float | None = None
     aliquota_cofins: float | None = None
     valor_cofins: float | None = None
+    # Campos Reforma Tributária (NT 2025.002) - opcionais para retrocompatibilidade
+    aliquota_ibs_uf: float | None = None
+    valor_ibs_uf: float | None = None
+    aliquota_ibs_mun: float | None = None
+    valor_ibs_mun: float | None = None
+    aliquota_cbs: float | None = None
+    valor_cbs: float | None = None
+    aliquota_is: float | None = None
+    valor_is: float | None = None
 
 
 class TotaisNFe(BaseModel):
@@ -58,6 +67,17 @@ class TotaisNFe(BaseModel):
     valor_nota: float | None = None
 
 
+class TotaisReformaNFe(BaseModel):
+    """Totais dos tributos da Reforma Tributária na NF-e (NT 2025.002 - Grupo W03/IBSCBSTot)."""
+
+    base_calculo_ibscbs: float | None = None
+    valor_ibs_uf: float | None = None
+    valor_ibs_mun: float | None = None
+    valor_ibs: float | None = None
+    valor_cbs: float | None = None
+    valor_is: float | None = None
+
+
 class NFeResponse(BaseResponse):
     """Dados de uma NFe consultada."""
 
@@ -74,6 +94,7 @@ class NFeResponse(BaseResponse):
     finalidade: str | None = None
     itens: list[ItemNFe] = Field(default_factory=list)
     totais: TotaisNFe | None = None
+    totais_reforma: TotaisReformaNFe | None = None
     protocolo_autorizacao: str | None = None
     data_autorizacao: datetime | None = None
     situacao: str | None = None

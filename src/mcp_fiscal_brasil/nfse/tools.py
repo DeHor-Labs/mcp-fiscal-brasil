@@ -1,5 +1,6 @@
 """Ferramentas MCP para NFSe."""
 
+from mcp_fiscal_brasil.nfse.client import NFSeNacionalClient
 from mcp_fiscal_brasil.shared.validators import validate_cnpj
 
 
@@ -62,6 +63,24 @@ async def consultar_nfse(
     municipio = _validar_municipio_nfse(municipio)
     uf_upper = _validar_uf_nfse(uf)
     cnpj_prestador = _validar_cnpj_prestador(cnpj_prestador)
+
+    # Tenta a API do Ambiente de Dados Nacional (ADN) primeiro.
+    # A API exige certificado ICP-Brasil + mTLS; sem certificado retorna None
+    # e caímos no fallback com portais municipais.
+    try:
+        cliente_nacional = NFSeNacionalClient()
+        dados_api = await cliente_nacional.consultar_por_chave(numero)
+        if dados_api is not None:
+            return {
+                "numero": numero,
+                "municipio": municipio,
+                "uf": uf_upper,
+                "fonte": "api_nacional",
+                "status": "encontrada",
+                **dados_api,
+            }
+    except Exception:
+        pass  # Qualquer falha aciona o fallback estático abaixo
 
     # Portais de consulta por município/sistema (50+ capitais e grandes cidades)
     # Formato: "CIDADE/UF": {"portal": "url", "sistema": "tipo_sistema"}
