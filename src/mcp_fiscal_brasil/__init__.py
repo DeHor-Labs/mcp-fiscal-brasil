@@ -1,6 +1,6 @@
 """MCP Fiscal Brasil - Servidor MCP e SDK Python para o sistema fiscal brasileiro."""
 
-__version__ = "0.2.2"
+__version__ = "0.3.0"
 __author__ = "Nikolas de Hor"
 __description__ = (
     "Servidor MCP para integrar IAs com o sistema fiscal brasileiro. "

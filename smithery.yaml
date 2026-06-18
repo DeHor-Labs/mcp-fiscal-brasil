@@ -1,5 +1,9 @@
 # Smithery configuration — https://smithery.ai/docs/config#smitheryyaml
 # Deploy via Docker container with HTTP (streamable-http) transport.
+#
+# MCP Fiscal Brasil: 36 ferramentas fiscais brasileiras, zero API key.
+# CNPJ, NF-e, Reforma Tributaria IBS/CBS, ICMS, Simples Nacional, NCM/CFOP,
+# indexadores BCB. Primeiro MCP com suporte a Reforma Tributaria 2026.
 
 build:
   dockerfile: Dockerfile
@@ -13,9 +17,9 @@ startCommand:
     properties:
       cnpjApiKey:
         type: string
-        description: "Chave de API para consultas CNPJ avancadas (opcional)."
+        description: "Chave de API para consultas CNPJ avancadas (opcional). Sem chave, consultas basicas funcionam normalmente via BrasilAPI."
       nfeApiKey:
         type: string
-        description: "Chave de API para consultas NFe (opcional)."
+        description: "Chave de API para consultas NFe (opcional). Sem chave, validacoes offline e consultas SEFAZ funcionam normalmente."
   # commandFunction nao e necessario para type: http — Smithery usa o CMD do Dockerfile.
   # A variavel PORT e injetada automaticamente pelo Smithery (valor: 8081).

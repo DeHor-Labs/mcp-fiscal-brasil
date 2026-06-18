@@ -1,6 +1,6 @@
 {
   "name": "mcp-fiscal-brasil",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Node.js wrapper para o CLI Python mcp-fiscal-brasil. Consultas fiscais brasileiras (CNPJ, NFe, SPED) em JS/TS.",
   "type": "module",
   "main": "dist/index.js",

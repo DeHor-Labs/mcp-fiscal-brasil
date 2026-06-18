@@ -1,5 +1,60 @@
 # Changelog
 
+## [0.3.0] - 2026-06-17
+
+Onda 1: expansao de tabelas fiscais offline, indexadores do Banco Central e exposicao
+de seis novos modulos no servidor MCP. Total de tools sobe de 20 para 36.
+
+### Added
+
+#### Tabelas fiscais offline (modulo `tabelas`)
+- `consultar_ncm` - lookup de codigo NCM na TIPI (banco SQLite bundled, offline)
+- `consultar_cfop` - descricao e natureza de operacao por codigo CFOP
+- `validar_cst` - validacao de Codigo de Situacao Tributaria (CST/CSOSN)
+- `consultar_cest` - consulta de codigo CEST por produto
+- `consultar_aliquota_icms` - aliquota interestadual ICMS/DIFAL por par de UFs
+- Script `scripts/build_tabelas_db.py` para popular o banco com a TIPI completa oficial
+
+#### Indexadores BCB (modulo `bcb`)
+- `taxa_selic` - taxa Selic vigente via SGS Banco Central
+- `ipca_periodo` - acumulado IPCA em intervalo de datas via SGS
+- `ptax_data` - cotacao PTAX de compra/venda em data especifica via OData BCB
+- `calcular_correcao_monetaria` - correcao monetaria de valor entre duas datas pelo IPCA
+
+#### Novos modulos expostos no servidor MCP
+- `cep` - `consultar_cep` via BrasilAPI (ja existia no SDK, agora exposto como tool MCP)
+- `cnae` - `consultar_cnae` e `buscar_cnae` via BrasilAPI/IBGE
+- `ibge` - `consultar_municipios_ibge` e `consultar_estado_ibge` via IBGE Localidades
+- `mei` - `consultar_status_mei` via BrasilAPI
+- `empresa` - `consultar_empresa_completa` com dados CNPJ + Simples em paralelo
+
+#### Descriptions Glama aplicadas em todas as 16 tools novas
+- Padrao: Purpose, quando usar vs nao usar, comportamento offline/online, Parameter Semantics
+- Tools existentes melhoradas: `listar_cnpjs_por_nome`, `analyze_cnpj_compliance`,
+  `risk_score_supplier`, `consultar_empresas_lote`
+
+#### Metadata para registries MCP (PR #51)
+- `server.json` atualizado com description rica, tags completas e campo `_meta` no
+  formato do registry oficial (io.modelcontextprotocol.registry/publisher-provided)
+- `pyproject.toml` com keywords expandidos para melhor discoverability no PyPI:
+  `brazil`, `icms`, `simples-nacional`, `ncm`, `cfop`, `tax`, `finance`, `government`
+- `smithery.yaml` com cabecalho de pitch e descriptions mais claras
+- README atualizado com tagline destacando 36 ferramentas e suporte a Reforma Tributaria 2026
+
+#### Empacotamento
+- Arquivos `*.db` das tabelas fiscais incluidos no wheel via `hatch.build.targets.wheel`
+
+### Changed
+
+- Total de tools MCP: **36** (era 20 antes da Onda 1)
+- Cobertura de testes: **327 testes** passando (era ~117 na v0.2.2)
+
+### Fixed
+
+- Workflow `welcome.yml`: inputs da `actions/first-interaction@v3` corrigidos de hifens
+  (`repo-token`, `issue-message`, `pr-message`) para underscores (`repo_token`,
+  `issue_message`, `pr_message`), que e o padrao exigido pela v3 da action
+
 ## [0.2.2] - 2026-06-08
 
 Release de consolidação dos fluxos agenticos fiscais e da publicação do pacote.

@@ -8,6 +8,16 @@ def _somente_digitos(valor: str) -> str:
     return re.sub(r"\D", "", valor)
 
 
+def _valor_char_cnpj(c: str) -> int:
+    """Converte caractere para valor no cálculo do CNPJ alfanumérico.
+
+    Conforme IN RFB 2.229/2024: usa código ASCII subtraído de 48.
+    Dígitos: '0'=0, '1'=1, ..., '9'=9.
+    Letras maiúsculas: 'A'=17, 'B'=18, ..., 'Z'=42.
+    """
+    return ord(c) - 48
+
+
 def validate_cpf(cpf: str) -> bool:
     """
     Valida um CPF brasileiro.
@@ -75,6 +85,98 @@ def validate_cnpj(cnpj: str) -> bool:
         return False
 
     return True
+
+
+def validate_cnpj_alfanumerico(cnpj: str) -> bool:
+    """
+    Valida um CNPJ alfanumérico (IN RFB 2.229/2024, vigência jul/2026).
+
+    As 12 primeiras posições podem conter letras maiúsculas (A-Z) ou dígitos.
+    As 2 últimas são dígitos verificadores numéricos calculados pelo módulo 11,
+    usando o valor ASCII de cada caractere subtraído de 48.
+
+    Esta função NÃO aceita máscaras (pontos, barra, traço) nem letras minúsculas.
+    Aceita CNPJs numéricos puros (14 dígitos sem máscara) como caso especial,
+    pois o algoritmo é compatível com ambos os formatos.
+    Para validar qualquer CNPJ com ou sem máscara, use validate_cnpj_qualquer.
+    """
+    if len(cnpj) != 14:
+        return False
+
+    # Somente letras maiúsculas (A-Z) e dígitos são válidos
+    if not re.match(r"^[A-Z0-9]{14}$", cnpj):
+        return False
+
+    # Rejeita sequências com todos os caracteres iguais
+    if len(set(cnpj)) == 1:
+        return False
+
+    # Os 2 últimos caracteres (DVs) devem ser dígitos numéricos
+    if not cnpj[12:].isdigit():
+        return False
+
+    pesos1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+    pesos2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+
+    # Primeiro dígito verificador
+    soma = sum(_valor_char_cnpj(cnpj[i]) * pesos1[i] for i in range(12))
+    resto = soma % 11
+    dv1_esperado = 0 if resto < 2 else 11 - resto
+    if dv1_esperado != int(cnpj[12]):
+        return False
+
+    # Segundo dígito verificador
+    soma = sum(_valor_char_cnpj(cnpj[i]) * pesos2[i] for i in range(13))
+    resto = soma % 11
+    dv2_esperado = 0 if resto < 2 else 11 - resto
+    if dv2_esperado != int(cnpj[13]):
+        return False
+
+    return True
+
+
+def validate_cnpj_qualquer(cnpj: str) -> bool:
+    """
+    Valida qualquer CNPJ: detecta se é numérico ou alfanumérico e delega.
+
+    CNPJs numéricos (somente dígitos, com ou sem máscara) usam validate_cnpj.
+    CNPJs alfanuméricos (contêm letras A-Z, sem máscara) usam validate_cnpj_alfanumerico.
+
+    Tratamento de máscara (comportamento intencional e defensivo):
+    - Este dispatcher remove apenas os separadores padrão de CNPJ: ponto, barra e traço.
+    - Outros caracteres como espaços tornam o input inválido (retorna False).
+    - Isso é diferente de normalizar_cnpj, que usa isalnum() e remove qualquer
+      caractere não alfanumérico. A validação rejeita inputs com formato estranho
+      antes de normalizar, mantendo fronteiras de entrada bem definidas.
+    - Para normalizar antes de validar, use normalizar_cnpj() + validate_cnpj_alfanumerico().
+    """
+    if not cnpj:
+        return False
+
+    # Se após remover máscara numérica sobra algo com 14 chars e sem letras -> numérico
+    apenas_digitos = _somente_digitos(cnpj)
+    if len(apenas_digitos) == 14 and apenas_digitos == cnpj.replace(".", "").replace(
+        "/", ""
+    ).replace("-", ""):
+        return validate_cnpj(cnpj)
+
+    # Se o CNPJ (sem máscara) contém letras maiúsculas -> alfanumérico
+    cnpj_sem_mascara = cnpj.replace(".", "").replace("/", "").replace("-", "").upper()
+    if len(cnpj_sem_mascara) == 14:
+        return validate_cnpj_alfanumerico(cnpj_sem_mascara)
+
+    return False
+
+
+def normalizar_cnpj(cnpj: str) -> str:
+    """
+    Remove a máscara de um CNPJ (numérico ou alfanumérico) e normaliza para maiúsculas.
+
+    Para CNPJs numéricos: remove pontos, barra e traço.
+    Para CNPJs alfanuméricos (IN RFB 2.229/2024): preserva as letras, remove máscara.
+    Não valida o CNPJ - use validate_cnpj_qualquer antes se necessário.
+    """
+    return "".join(c for c in cnpj if c.isalnum()).upper()
 
 
 def validate_chave_nfe(chave: str) -> bool:
