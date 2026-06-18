@@ -1662,7 +1662,7 @@ CST_IPI_SAIDA: dict[str, str] = {
 }
 
 # ---------------------------------------------------------------------------
-# ICMS - Alíquotas interestaduais e internas (EC 87/2015, Resolução SF 22/2008)
+# ICMS - Alíquotas interestaduais e internas (EC 87/2015, Resolução do Senado Federal nº 22/1989)
 # ---------------------------------------------------------------------------
 
 # Alíquotas internas do ICMS por UF (valores predominantes para cálculo do DIFAL)
@@ -1951,7 +1951,9 @@ def buscar_aliquota_icms(uf_origem: str, uf_destino: str) -> dict[str, Any] | No
     aliq_inter = _calcular_aliquota_interestadual(uf_o, uf_d)
     difal = round(aliq_interna_d - aliq_inter, 4)
 
-    fundamento = "Res. Senado Federal nº 22/1989 (alíquotas interestaduais 7%/12%) + EC 87/2015 (DIFAL)"
+    fundamento = (
+        "Res. Senado Federal nº 22/1989 (alíquotas interestaduais 7%/12%) + EC 87/2015 (DIFAL)"
+    )
     if aliq_inter == 4.0:
         fundamento = "Resolução SF 13/2012 (4% para bens importados) + EC 87/2015 (DIFAL)"
 
