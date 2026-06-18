@@ -1,0 +1,27 @@
+name: Publica no Registry Oficial MCP
+
+on:
+  workflow_dispatch: {}
+  release:
+    types: [published]
+
+jobs:
+  publish-mcp-registry:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout do codigo
+        uses: actions/checkout@v4
+
+      - name: Instala mcp-publisher
+        run: |
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+
+      - name: Autentica no registry MCP via OIDC do GitHub
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publica o servidor no registry MCP
+        run: ./mcp-publisher publish
