@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.dehor-labs/mcp-fiscal-brasil",
   "title": "MCP Fiscal Brasil",
-  "description": "MCP fiscal brasileiro - CNPJ, NF-e, Reforma Tributaria IBS/CBS, calculo ICMS/Simples Nacional, tabelas NCM/CFOP, indexadores BCB; 36 ferramentas, zero API key.",
+  "description": "Ferramentas fiscais brasileiras: CNPJ, NF-e, IBS/CBS, ICMS, Simples Nacional, NCM/CFOP. Sem API key.",
   "version": "0.3.0",
   "repository": {
     "url": "https://github.com/DeHor-Labs/mcp-fiscal-brasil",
