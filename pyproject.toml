@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "mcp-fiscal-brasil"
 version = "0.2.2"
-description = "Servidor MCP para integrar IAs com o sistema fiscal brasileiro. Consulte CNPJ, NFe, NFSe, SPED, eSocial e mais via linguagem natural."
+description = "MCP fiscal brasileiro - 36 ferramentas, zero API key. CNPJ, NF-e, Reforma Tributaria IBS/CBS, ICMS, Simples Nacional, NCM/CFOP, indexadores BCB."
 authors = [
     { name = "Nikolas de Hor" }
 ]
@@ -17,6 +17,8 @@ keywords = [
     "model-context-protocol",
     "claude",
     "fiscal",
+    "brazil",
+    "brasil",
     "nfe",
     "nfce",
     "nfse",
@@ -27,7 +29,14 @@ keywords = [
     "reforma-tributaria",
     "ibs",
     "cbs",
+    "icms",
+    "simples-nacional",
+    "ncm",
+    "cfop",
     "receita-federal",
+    "tax",
+    "finance",
+    "government",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",

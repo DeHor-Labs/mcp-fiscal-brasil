@@ -5,8 +5,8 @@ mcp-name: io.github.dehor-labs/mcp-fiscal-brasil
 </p>
 
 <p align="center">
-  <strong>Zero API key. Zero cadastro. 100% open source.</strong><br>
-  A camada open source para agentes de IA trabalharem com compliance fiscal brasileiro.
+  <strong>36 ferramentas fiscais. Zero API key. Zero cadastro. 100% open source.</strong><br>
+  O primeiro MCP com suporte a Reforma Tributaria 2026 (IBS/CBS) - a camada open source para agentes de IA trabalharem com compliance fiscal brasileiro.
 </p>
 
 <p align="center">
