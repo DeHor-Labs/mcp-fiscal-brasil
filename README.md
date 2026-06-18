@@ -1,4 +1,4 @@
-mcp-name: io.github.dehor-labs/mcp-fiscal-brasil
+mcp-name: io.github.DeHor-Labs/mcp-fiscal-brasil
 
 <p align="center">
   <img src="assets/banner.svg" width="800" alt="MCP Fiscal Brasil">

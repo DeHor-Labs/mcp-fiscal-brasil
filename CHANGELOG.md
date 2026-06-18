@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1] - 2026-06-18
+
+### Fixed
+
+- Corrige `mcp-name` no README para `io.github.DeHor-Labs/mcp-fiscal-brasil` (case correto da org no GitHub), necessario para validacao de ownership no registry oficial MCP.
+- Corrige namespace no `server.json` para `io.github.DeHor-Labs/mcp-fiscal-brasil`.
+
 ## [0.3.0] - 2026-06-17
 
 Onda 1: expansao de tabelas fiscais offline, indexadores do Banco Central e exposicao

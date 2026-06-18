@@ -3,7 +3,7 @@
   "name": "io.github.DeHor-Labs/mcp-fiscal-brasil",
   "title": "MCP Fiscal Brasil",
   "description": "Ferramentas fiscais brasileiras: CNPJ, NF-e, IBS/CBS, ICMS, Simples Nacional, NCM/CFOP. Sem API key.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "repository": {
     "url": "https://github.com/DeHor-Labs/mcp-fiscal-brasil",
     "source": "github"
@@ -13,7 +13,7 @@
       "registryType": "pypi",
       "registryBaseUrl": "https://pypi.org",
       "identifier": "mcp-fiscal-brasil",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "runtimeHint": "uvx",
       "transport": {
         "type": "stdio"
