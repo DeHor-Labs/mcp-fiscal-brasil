@@ -1662,7 +1662,7 @@ CST_IPI_SAIDA: dict[str, str] = {
 }
 
 # ---------------------------------------------------------------------------
-# ICMS - Alíquotas interestaduais e internas (EC 87/2015, Resolução SF 22/2008)
+# ICMS - Alíquotas interestaduais e internas (EC 87/2015, Resolução do Senado Federal nº 22/1989)
 # ---------------------------------------------------------------------------
 
 # Alíquotas internas do ICMS por UF (valores predominantes para cálculo do DIFAL)
@@ -1699,9 +1699,13 @@ ICMS_ALIQUOTA_INTERNA: dict[str, float] = {
     "TO": 20.0,
 }
 
-# UFs do Norte, Nordeste e Centro-Oeste (recebem 12% nas operações interestaduais)
-# demais UFs (Sul, Sudeste exceto ES) recebem 7% ou 12% dependendo da origem
-_UFS_12_PERCENT = {
+# Sul e Sudeste, EXCETO ES: únicos estados que praticam a alíquota reduzida de 7%
+# como origem (Resolução do Senado Federal nº 22/1989)
+_UFS_ORIGEM_ALIQUOTA_REDUZIDA = {"SP", "RJ", "MG", "PR", "RS", "SC"}
+
+# Destinos que recebem 7% quando a origem é uma das UFs acima:
+# Norte, Nordeste, Centro-Oeste e Espírito Santo
+_UFS_DESTINO_ALIQUOTA_REDUZIDA = {
     "AC",
     "AL",
     "AM",
@@ -1709,6 +1713,7 @@ _UFS_12_PERCENT = {
     "BA",
     "CE",
     "DF",
+    "ES",
     "GO",
     "MA",
     "MT",
@@ -1723,25 +1728,21 @@ _UFS_12_PERCENT = {
     "SE",
     "TO",
 }
-# UFs de origem que enviam à alíquota de 7% para as UFs não listadas acima (Sul e Sudeste)
-_UFS_ORIGEM_7_PERCENT_PARA_SUL_SUDESTE = {"MG", "PR", "RS", "SC", "SP", "RJ", "ES"}
-
-# Nota: ZFM (AM) em operações para SP recebe 12%; ES tem tratamento equiparado às demais
 
 
 def _calcular_aliquota_interestadual(uf_origem: str, uf_destino: str) -> float:
     """
-    Calcula a alíquota interestadual do ICMS conforme Resolução SF 22/2008.
+    Calcula a alíquota interestadual do ICMS conforme Resolução do Senado Federal nº 22/1989.
 
     Regra:
-    - 4%: operações com bens importados (Resolução SF 13/2012) - NÃO tratado aqui.
-    - 7%: operações entre contribuintes de SP, MG, PR, RS, SC, RJ, ES para contribuintes
-          de SP, MG, PR, RS, SC, RJ, ES.
-    - 12%: demais operações interestaduais.
+    - 4%: operações com bens importados (Resolução SF nº 13/2012) - NÃO tratado aqui.
+    - 7%: quando a origem é Sul ou Sudeste EXCETO ES (SP, RJ, MG, PR, RS, SC)
+          E o destino é Norte, Nordeste, Centro-Oeste ou ES.
+    - 12%: todos os demais casos, incluindo:
+           - origem em N/NE/CO ou ES (ex.: ES->SP, BA->SP, AM->SP);
+           - operações dentro do bloco Sul/Sudeste (ex.: SP->RJ, SP->MG, RS->SP).
     """
-    if uf_destino in _UFS_12_PERCENT:
-        return 12.0
-    if uf_origem in _UFS_ORIGEM_7_PERCENT_PARA_SUL_SUDESTE:
+    if uf_origem in _UFS_ORIGEM_ALIQUOTA_REDUZIDA and uf_destino in _UFS_DESTINO_ALIQUOTA_REDUZIDA:
         return 7.0
     return 12.0
 
@@ -1950,7 +1951,9 @@ def buscar_aliquota_icms(uf_origem: str, uf_destino: str) -> dict[str, Any] | No
     aliq_inter = _calcular_aliquota_interestadual(uf_o, uf_d)
     difal = round(aliq_interna_d - aliq_inter, 4)
 
-    fundamento = "Resolução SF 22/2008 (alíquotas interestaduais 7%/12%) + EC 87/2015 (DIFAL)"
+    fundamento = (
+        "Res. Senado Federal nº 22/1989 (alíquotas interestaduais 7%/12%) + EC 87/2015 (DIFAL)"
+    )
     if aliq_inter == 4.0:
         fundamento = "Resolução SF 13/2012 (4% para bens importados) + EC 87/2015 (DIFAL)"
 

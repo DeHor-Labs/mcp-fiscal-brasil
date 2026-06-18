@@ -154,7 +154,7 @@ def register(app: FastMCP) -> None:
         description=(
             "Consulta as alíquotas do ICMS para operações interestaduais entre contribuintes. "
             "Purpose: calcular o DIFAL (Diferencial de Alíquota) e a alíquota interestadual "
-            "aplicável na emissão de NF-e, conforme EC 87/2015 e Resolução SF 22/2008. "
+            "aplicável na emissão de NF-e, conforme EC 87/2015 e Res. Senado Federal nº 22/1989. "
             "Quando usar: ao emitir NF-e interestadual, calcular DIFAL ou verificar a "
             "carga tributária de operações entre estados. "
             "Comportamento offline: calcula a partir de tabelas em memória; não requer conexão. "
@@ -167,7 +167,7 @@ def register(app: FastMCP) -> None:
 
         Retorna a aliquota interestadual aplicavel (7% ou 12% conforme origem/destino),
         a aliquota interna do estado de destino e o diferencial de aliquota (DIFAL),
-        calculado conforme a EC 87/2015 e a Resolucao SF 22/2008.
+        calculado conforme a EC 87/2015 e a Resolucao do Senado Federal n. 22/1989.
 
         Args:
             uf_origem: Sigla da UF de origem (ex.: "SP", "MG", "GO").

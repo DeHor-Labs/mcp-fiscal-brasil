@@ -51,6 +51,10 @@ de seis novos modulos no servidor MCP. Total de tools sobe de 20 para 36.
 
 ### Fixed
 
+- Corrige inversão das alíquotas de ICMS interestadual (Resolução do Senado Federal
+  n. 22/1989): operações com origem em Sul/Sudeste exceto ES (SP, RJ, MG, PR, RS, SC)
+  para destinos N/NE/CO/ES retornam 7%, e as demais retornam 12%, conforme a norma.
+  O bug afetava `consultar_aliquota_icms` e o cálculo de DIFAL. (#54)
 - Workflow `welcome.yml`: inputs da `actions/first-interaction@v3` corrigidos de hifens
   (`repo-token`, `issue-message`, `pr-message`) para underscores (`repo_token`,
   `issue_message`, `pr_message`), que e o padrao exigido pela v3 da action

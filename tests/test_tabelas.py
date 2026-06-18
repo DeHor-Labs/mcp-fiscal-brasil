@@ -134,19 +134,58 @@ class TestCSTLoader:
 
 class TestICMSLoader:
     def test_aliquota_sp_para_rj(self) -> None:
+        # SP->RJ: ambos em Sul/Sudeste, alíquota é 12% (Res. SF 22/1989)
         dado = buscar_aliquota_icms("SP", "RJ")
         assert dado is not None
-        assert dado["aliquota_interestadual"] == 7.0
+        assert dado["aliquota_interestadual"] == 12.0
         assert dado["uf_origem"] == "SP"
         assert dado["uf_destino"] == "RJ"
 
     def test_aliquota_sp_para_ba(self) -> None:
+        # SP (Sul/Sudeste exceto ES) -> BA (Nordeste): alíquota é 7%
         dado = buscar_aliquota_icms("SP", "BA")
+        assert dado is not None
+        assert dado["aliquota_interestadual"] == 7.0
+
+    def test_aliquota_rj_para_sp(self) -> None:
+        # RJ->SP: ambos em Sul/Sudeste, alíquota é 12%
+        dado = buscar_aliquota_icms("RJ", "SP")
         assert dado is not None
         assert dado["aliquota_interestadual"] == 12.0
 
-    def test_aliquota_rj_para_sp(self) -> None:
-        dado = buscar_aliquota_icms("RJ", "SP")
+    def test_aliquota_sp_para_am(self) -> None:
+        # SP (Sul/Sudeste exceto ES) -> AM (Norte): alíquota é 7%
+        dado = buscar_aliquota_icms("SP", "AM")
+        assert dado is not None
+        assert dado["aliquota_interestadual"] == 7.0
+
+    def test_aliquota_rs_para_am(self) -> None:
+        # RS (Sul) -> AM (Norte): alíquota é 7%
+        dado = buscar_aliquota_icms("RS", "AM")
+        assert dado is not None
+        assert dado["aliquota_interestadual"] == 7.0
+
+    def test_aliquota_rs_para_sp(self) -> None:
+        # RS->SP: ambos em Sul/Sudeste, alíquota é 12%
+        dado = buscar_aliquota_icms("RS", "SP")
+        assert dado is not None
+        assert dado["aliquota_interestadual"] == 12.0
+
+    def test_aliquota_es_para_sp(self) -> None:
+        # ES como origem NUNCA pratica 7%: ES->SP deve ser 12%
+        dado = buscar_aliquota_icms("ES", "SP")
+        assert dado is not None
+        assert dado["aliquota_interestadual"] == 12.0
+
+    def test_aliquota_es_para_ba(self) -> None:
+        # ES como origem NUNCA pratica 7%, mesmo que destino seja Nordeste: ES->BA deve ser 12%
+        dado = buscar_aliquota_icms("ES", "BA")
+        assert dado is not None
+        assert dado["aliquota_interestadual"] == 12.0
+
+    def test_aliquota_sp_para_es(self) -> None:
+        # SP->ES: ES como destino recebe 7% quando origem é Sul/Sudeste exceto ES
+        dado = buscar_aliquota_icms("SP", "ES")
         assert dado is not None
         assert dado["aliquota_interestadual"] == 7.0
 
@@ -291,19 +330,36 @@ class TestValidarCST:
 
 class TestConsultarAliquotaICMS:
     async def test_sp_para_mg(self) -> None:
+        # SP->MG: ambos em Sul/Sudeste, alíquota é 12%
         resp = await consultar_aliquota_icms("SP", "MG")
-        assert resp.aliquota_interestadual == 7.0
+        assert resp.aliquota_interestadual == 12.0
         assert resp.uf_origem == "SP"
         assert resp.uf_destino == "MG"
 
     async def test_sp_para_ba(self) -> None:
+        # SP (Sul/Sudeste exceto ES) -> BA (Nordeste): alíquota é 7%
         resp = await consultar_aliquota_icms("SP", "BA")
-        assert resp.aliquota_interestadual == 12.0
+        assert resp.aliquota_interestadual == 7.0
 
     async def test_difal_positivo_para_estado_com_aliquota_maior(self) -> None:
-        # SP (18%) -> MA (22%): DIFAL = 22 - 12 = 10
+        # SP (18%) -> MA (22%): alíquota interestadual é 7% (SP->MA, Nordeste), DIFAL = 22 - 7 = 15
         resp = await consultar_aliquota_icms("SP", "MA")
         assert resp.diferencial_aliquota > 0
+
+    async def test_sp_para_rj_retorna_12(self) -> None:
+        # SP->RJ: ambos Sul/Sudeste, sem alíquota reduzida
+        resp = await consultar_aliquota_icms("SP", "RJ")
+        assert resp.aliquota_interestadual == 12.0
+
+    async def test_es_como_origem_nao_aplica_7(self) -> None:
+        # ES->AM: ES como origem nunca pratica 7%
+        resp = await consultar_aliquota_icms("ES", "AM")
+        assert resp.aliquota_interestadual == 12.0
+
+    async def test_sp_para_es_retorna_7(self) -> None:
+        # SP->ES: ES como destino recebe 7% vindo de Sul/Sudeste exceto ES
+        resp = await consultar_aliquota_icms("SP", "ES")
+        assert resp.aliquota_interestadual == 7.0
 
     async def test_uf_origem_invalida_levanta_erro(self) -> None:
         with pytest.raises(FiscalValidationError):
