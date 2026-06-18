@@ -1,5 +1,7 @@
 """Ferramentas de negócio do módulo tabelas fiscais."""
 
+import asyncio
+
 from mcp_fiscal_brasil._core import FiscalValidationError, get_logger
 
 from .loader import (
@@ -52,7 +54,7 @@ async def consultar_ncm(ncm: str) -> NCMResponse:
         )
 
     logger.info("ncm_lookup", ncm=codigo_limpo)
-    dado = buscar_ncm(codigo_limpo)
+    dado = await asyncio.to_thread(buscar_ncm, codigo_limpo)
 
     if dado is None:
         raise FiscalValidationError(
@@ -178,7 +180,7 @@ async def consultar_cest(cest: str) -> CESTResponse:
         )
 
     logger.info("cest_lookup", cest=codigo_limpo)
-    dado = buscar_cest(codigo_limpo)
+    dado = await asyncio.to_thread(buscar_cest, codigo_limpo)
 
     if dado is None:
         raise FiscalValidationError(

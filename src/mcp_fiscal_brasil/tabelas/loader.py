@@ -8,7 +8,7 @@ Estratégia de armazenamento:
 AVISO NCM/CEST: O banco SQLite distribuído contém um subconjunto representativo dos
 capítulos NCM mais comuns (~250 registros de exemplo) e segmentos CEST (~100 registros).
 A tabela NCM completa da TIPI possui ~10.515 registros. Para popular o banco completo,
-execute: python scripts/build_tabelas_db.py --fonte tipi.csv --cest cest.csv
+execute: python scripts/build_tabelas_db.py --tipi tipi.csv --cest cest.csv
 """
 
 from __future__ import annotations
@@ -1917,7 +1917,16 @@ def validar_cst(cst: str, regime: str) -> dict[str, Any]:
 
 
 def buscar_aliquota_icms(uf_origem: str, uf_destino: str) -> dict[str, Any] | None:
-    """Retorna as alíquotas ICMS para uma operação interestadual ou None se UF inválida."""
+    """Retorna as alíquotas ICMS para uma operação interestadual ou intraestadual.
+
+    Para operações interestaduais (UF origem != UF destino), retorna a alíquota
+    interestadual (7% ou 12%) e o DIFAL conforme EC 87/2015.
+
+    Para operações intraestaduais (UF origem == UF destino), retorna a alíquota
+    interna da UF com alíquota_interestadual == alíquota interna e diferencial == 0.
+
+    Retorna None se alguma UF for inválida.
+    """
     uf_o = uf_origem.strip().upper()
     uf_d = uf_destino.strip().upper()
 
@@ -1926,6 +1935,17 @@ def buscar_aliquota_icms(uf_origem: str, uf_destino: str) -> dict[str, Any] | No
 
     if aliq_interna_d is None or aliq_interna_o is None:
         return None
+
+    # Operação intraestadual: usa a alíquota interna da UF, DIFAL = 0
+    if uf_o == uf_d:
+        return {
+            "uf_origem": uf_o,
+            "uf_destino": uf_d,
+            "aliquota_interestadual": aliq_interna_o,
+            "aliquota_interna_destino": aliq_interna_d,
+            "diferencial_aliquota": 0.0,
+            "fundamento": "Operação intraestadual - aplica-se a alíquota interna da UF",
+        }
 
     aliq_inter = _calcular_aliquota_interestadual(uf_o, uf_d)
     difal = round(aliq_interna_d - aliq_inter, 4)

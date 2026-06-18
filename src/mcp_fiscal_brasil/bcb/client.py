@@ -119,11 +119,24 @@ class BCBClient:
 
     async def ptax_data(self, data: date, moeda: str = "USD") -> PTAXResponse:
         """Consulta a cotação PTAX (compra/venda) para uma data e moeda específicas."""
-        logger.info("bcb_ptax_data_started", data=str(data), moeda=moeda)
+        import re
+
+        moeda_norm = moeda.strip().upper()
+        if not re.fullmatch(r"[A-Z]{3}", moeda_norm):
+            from mcp_fiscal_brasil._core import FiscalValidationError
+
+            raise FiscalValidationError(
+                f"Código de moeda inválido: '{moeda}'. "
+                "Informe o código ISO 4217 com 3 letras (ex: 'USD', 'EUR', 'BRL').",
+                field="moeda",
+                value=moeda,
+            )
+        logger.info("bcb_ptax_data_started", data=str(data), moeda=moeda_norm)
         date_str = data.strftime("%m-%d-%Y")  # OData usa MM-dd-yyyy
+        # moeda_norm contém apenas [A-Z]{3} - seguro para interpolação na URL OData
         path = (
             f"/CotacaoMoedaDia(moeda=@moeda,dataCotacao=@dataCotacao)"
-            f"?@moeda='{moeda}'&@dataCotacao='{date_str}'&$format=json"
+            f"?@moeda='{moeda_norm}'&@dataCotacao='{date_str}'&$format=json"
         )
 
         async with self._http_client(_PTAX_BASE_URL) as client:

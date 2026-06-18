@@ -152,13 +152,15 @@ async def test_consultar_status_mei_retorna_status() -> None:
 
 @pytest.mark.asyncio
 async def test_consultar_status_mei_nao_optante() -> None:
-    esperado = MEIStatus(cnpj="99888777000155", mei=False, simples_nacional=False)
+    # CNPJ válido (dígitos verificadores corretos) diferente do optante
+    cnpj_nao_optante = "11222333000262"
+    esperado = MEIStatus(cnpj=cnpj_nao_optante, mei=False, simples_nacional=False)
     with patch(
         "mcp_fiscal_brasil.mei.tools._client.get_mei_status",
         new_callable=AsyncMock,
         return_value=esperado,
     ):
-        result = await consultar_status_mei("99888777000155")
+        result = await consultar_status_mei(cnpj_nao_optante)
 
     assert result.mei is False
 

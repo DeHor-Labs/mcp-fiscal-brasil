@@ -582,7 +582,9 @@ def _importar_tipi_csv(conn: sqlite3.Connection, path: Path) -> int:
                 (
                     codigo,
                     row.get("descricao", "").strip(),
-                    float(row["aliquota_ipi"]) if row.get("aliquota_ipi", "").strip() else None,
+                    float(row["aliquota_ipi"].replace(",", "."))
+                    if row.get("aliquota_ipi", "").strip()
+                    else None,
                     row.get("unidade_tributavel", "").strip() or None,
                     row.get("ex_tipi", "").strip() or None,
                 ),
@@ -615,7 +617,7 @@ def _importar_cest_csv(conn: sqlite3.Connection, path: Path) -> int:
                 n.strip().replace(".", "").replace("-", "")
                 for n in ncms_raw.replace(";", ",").split(",")
             ):
-                if ncm.isdigit():
+                if ncm.isdigit() and len(ncm) == 8:
                     conn.execute(
                         "INSERT OR IGNORE INTO cest_ncm (cest, ncm) VALUES (?,?)",
                         (cest, ncm),
@@ -630,6 +632,9 @@ def build(output: Path, tipi_csv: Path | None = None, cest_csv: Path | None = No
     conn = sqlite3.connect(str(output))
     try:
         conn.executescript(DDL)
+        # Limpa tabelas antes de reimportar para garantir determinismo.
+        # Preserva a estrutura (DDL já garante CREATE TABLE IF NOT EXISTS).
+        conn.executescript("DELETE FROM cest_ncm; DELETE FROM cest; DELETE FROM ncm;")
 
         if tipi_csv:
             n = _importar_tipi_csv(conn, tipi_csv)

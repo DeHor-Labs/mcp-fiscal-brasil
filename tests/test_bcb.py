@@ -178,3 +178,66 @@ async def test_calcular_correcao_monetaria_indice_invalido(client: BCBClient) ->
             data_fim=date(2024, 1, 1),
             indice="IGP-M",
         )
+
+
+# ---------------------------------------------------------------------------
+# Validação de boundary nas tools (calcular_correcao_monetaria e ptax_data)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_correcao_monetaria_valor_negativo_levanta_erro() -> None:
+    from mcp_fiscal_brasil._core import FiscalValidationError
+    from mcp_fiscal_brasil.bcb.tools import calcular_correcao_monetaria
+
+    with pytest.raises(FiscalValidationError, match="valor"):
+        await calcular_correcao_monetaria(
+            valor=-100.0,
+            data_inicio=date(2024, 1, 1),
+            data_fim=date(2024, 3, 1),
+        )
+
+
+@pytest.mark.asyncio
+async def test_correcao_monetaria_datas_invertidas_levanta_erro() -> None:
+    from mcp_fiscal_brasil._core import FiscalValidationError
+    from mcp_fiscal_brasil.bcb.tools import calcular_correcao_monetaria
+
+    with pytest.raises(FiscalValidationError, match="data_inicio"):
+        await calcular_correcao_monetaria(
+            valor=100.0,
+            data_inicio=date(2024, 6, 1),
+            data_fim=date(2024, 1, 1),
+        )
+
+
+@pytest.mark.asyncio
+async def test_correcao_monetaria_indice_invalido_levanta_erro() -> None:
+    from mcp_fiscal_brasil._core import FiscalValidationError
+    from mcp_fiscal_brasil.bcb.tools import calcular_correcao_monetaria
+
+    with pytest.raises(FiscalValidationError, match="IGP-M"):
+        await calcular_correcao_monetaria(
+            valor=100.0,
+            data_inicio=date(2024, 1, 1),
+            data_fim=date(2024, 3, 1),
+            indice="IGP-M",
+        )
+
+
+@pytest.mark.asyncio
+async def test_ptax_moeda_invalida_levanta_erro() -> None:
+    from mcp_fiscal_brasil._core import FiscalValidationError
+    from mcp_fiscal_brasil.bcb.tools import ptax_data
+
+    with pytest.raises(FiscalValidationError, match="moeda"):
+        await ptax_data(date(2024, 1, 2), moeda="DOLAR")
+
+
+@pytest.mark.asyncio
+async def test_ptax_moeda_com_numeros_levanta_erro() -> None:
+    from mcp_fiscal_brasil._core import FiscalValidationError
+    from mcp_fiscal_brasil.bcb.tools import ptax_data
+
+    with pytest.raises(FiscalValidationError, match="moeda"):
+        await ptax_data(date(2024, 1, 2), moeda="US1")

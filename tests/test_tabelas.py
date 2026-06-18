@@ -322,6 +322,14 @@ class TestConsultarAliquotaICMS:
         resp = await consultar_aliquota_icms("GO", "SP")
         assert len(resp.fundamento) > 10
 
+    async def test_operacao_intraestadual_difal_zero(self) -> None:
+        # Operação dentro do mesmo estado: DIFAL deve ser zero
+        resp = await consultar_aliquota_icms("SP", "SP")
+        assert resp.uf_origem == "SP"
+        assert resp.uf_destino == "SP"
+        assert resp.diferencial_aliquota == 0.0
+        assert "intraestadual" in resp.fundamento.lower()
+
 
 class TestConsultarNCM:
     async def test_ncm_valido_retorna_response(self) -> None:

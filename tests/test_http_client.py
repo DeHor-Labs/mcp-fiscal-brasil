@@ -458,10 +458,11 @@ async def test_rate_limiter_erro_propagado_sem_retry():
 
     client = FiscalHTTPClient("https://test.fiscal.br", rate_limiter=BlockingLimiter())
 
-    with pytest.raises(RateLimitError) as exc_info:
-        await client.get("/bloqueado")
+    with patch("httpx.AsyncClient.request", side_effect=patched_request):
+        with pytest.raises(RateLimitError) as exc_info:
+            await client.get("/bloqueado")
 
-    assert http_calls == 0
+    assert http_calls == 0, "Nenhuma chamada HTTP deve ocorrer quando o rate limiter bloqueia"
     assert exc_info.value.retry_after == 5.0
 
 
