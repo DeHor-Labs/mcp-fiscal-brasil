@@ -1,6 +1,6 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.dehor-labs/mcp-fiscal-brasil",
+  "name": "io.github.DeHor-Labs/mcp-fiscal-brasil",
   "title": "MCP Fiscal Brasil",
   "description": "Ferramentas fiscais brasileiras: CNPJ, NF-e, IBS/CBS, ICMS, Simples Nacional, NCM/CFOP. Sem API key.",
   "version": "0.3.0",
