@@ -1,6 +1,11 @@
 """Ferramentas MCP para NFSe."""
 
+import logging
+
+from mcp_fiscal_brasil.nfse.client import NFSeNacionalClient, NFSeNacionalUnavailableError
 from mcp_fiscal_brasil.shared.validators import validate_cnpj
+
+logger = logging.getLogger(__name__)
 
 
 def _validar_numero_nfse(numero: str) -> str:
@@ -62,6 +67,44 @@ async def consultar_nfse(
     municipio = _validar_municipio_nfse(municipio)
     uf_upper = _validar_uf_nfse(uf)
     cnpj_prestador = _validar_cnpj_prestador(cnpj_prestador)
+
+    # Tenta a API do Ambiente de Dados Nacional (ADN) primeiro.
+    # A API exige certificado ICP-Brasil + mTLS.
+    # - None -> 404 (nota não encontrada): fallback com motivo específico
+    # - NFSeNacionalUnavailableError -> 5xx/timeout/rede: fallback com motivo de indisponibilidade
+    api_fallback_motivo: str | None = None
+    try:
+        cliente_nacional = NFSeNacionalClient()
+        dados_api = await cliente_nacional.consultar_por_chave(numero)
+        if dados_api is not None:
+            return {
+                "numero": numero,
+                "municipio": municipio,
+                "uf": uf_upper,
+                "fonte": "api_nacional",
+                "status": "encontrada",
+                **dados_api,
+            }
+        # None = HTTP 404: nota não encontrada na base nacional
+        api_fallback_motivo = "Nota não encontrada na API Nacional (HTTP 404 - ausente ou certificado ICP-Brasil não configurado)"
+        logger.info(
+            "API Nacional NFS-e: nota %s retornou 404 - usando fallback municipal",
+            numero,
+        )
+    except NFSeNacionalUnavailableError as exc:
+        api_fallback_motivo = f"API Nacional indisponível: {exc}"
+        logger.warning(
+            "API Nacional NFS-e indisponível para nota %s: %s - usando fallback municipal",
+            numero,
+            exc,
+        )
+    except Exception as exc:
+        api_fallback_motivo = f"Erro inesperado na API Nacional: {exc}"
+        logger.warning(
+            "Erro inesperado ao consultar API Nacional NFS-e para nota %s: %s - usando fallback",
+            numero,
+            exc,
+        )
 
     # Portais de consulta por município/sistema (50+ capitais e grandes cidades)
     # Formato: "CIDADE/UF": {"portal": "url", "sistema": "tipo_sistema"}
@@ -165,7 +208,10 @@ async def consultar_nfse(
         },
         "CARUARU/PE": {"portal": "https://nfse.caruaru.pe.gov.br/", "sistema": "ABRASF"},
         # Cidades da Paraíba
-        "CAMPINA GRANDE/PB": {"portal": "https://nfse.campinagde.pb.gov.br/", "sistema": "ABRASF"},
+        "CAMPINA GRANDE/PB": {
+            "portal": "https://nfse.campinagrande.pb.gov.br/",
+            "sistema": "ABRASF",
+        },
         # Cidades do Rio Grande do Norte
         "PARNAMIRIM/RN": {"portal": "https://nfse.parnamirim.rn.gov.br/", "sistema": "ABRASF"},
         # Cidades de Alagoas
@@ -208,7 +254,9 @@ async def consultar_nfse(
         "numero": numero,
         "municipio": municipio,
         "uf": uf_upper,
+        "fonte": "fallback_portal_municipal",
         "status": "consulta_manual_necessaria",
+        "api_nacional_motivo": api_fallback_motivo,
         "motivo": (
             "NFSe não possui API pública padronizada nacional. "
             "Cada município gerencia seu próprio sistema de emissão e consulta."
