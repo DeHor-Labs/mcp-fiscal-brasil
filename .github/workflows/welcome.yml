@@ -15,17 +15,17 @@ jobs:
     steps:
       - uses: actions/first-interaction@v3
         with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          issue-message: |
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          issue_message: |
             Thanks for opening an issue! We'll take a look as soon as possible.
-            
+
             Please make sure you've included:
             - A clear description of the problem or suggestion
             - Steps to reproduce (if it's a bug)
             - Your environment (Python/Node version, OS)
-          pr-message: |
+          pr_message: |
             Thanks for your contribution! We appreciate your time and effort.
-            
+
             Please make sure:
             - Tests pass locally
             - Code follows the project style
