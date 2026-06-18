@@ -5,7 +5,8 @@ mcp-name: io.github.dehor-labs/mcp-fiscal-brasil
 </p>
 
 <p align="center">
-  <strong>A camada open source para agentes de IA trabalharem com compliance fiscal brasileiro</strong>
+  <strong>36 ferramentas fiscais. Zero API key. Zero cadastro. 100% open source.</strong><br>
+  O primeiro MCP com suporte a Reforma Tributaria 2026 (IBS/CBS) - a camada open source para agentes de IA trabalharem com compliance fiscal brasileiro.
 </p>
 
 <p align="center">
@@ -198,36 +199,19 @@ Requerem APIs pagas ou têm cobertura limitada.
 
 ## 🚀 Instalação
 
-Três linhas para começar:
+A forma mais simples, sem instalar nada permanentemente:
 
 ```bash
-pip install mcp-fiscal-brasil
-claude mcp add fiscal-brasil -- mcp-fiscal-brasil
-# Pronto! Pergunte ao Claude sobre qualquer empresa brasileira.
+uvx mcp-fiscal-brasil
 ```
 
-```python
-# Ou use como biblioteca Python:
-from mcp_fiscal_brasil import FiscalBrasil
-```
-
-### Via uv (recomendado)
-
-```bash
-uv add mcp-fiscal-brasil
-```
-
-### A partir do código-fonte
-
-```bash
-git clone https://github.com/DeHor-Labs/mcp-fiscal-brasil.git
-cd mcp-fiscal-brasil
-pip install -e .
-```
+> **O que é `uvx`?** É o gerenciador de ferramentas do [uv](https://docs.astral.sh/uv/), que baixa e executa pacotes Python em ambiente isolado, sem poluir seu sistema. Se ainda não tem o uv: `curl -LsSf https://astral.sh/uv/install.sh | sh`
 
 ---
 
-## ⚙️ Configuração Detalhada
+## ⚙️ Configuração por Cliente MCP
+
+Cole o trecho abaixo no arquivo de configuração do seu cliente. **Nenhuma chave de API é necessária.**
 
 ### Claude Desktop
 
@@ -237,7 +221,8 @@ Edite `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) 
 {
   "mcpServers": {
     "fiscal-brasil": {
-      "command": "mcp-fiscal-brasil"
+      "command": "uvx",
+      "args": ["mcp-fiscal-brasil"]
     }
   }
 }
@@ -248,18 +233,19 @@ Reinicie o Claude Desktop. As ferramentas fiscais e agênticas aparecem automati
 ### Claude Code (CLI)
 
 ```bash
-claude mcp add fiscal-brasil -- mcp-fiscal-brasil
+claude mcp add fiscal-brasil -- uvx mcp-fiscal-brasil
 ```
 
-### Cursor
+### Cursor / `.mcp.json`
 
-Adicione ao `.cursor/mcp.json` do projeto:
+Crie ou edite `.cursor/mcp.json` (ou `.mcp.json` na raiz do projeto):
 
 ```json
 {
   "mcpServers": {
     "fiscal-brasil": {
-      "command": "mcp-fiscal-brasil"
+      "command": "uvx",
+      "args": ["mcp-fiscal-brasil"]
     }
   }
 }
@@ -273,7 +259,8 @@ Adicione ao `settings.json`:
 {
   "continue.mcpServers": {
     "fiscal-brasil": {
-      "command": "mcp-fiscal-brasil"
+      "command": "uvx",
+      "args": ["mcp-fiscal-brasil"]
     }
   }
 }
@@ -285,6 +272,30 @@ Adicione ao `settings.json`:
 docker run --rm -i \
   -e MCP_FISCAL_LOG_LEVEL=INFO \
   ghcr.io/dehor-labs/mcp-fiscal-brasil:latest
+```
+
+---
+
+## 🛠 Instalação permanente (alternativa)
+
+Prefere instalar uma vez e manter no PATH?
+
+```bash
+# via pip
+pip install mcp-fiscal-brasil
+
+# via uv (recomendado para projetos Python)
+uv add mcp-fiscal-brasil
+```
+
+Após a instalação, os snippets JSON acima funcionam com `"command": "mcp-fiscal-brasil"` (sem o `uvx`).
+
+### A partir do código-fonte
+
+```bash
+git clone https://github.com/DeHor-Labs/mcp-fiscal-brasil.git
+cd mcp-fiscal-brasil
+pip install -e .
 ```
 
 ---

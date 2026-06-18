@@ -87,9 +87,7 @@ for module in MODULES_TO_DOCUMENT:
         fd.write("        - '!^_'\n")  # esconde _privates
         fd.write("      heading_level: 2\n")
 
-    nav[(module,)] = (
-        f"{module}/index.md" if module_path.is_dir() else f"{module}.md"
-    )
+    nav[(module,)] = f"{module}/index.md" if module_path.is_dir() else f"{module}.md"
 
 
 with mkdocs_gen_files.open(REFERENCE_ROOT / "SUMMARY.md", "w") as fd:
