@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 def register(app: Any) -> None:
     """Registra as ferramentas Empresa no servidor FastMCP."""
 
-    @app.tool(  # type: ignore
+    @app.tool(
         name="consultar_empresa_completa",
         description=(
             "Consulta dados enriquecidos de uma empresa brasileira combinando informações "

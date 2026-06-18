@@ -22,7 +22,7 @@ from .tools import (
 def register(app: FastMCP) -> None:
     """Registra as 5 ferramentas de tabelas fiscais no servidor MCP fornecido."""
 
-    @app.tool(  # type: ignore
+    @app.tool(
         name="consultar_ncm",
         description=(
             "Consulta a Nomenclatura Comum do Mercosul (NCM) de um produto. "
@@ -53,7 +53,7 @@ def register(app: FastMCP) -> None:
         resultado = await consultar_ncm(ncm)
         return resultado.model_dump(mode="json", exclude_none=True)
 
-    @app.tool(  # type: ignore
+    @app.tool(
         name="consultar_cfop",
         description=(
             "Consulta o Código Fiscal de Operações e Prestações (CFOP). "
@@ -83,7 +83,7 @@ def register(app: FastMCP) -> None:
         resultado = await consultar_cfop(cfop)
         return resultado.model_dump(mode="json", exclude_none=True)
 
-    @app.tool(  # type: ignore
+    @app.tool(
         name="validar_cst",
         description=(
             "Valida um Código de Situação Tributária (CST) ou Código de Situação da Operação "
@@ -119,7 +119,7 @@ def register(app: FastMCP) -> None:
         resultado = await validar_cst_tool(cst, regime)
         return resultado.model_dump(mode="json", exclude_none=True)
 
-    @app.tool(  # type: ignore
+    @app.tool(
         name="consultar_cest",
         description=(
             "Consulta o Código Especificador da Substituição Tributária (CEST). "
@@ -149,7 +149,7 @@ def register(app: FastMCP) -> None:
         resultado = await consultar_cest(cest)
         return resultado.model_dump(mode="json", exclude_none=True)
 
-    @app.tool(  # type: ignore
+    @app.tool(
         name="consultar_aliquota_icms",
         description=(
             "Consulta as alíquotas do ICMS para operações interestaduais entre contribuintes. "

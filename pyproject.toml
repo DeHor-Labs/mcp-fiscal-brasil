@@ -100,6 +100,20 @@ strict = true
 ignore_missing_imports = true
 plugins = ["pydantic.mypy"]
 
+[[tool.mypy.overrides]]
+module = [
+    "mcp_fiscal_brasil.bcb._tools",
+    "mcp_fiscal_brasil.cep._tools",
+    "mcp_fiscal_brasil.cnae._tools",
+    "mcp_fiscal_brasil.empresa._tools",
+    "mcp_fiscal_brasil.ibge._tools",
+    "mcp_fiscal_brasil.mei._tools",
+    "mcp_fiscal_brasil.tabelas._tools",
+]
+# Decoradores @app.tool() dentro de register() nao sao tipados pelo FastMCP;
+# o erro [misc]/[untyped-decorator] e pre-existente em todo o servidor.
+disallow_untyped_decorators = false
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
