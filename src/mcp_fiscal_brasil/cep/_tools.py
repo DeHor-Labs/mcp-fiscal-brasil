@@ -34,5 +34,14 @@ def register(app: Any) -> None:
         Returns:
             dict com cep, state, city, neighborhood, street e service (fonte dos dados).
         """
-        result = await consultar_cep(cep)
+        from mcp_fiscal_brasil._core import FiscalValidationError
+
+        cep_digits = "".join(c for c in cep if c.isdigit())
+        if len(cep_digits) != 8:
+            raise FiscalValidationError(
+                f"CEP inválido: '{cep}'. Informe 8 dígitos numéricos (ex: '01001-000' ou '01001000').",
+                field="cep",
+                value=cep,
+            )
+        result = await consultar_cep(cep_digits)
         return result.model_dump(mode="json", exclude_none=True)
