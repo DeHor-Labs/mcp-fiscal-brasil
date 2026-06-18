@@ -203,7 +203,7 @@ async def consultar_aliquota_icms(uf_origem: str, uf_destino: str) -> ICMSAliquo
     """
     Consulta as alíquotas do ICMS para uma operação interestadual (offline).
 
-    Retorna a alíquota interestadual (7% ou 12% conforme Resolução SF 22/2008),
+    Retorna a alíquota interestadual (7% ou 12% conforme Res. Senado Federal nº 22/1989),
     a alíquota interna do estado de destino e o diferencial de alíquota (DIFAL),
     conforme EC 87/2015.
 
