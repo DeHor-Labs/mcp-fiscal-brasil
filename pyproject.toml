@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mcp-fiscal-brasil"
-version = "0.2.2"
-description = "Servidor MCP para integrar IAs com o sistema fiscal brasileiro. Consulte CNPJ, NFe, NFSe, SPED, eSocial e mais via linguagem natural."
+version = "0.3.0"
+description = "MCP fiscal brasileiro - 36 ferramentas, zero API key. CNPJ, NF-e, Reforma Tributaria IBS/CBS, ICMS, Simples Nacional, NCM/CFOP, indexadores BCB."
 authors = [
     { name = "Nikolas de Hor" }
 ]
@@ -17,6 +17,8 @@ keywords = [
     "model-context-protocol",
     "claude",
     "fiscal",
+    "brazil",
+    "brasil",
     "nfe",
     "nfce",
     "nfse",
@@ -27,7 +29,14 @@ keywords = [
     "reforma-tributaria",
     "ibs",
     "cbs",
+    "icms",
+    "simples-nacional",
+    "ncm",
+    "cfop",
     "receita-federal",
+    "tax",
+    "finance",
+    "government",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -80,6 +89,7 @@ Examples = "https://github.com/DeHor-Labs/mcp-fiscal-brasil/tree/main/examples"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/mcp_fiscal_brasil"]
+include = ["src/mcp_fiscal_brasil/tabelas/data/*.db"]
 
 [tool.ruff]
 target-version = "py310"
@@ -98,6 +108,21 @@ python_version = "3.10"
 strict = true
 ignore_missing_imports = true
 plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = [
+    "mcp_fiscal_brasil.server",
+    "mcp_fiscal_brasil.bcb._tools",
+    "mcp_fiscal_brasil.cep._tools",
+    "mcp_fiscal_brasil.cnae._tools",
+    "mcp_fiscal_brasil.empresa._tools",
+    "mcp_fiscal_brasil.ibge._tools",
+    "mcp_fiscal_brasil.mei._tools",
+    "mcp_fiscal_brasil.tabelas._tools",
+]
+# Decoradores @app.tool() do FastMCP nao sao tipados; o override por modulo
+# e mais cirurgico do que rebaixar o strict global.
+disallow_untyped_decorators = false
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
