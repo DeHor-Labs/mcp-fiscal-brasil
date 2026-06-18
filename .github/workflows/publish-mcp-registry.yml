@@ -14,11 +14,23 @@ jobs:
 
     steps:
       - name: Checkout do codigo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Instala mcp-publisher
         run: |
           curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+
+      - name: Aguardar pacote no PyPI
+        run: |
+          VERSION=$(grep -m1 '^version' pyproject.toml | sed -E 's/.*"([^"]+)".*/\1/')
+          echo "Aguardando mcp-fiscal-brasil==$VERSION no PyPI"
+          for i in $(seq 1 30); do
+            if curl -sfo /dev/null "https://pypi.org/pypi/mcp-fiscal-brasil/$VERSION/json"; then
+              echo "Pacote $VERSION disponivel no PyPI"; exit 0
+            fi
+            echo "Tentativa $i: ainda nao disponivel, aguardando 10s"; sleep 10
+          done
+          echo "Timeout aguardando o pacote no PyPI"; exit 1
 
       - name: Autentica no registry MCP via OIDC do GitHub
         run: ./mcp-publisher login github-oidc
