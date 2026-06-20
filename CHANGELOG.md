@@ -1,5 +1,46 @@
 # Changelog
 
+## [0.4.0] - 2026-06-20
+
+Onda 2 NF-e: parse, DANFE, assinatura, distribuicao e manifestacao. Total de tools
+sobe de 36 para 41.
+
+### Added
+
+#### Parse e DANFE offline (modulo `nfe`)
+
+- `parse_nfe_xml` - parseia XML bruto de NF-e ou NFC-e e retorna dados estruturados
+  (emitente, destinatario, itens, totais, protocolo). Sem API key, offline.
+- `gerar_danfe` - gera DANFE PDF (A4, modelo 55) a partir do XML. Retorna base64.
+  Sem API key, offline. Requer namespace `http://www.portalfiscal.inf.br/nfe`.
+  Modelo 65 (NFC-e) nao suportado na v1.0.0 da lib brazilfiscalreport.
+- `validar_assinatura_nfe` - valida assinatura XMLDSig e extrai dados do certificado
+  assinante (titular, CNPJ/CPF, validade, AC emissora). Sem API key, offline.
+  Suporte opcional a CA bundle PEM para validar cadeia ICP-Brasil.
+
+#### Distribuicao e manifestacao com certificado A1 (opt-in)
+
+- `baixar_nfe_distribuicao` - baixa documentos via NFeDistribuicaoDFe (SEFAZ) usando
+  certificado A1 local (.pfx/.p12). Suporta distNSU, consNSU e consChNFe.
+  O certificado nunca e enviado a servidores externos - autenticacao mTLS local.
+- `manifestar_nfe` - registra manifestacao do destinatario via NFeRecepcaoEvento.
+  Eventos: 210200 (Ciencia), 210210 (Confirmacao), 210220 (Desconhecimento),
+  210240 (Operacao nao Realizada). Assinatura XMLDSig feita localmente.
+
+#### Novas dependencias
+
+- `brazilfiscalreport==1.0.0` - geracao de DANFE PDF
+- `signxml>=4.5.1` - validacao e assinatura XMLDSig
+- `cryptography>=48.0.1` - manipulacao de certificados X.509 e PKCS12
+
+### Security
+
+- Toda entrada XML externa e validada via `parse_xml()` (lxml com
+  `resolve_entities=False`, `no_network=True`) antes de ser entregue a
+  brazilfiscalreport, que usa `xml.etree` sem protecao XXE propria.
+- Senhas de certificados A1 nunca aparecem em logs, excecoes ou disco persistente.
+- Arquivos PEM temporarios criados com permissao 0600 e removidos no bloco `finally`.
+
 ## [0.3.1] - 2026-06-18
 
 ### Fixed

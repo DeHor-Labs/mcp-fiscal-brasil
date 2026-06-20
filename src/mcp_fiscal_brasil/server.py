@@ -30,6 +30,15 @@ from .empresa import _tools as empresa_tools
 from .esocial.tools import listar_eventos_esocial, validar_evento_esocial
 from .ibge import _tools as ibge_tools
 from .mei import _tools as mei_tools
+from .nfe.assinatura import AssinaturaResult, validar_assinatura_nfe
+from .nfe.danfe import DanfeResult, gerar_danfe
+from .nfe.distribuicao import (
+    DistribuicaoResult,
+    ManifestacaoResult,
+    baixar_nfe_distribuicao,
+    manifestar_nfe,
+)
+from .nfe.documento import parse_nfe_documento
 from .nfe.tools import consultar_nfe, consultar_status_sefaz, validar_chave_nfe
 from .nfse.tools import consultar_nfse
 from .shared.validators import normalizar_cnpj, validate_cnpj_qualquer
@@ -243,6 +252,282 @@ async def tool_consultar_status_sefaz(uf: str) -> dict[str, Any]:
     """
     resultado = await consultar_status_sefaz(uf)
     return resultado.model_dump(mode="json", exclude_none=True)
+
+
+@app.tool(
+    name="parse_nfe_xml",
+    description=(
+        "Parseia o XML completo de uma NF-e ou NFC-e e retorna os dados estruturados. "
+        "Aceita XML com ou sem o involucro <nfeProc> e com ou sem namespace do portal fiscal. "
+        "Util para extrair emitente, destinatario, itens, totais e protocolo a partir do XML bruto."
+    ),
+)
+async def tool_parse_nfe_xml(xml_content: str) -> dict[str, Any]:
+    """Parseia o XML completo de uma NF-e ou NFC-e e retorna os dados estruturados.
+
+    Extrai automaticamente a chave de acesso do atributo Id do elemento <infNFe>.
+    Aceita XMLs com ou sem involucro de protocolo <nfeProc>, com ou sem namespace
+    do portal fiscal (http://www.portalfiscal.inf.br/nfe).
+
+    Args:
+        xml_content: XML completo da NF-e ou NFC-e como string. Pode conter
+                     o involucro <nfeProc> ou ser a NF-e nua. Aceita XML com
+                     ou sem namespace do portal fiscal.
+
+    Returns:
+        dict com os dados do documento: chave_acesso, modelo, emitente, destinatario,
+        itens, totais, protocolo_autorizacao e demais campos da NFeResponse.
+
+    Raises:
+        DocumentoParseError: Se o XML for invalido ou a chave nao tiver 44 digitos.
+        XMLParseError: Se o XML estiver malformado.
+    """
+    resultado = parse_nfe_documento(xml_content)
+    return resultado.model_dump(mode="json", exclude_none=True)
+
+
+@app.tool(
+    name="gerar_danfe",
+    description=(
+        "Gera o DANFE (Documento Auxiliar da Nota Fiscal Eletronica) em PDF a partir do XML de NF-e. "
+        "Suporta apenas NF-e modelo 55. O PDF e retornado em base64. "
+        "ATENCAO: o XML deve conter o namespace do portal fiscal "
+        "(xmlns='http://www.portalfiscal.inf.br/nfe'). "
+        "Nao e necessario certificado digital - funciona apenas com o XML."
+    ),
+)
+async def tool_gerar_danfe(xml_content: str) -> dict[str, Any]:
+    """Gera o DANFE em PDF a partir do XML de uma NF-e (modelo 55).
+
+    Utiliza a lib brazilfiscalreport para gerar o DANFE A4 no formato retrato.
+    O PDF e retornado como base64 no campo pdf_base64 do resultado.
+
+    NAMESPACE OBRIGATORIO: o XML deve conter o namespace do portal fiscal
+    (http://www.portalfiscal.inf.br/nfe). Modelo 65 (NFC-e) nao e suportado
+    na versao atual.
+
+    SEGURANCA: o XML e validado contra XXE (billion-laughs, entidades externas)
+    antes de ser entregue a lib de geracao do PDF.
+
+    Args:
+        xml_content: XML completo da NF-e como string. Deve conter o namespace
+                     do portal fiscal. Aceita XML com ou sem involucro <nfeProc>.
+
+    Returns:
+        dict com pdf_base64 (PDF em base64), modelo, nome_arquivo, chave_acesso,
+        numero e serie.
+    """
+    resultado: DanfeResult = gerar_danfe(xml_content)
+    return resultado.model_dump(mode="json", exclude_none=True)
+
+
+@app.tool(
+    name="validar_assinatura_nfe",
+    description=(
+        "Valida a assinatura digital XMLDSig de uma NF-e. "
+        "Verifica a integridade do DigestValue e a assinatura criptografica do certificado. "
+        "Extrai dados do certificado assinante: titular, CNPJ/CPF, validade e autoridade certificadora. "
+        "Opcional: informe um CA bundle PEM para validar a cadeia de confianca ICP-Brasil."
+    ),
+)
+async def tool_validar_assinatura_nfe(
+    xml_content: str,
+    ca_bundle: str | None = None,
+) -> dict[str, Any]:
+    """Valida a assinatura digital XMLDSig de uma NF-e.
+
+    Verifica a integridade (DigestValue) e a assinatura criptografica do
+    elemento Signature presente em infNFe. Extrai dados do certificado assinante.
+
+    Sem ca_bundle: valida apenas a assinatura criptografica e integridade do digest
+    usando o certificado embutido no proprio XML. Nao verifica se o certificado
+    e confiavel (sem cadeia ICP-Brasil).
+
+    Com ca_bundle (PEM): valida a assinatura E a cadeia de confianca ICP-Brasil,
+    garantindo que o certificado foi emitido por uma AC credenciada.
+
+    Args:
+        xml_content: Conteudo XML da NF-e como string. Validado contra XXE (parse_xml).
+        ca_bundle: Opcional. Conteudo PEM (nao o caminho, mas o PEM em si) com a
+                   cadeia ICP-Brasil para validar o emissor do certificado.
+
+    Returns:
+        dict com assinatura_valida (bool), motivo (se invalida), titular (CN),
+        cnpj_cpf, validade_inicio, validade_fim e ac_emissora.
+    """
+    resultado: AssinaturaResult = validar_assinatura_nfe(
+        xml_content,
+        ca_bundle=ca_bundle.encode() if ca_bundle else None,
+    )
+    return {
+        "assinatura_valida": resultado.assinatura_valida,
+        "motivo": resultado.motivo,
+        "titular": resultado.titular,
+        "cnpj_cpf": resultado.cnpj_cpf,
+        "validade_inicio": resultado.validade_inicio.isoformat()
+        if resultado.validade_inicio
+        else None,
+        "validade_fim": resultado.validade_fim.isoformat() if resultado.validade_fim else None,
+        "ac_emissora": resultado.ac_emissora,
+    }
+
+
+@app.tool(
+    name="baixar_nfe_distribuicao",
+    description=(
+        "Baixa documentos fiscais via NFeDistribuicaoDFe (SEFAZ) usando certificado A1 local. "
+        "REQUER certificado digital A1 (.pfx/.p12) do proprio usuario instalado localmente. "
+        "O certificado NUNCA e enviado a nenhum servidor - a autenticacao e feita localmente via mTLS. "
+        "Suporta busca incremental (distNSU), por NSU especifico (consNSU) ou por chave (consChNFe). "
+        "A Ciencia da Operacao (210200) e prerequisito para obter o XML completo (procNFe)."
+    ),
+)
+async def tool_baixar_nfe_distribuicao(
+    caminho_certificado: str,
+    senha: str,
+    cnpj_cpf: str,
+    uf: str,
+    modo: str = "distNSU",
+    ultimo_nsu: str = "0",
+    nsu: str | None = None,
+    chave: str | None = None,
+    ambiente: str = "producao",
+    timeout: float = 30.0,
+) -> dict[str, Any]:
+    """Baixa documentos fiscais via NFeDistribuicaoDFe com mTLS usando certificado A1 local.
+
+    CERTIFICADO LOCAL (opt-in): requer o caminho absoluto para o arquivo .pfx/.p12
+    e a senha. O certificado NUNCA e enviado a qualquer servidor externo. A autenticacao
+    mTLS e feita diretamente entre o cliente e a SEFAZ.
+
+    A Ciencia da Operacao (evento 210200) e pre-requisito para a SEFAZ liberar o
+    XML completo (procNFe) ao destinatario. Sem ela, apenas o resNFe (resumo) fica
+    disponivel. Use manifestar_nfe() apos obter o resNFe.
+
+    Args:
+        caminho_certificado: Caminho absoluto para o arquivo .pfx ou .p12.
+        senha: Senha do certificado. Nunca logada ou incluida em excecoes.
+        cnpj_cpf: CNPJ (14 dig) ou CPF (11 dig) do autor da consulta.
+        uf: Sigla da UF do autor (ex: "SP") ou codigo IBGE (ex: "35").
+        modo: "distNSU" (incremental), "consNSU" (NSU especifico) ou
+              "consChNFe" (por chave de acesso de 44 digitos).
+        ultimo_nsu: Ultimo NSU recebido para modo distNSU. Default "0" busca todos.
+        nsu: NSU especifico para modo consNSU.
+        chave: Chave de acesso de 44 digitos para modo consChNFe.
+        ambiente: "producao" ou "homologacao".
+        timeout: Timeout HTTP em segundos (default 30.0).
+
+    Returns:
+        dict com ultimo_nsu, max_nsu e documentos (lista com nsu, tipo, schema,
+        chave e resumo de cada documento retornado).
+    """
+    resultado: DistribuicaoResult = await baixar_nfe_distribuicao(
+        caminho_certificado=caminho_certificado,
+        senha=senha,
+        cnpj_cpf=cnpj_cpf,
+        uf=uf,
+        modo=modo,  # type: ignore[arg-type]
+        ultimo_nsu=ultimo_nsu,
+        nsu=nsu,
+        chave=chave,
+        ambiente=ambiente,  # type: ignore[arg-type]
+        timeout=timeout,
+    )
+    # Serializa manualmente pois DistribuicaoResult e dataclass frozen com nested dataclasses
+    docs = []
+    for doc in resultado.documentos:
+        docs.append(
+            {
+                "nsu": doc.nsu,
+                "tipo": doc.tipo,
+                "schema": doc.schema,
+                "chave": doc.chave,
+                "resumo": doc.resumo,
+                "dados_completos": (
+                    doc.dados_completos.model_dump(mode="json", exclude_none=True)
+                    if doc.dados_completos is not None
+                    else None
+                ),
+            }
+        )
+    return {
+        "ultimo_nsu": resultado.ultimo_nsu,
+        "max_nsu": resultado.max_nsu,
+        "documentos": docs,
+    }
+
+
+@app.tool(
+    name="manifestar_nfe",
+    description=(
+        "Manifesta o destinatario em uma NF-e via NFeRecepcaoEvento. "
+        "REQUER certificado digital A1 (.pfx/.p12) do proprio usuario instalado localmente. "
+        "O certificado NUNCA e enviado a nenhum servidor - a assinatura e feita localmente. "
+        "Eventos: 210200 (Ciencia), 210210 (Confirmacao), 210220 (Desconhecimento), "
+        "210240 (Operacao nao Realizada, requer justificativa). "
+        "A Ciencia (210200) e prerequisito obrigatorio para obter o XML completo da NF-e."
+    ),
+)
+async def tool_manifestar_nfe(
+    chave: str,
+    tipo_evento: str,
+    caminho_certificado: str,
+    senha: str,
+    cnpj_cpf: str,
+    uf: str = "91",
+    numero_sequencia: int = 1,
+    justificativa: str | None = None,
+    ambiente: str = "producao",
+    timeout: float = 30.0,
+) -> dict[str, Any]:
+    """Manifesta o destinatario em uma NF-e via NFeRecepcaoEvento.
+
+    CERTIFICADO LOCAL (opt-in): requer o caminho absoluto para o arquivo .pfx/.p12
+    e a senha. O certificado NUNCA e enviado a qualquer servidor. A assinatura XMLDSig
+    do evento e feita localmente e o XML assinado e enviado diretamente a SEFAZ.
+
+    Eventos disponiveis:
+    - 210200: Ciencia da Operacao (pre-requisito para obter procNFe)
+    - 210210: Confirmacao da Operacao
+    - 210220: Desconhecimento da Operacao
+    - 210240: Operacao nao Realizada (justificativa OBRIGATORIA, minimo 15 caracteres)
+
+    Args:
+        chave: Chave de acesso de 44 digitos da NF-e.
+        tipo_evento: Codigo do evento ("210200", "210210", "210220" ou "210240").
+        caminho_certificado: Caminho absoluto para o arquivo .pfx/.p12.
+        senha: Senha do certificado A1. Nunca logada ou incluida em excecoes.
+        cnpj_cpf: CNPJ (14 dig) ou CPF (11 dig) do destinatario.
+        uf: UF do autor. Default "91" = AN (Ambiente Nacional) para manifestacao.
+        numero_sequencia: Numero sequencial do evento para esta chave (1 a 20).
+        justificativa: Obrigatoria para evento 210240 (minimo 15 caracteres).
+        ambiente: "producao" ou "homologacao".
+        timeout: Timeout HTTP em segundos (default 30.0).
+
+    Returns:
+        dict com sucesso (bool), chave, tipo_evento, numero_protocolo,
+        codigo_retorno e motivo retornados pela SEFAZ.
+    """
+    resultado: ManifestacaoResult = await manifestar_nfe(
+        chave=chave,
+        tipo_evento=tipo_evento,
+        caminho_certificado=caminho_certificado,
+        senha=senha,
+        cnpj_cpf=cnpj_cpf,
+        uf=uf,
+        numero_sequencia=numero_sequencia,
+        justificativa=justificativa,
+        ambiente=ambiente,  # type: ignore[arg-type]
+        timeout=timeout,
+    )
+    return {
+        "sucesso": resultado.sucesso,
+        "chave": resultado.chave,
+        "tipo_evento": resultado.tipo_evento,
+        "numero_protocolo": resultado.numero_protocolo,
+        "codigo_retorno": resultado.codigo_retorno,
+        "motivo": resultado.motivo,
+    }
 
 
 # ---------------------------------------------------------------------------
