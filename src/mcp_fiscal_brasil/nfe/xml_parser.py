@@ -9,6 +9,63 @@ from ..shared.xml_utils import NS_NFE, parse_xml, xpath_text
 from .schemas import EnderecoNFe, ItemNFe, NFeResponse, TotaisNFe, TotaisReformaNFe
 
 
+def extrair_chave_nfe(xml_content: str | bytes) -> str | None:
+    """
+    Extrai a chave de acesso de 44 digitos do atributo Id do infNFe.
+
+    Remove o prefixo "NFe" se presente. Retorna None se o elemento
+    infNFe nao for encontrado ou se o Id nao contiver 44 digitos.
+
+    Args:
+        xml_content: Conteudo XML da NF-e ou NFC-e.
+
+    Returns:
+        Chave de 44 digitos ou None se nao encontrada.
+    """
+    root = parse_xml(xml_content)
+    ns = NS_NFE
+
+    inf_nfe = root.find(".//nfe:infNFe", ns)
+    if inf_nfe is None:
+        inf_nfe = root.find(".//infNFe")
+    if inf_nfe is None:
+        return None
+
+    raw_id = cast(str, inf_nfe.get("Id", ""))
+    chave = raw_id.removeprefix("NFe")
+    return chave if (len(chave) == 44 and chave.isdigit()) else None
+
+
+def extrair_modelo_nfe(xml_content: str | bytes) -> int:
+    """
+    Extrai o codigo de modelo do documento fiscal (55=NF-e, 65=NFC-e) do XML.
+
+    Retorna 55 como padrao quando o elemento <ide>/<mod> nao for encontrado
+    ou contiver valor nao numerico.
+
+    Args:
+        xml_content: Conteudo XML do documento fiscal.
+
+    Returns:
+        Numero do modelo (55 ou 65 tipicamente).
+    """
+    root = parse_xml(xml_content)
+    ns = NS_NFE
+
+    ide = root.find(".//nfe:ide", ns)
+    if ide is None:
+        ide = root.find(".//ide")
+
+    mod_text = xpath_text(ide, "nfe:mod/text()", ns) if ide is not None else None
+    if mod_text is None and ide is not None:
+        mod_text = xpath_text(ide, "mod/text()", {})
+
+    try:
+        return int(mod_text or "55")
+    except (ValueError, TypeError):
+        return 55
+
+
 def _find_any(
     element: etree._Element | None,
     namespaced_path: str,

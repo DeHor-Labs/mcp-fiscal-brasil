@@ -5,7 +5,7 @@ mcp-name: io.github.DeHor-Labs/mcp-fiscal-brasil
 </p>
 
 <p align="center">
-  <strong>36 ferramentas fiscais. Zero API key. Zero cadastro. 100% open source.</strong><br>
+  <strong>41 ferramentas fiscais. Zero API key. Zero cadastro. 100% open source.</strong><br>
   O primeiro MCP com suporte a Reforma Tributaria 2026 (IBS/CBS) - a camada open source para agentes de IA trabalharem com compliance fiscal brasileiro.
 </p>
 
@@ -167,6 +167,11 @@ Funcionam 100% sem chaves de API. Instale e use imediatamente.
 | NFe | `validar_chave_nfe` | Valida dígito + extrai UF, CNPJ, data, número | Offline |
 | NFe | `consultar_status_sefaz` | Status do webservice SEFAZ por estado | BrasilAPI (grátis) |
 | NFe | `consultar_nfe` | Consulta NFe completa pela chave de 44 dígitos | BrasilAPI (grátis) |
+| NFe | `parse_nfe_xml` | Parseia XML bruto de NF-e/NFC-e e retorna dados estruturados | Offline |
+| NFe | `gerar_danfe` | Gera DANFE PDF (A4) a partir do XML de NF-e (mod 55) | Offline |
+| NFe | `validar_assinatura_nfe` | Valida assinatura XMLDSig e extrai dados do certificado | Offline |
+| NFe | `baixar_nfe_distribuicao` | Baixa documentos via NFeDistribuicaoDFe (requer cert A1 local) | SEFAZ (mTLS) |
+| NFe | `manifestar_nfe` | Manifesta destinatario em NF-e via NFeRecepcaoEvento (requer cert A1) | SEFAZ (mTLS) |
 | CPF | `validar_cpf` | Validação de dígito verificador | Offline |
 | SPED | `analisar_sped` | Analisa arquivo EFD/ECD/ECF: período, empresa, erros | Offline |
 | SPED | `listar_registros_sped` | Filtra registros por tipo (C100, E110, etc.) | Offline |
@@ -184,6 +189,18 @@ Retornam URLs e instruções - exigem ação manual nos portais governamentais.
 | NFSe | `consultar_nfse` | URL do portal NFSe do município + sistema utilizado |
 | Certidões | `consultar_certidao_federal` | URL do e-CAC para emissão de CND federal |
 | Certidões | `consultar_certidao_fgts` | URL do portal Caixa para consulta do CRF |
+
+---
+
+### 🔐 Ferramentas com Certificado A1 (opt-in)
+
+As tools `baixar_nfe_distribuicao` e `manifestar_nfe` requerem um certificado
+digital A1 (`.pfx`/`.p12`) **instalado localmente no seu computador**.
+
+- O certificado e a senha **nunca sao enviados a nenhum servidor externo**.
+- A autenticacao mTLS e a assinatura XMLDSig sao feitas localmente.
+- Estas tools se conectam diretamente aos webservices da SEFAZ (Ambiente Nacional).
+- Todas as demais tools (parse, DANFE, assinatura, consultas) funcionam sem certificado.
 
 ---
 

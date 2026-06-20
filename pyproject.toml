@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mcp-fiscal-brasil"
-version = "0.3.1"
-description = "MCP fiscal brasileiro - 36 ferramentas, zero API key. CNPJ, NF-e, Reforma Tributaria IBS/CBS, ICMS, Simples Nacional, NCM/CFOP, indexadores BCB."
+version = "0.4.0"
+description = "MCP fiscal brasileiro - 41 ferramentas, zero API key. CNPJ, NF-e, Reforma Tributaria IBS/CBS, ICMS, Simples Nacional, NCM/CFOP, indexadores BCB."
 authors = [
     { name = "Nikolas de Hor" }
 ]
@@ -63,6 +63,9 @@ dependencies = [
     "typer>=0.25.1",
     "fastapi>=0.136.1",
     "uvicorn>=0.42.0",
+    "brazilfiscalreport==1.0.0",
+    "signxml>=4.5.1",
+    "cryptography>=48.0.1",
 ]
 
 [project.optional-dependencies]
@@ -122,7 +125,11 @@ module = [
 ]
 # Decoradores @app.tool() do FastMCP nao sao tipados; o override por modulo
 # e mais cirurgico do que rebaixar o strict global.
+# warn_unused_ignores = false: server.py usa hasattr guard antes de .model_dump()
+# em dados_completos (tipado como object no dataclass de distribuicao); o mypy
+# strict reporta o type: ignore como unused mesmo com a guarda em vigor.
 disallow_untyped_decorators = false
+warn_unused_ignores = false
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
