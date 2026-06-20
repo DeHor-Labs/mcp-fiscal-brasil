@@ -5,7 +5,8 @@ Registra todas as ferramentas fiscais e expõe via protocolo MCP (Model Context 
 """
 
 import logging
-from typing import Any
+import unicodedata
+from typing import Any, Literal
 
 from fastmcp import FastMCP
 
@@ -15,6 +16,7 @@ from .agentic import (
     compare_tax_regimes,
     consultar_empresas_lote,
     risk_score_supplier,
+    simular_transicao_reforma_tributaria,
     summarize_sped,
     validate_nfe_full,
 )
@@ -802,6 +804,122 @@ async def tool_compare_tax_regimes(
         faturamento_anual=faturamento_anual,
         setor=setor,  # type: ignore[arg-type]
         folha_pagamento_anual=folha_pagamento_anual,
+    )
+    return resultado.model_dump(mode="json", exclude_none=True)
+
+
+# ---------------------------------------------------------------------------
+# Helpers de normalizacao de entrada para o simulador de reforma tributaria
+# ---------------------------------------------------------------------------
+
+
+def _remover_acentos(texto: str) -> str:
+    """Remove diacriticos de uma string (ex.: 'comércio' -> 'comercio')."""
+    normalizado = unicodedata.normalize("NFKD", texto)
+    return "".join(c for c in normalizado if not unicodedata.combining(c))
+
+
+# Mapeamentos de normalizacao: chave sem acento em casefold -> valor canonico
+_mapa_setor: dict[str, Literal["comércio", "serviços", "indústria"]] = {
+    "comercio": "comércio",
+    "servicos": "serviços",
+    "industria": "indústria",
+}
+
+_mapa_regime: dict[str, Literal["Simples Nacional", "Lucro Presumido", "Lucro Real"]] = {
+    "simples nacional": "Simples Nacional",
+    "simples": "Simples Nacional",
+    "lucro presumido": "Lucro Presumido",
+    "presumido": "Lucro Presumido",
+    "lucro real": "Lucro Real",
+    "real": "Lucro Real",
+}
+
+
+def _normalizar_setor(setor: str) -> Literal["comércio", "serviços", "indústria"]:
+    """Normaliza a entrada de setor aceitando variantes sem acento e em qualquer caixa.
+
+    Exemplos aceitos: 'comercio', 'COMERCIO', 'Comércio' -> 'comércio'.
+    """
+    chave = _remover_acentos(setor.strip().casefold())
+    canonico = _mapa_setor.get(chave)
+    if canonico is None:
+        opcoes = ", ".join(f'"{v}"' for v in ("comércio", "serviços", "indústria"))
+        raise ValueError(f'Setor "{setor}" nao reconhecido. Use um dos valores validos: {opcoes}.')
+    return canonico
+
+
+def _normalizar_regime(
+    regime: str,
+) -> Literal["Simples Nacional", "Lucro Presumido", "Lucro Real"]:
+    """Normaliza a entrada de regime tributario aceitando variantes sem acento e em qualquer caixa.
+
+    Exemplos aceitos: 'simples nacional', 'SIMPLES NACIONAL', 'simples' -> 'Simples Nacional'.
+    """
+    chave = _remover_acentos(regime.strip().casefold())
+    canonico = _mapa_regime.get(chave)
+    if canonico is None:
+        opcoes = ", ".join(f'"{v}"' for v in ("Simples Nacional", "Lucro Presumido", "Lucro Real"))
+        raise ValueError(
+            f'Regime "{regime}" nao reconhecido. Use um dos valores validos: {opcoes}.'
+        )
+    return canonico
+
+
+@app.tool(
+    name="simular_transicao_reforma_tributaria",
+    description=(
+        "Simula o impacto da Reforma Tributaria (LC 214/2025) ano a ano de 2026 a 2033. "
+        "Compara a carga do regime antigo (PIS/COFINS + ICMS ou ISS) com a do regime novo "
+        "(CBS + IBS), mostrando o blend da transicao conforme o cronograma legal. "
+        "Setores: comercio, servicos ou industria. "
+        "Regimes: Simples Nacional, Lucro Presumido ou Lucro Real. "
+        "Informe aliquota_icms_atual ou aliquota_iss_atual para maior precisao. "
+        "Retorna projecao anual com premissas e disclaimers obrigatorios."
+    ),
+)
+async def tool_simular_transicao_reforma_tributaria(
+    faturamento_anual: float,
+    setor: str,
+    regime_atual: str,
+    aliquota_icms_atual: float | None = None,
+    aliquota_iss_atual: float | None = None,
+    aliquota_pis_cofins: float | None = None,
+) -> dict[str, Any]:
+    """Simula o impacto financeiro da transicao para o novo sistema tributario (LC 214/2025).
+
+    Projeta, ano a ano de 2026 a 2033, a carga tributaria estimada do regime antigo
+    (PIS/COFINS + ICMS ou ISS) e do regime novo (CBS + IBS), conforme o cronograma de
+    transicao da LC 214/2025: teste em 2026, CBS plena em 2027-2028, reducao gradual
+    de ICMS/ISS de 2029 a 2032 e extincao total em 2033.
+
+    Args:
+        faturamento_anual: Receita bruta anual em reais. Deve ser positivo.
+        setor: Setor da empresa. Aceita: "comércio", "serviços" ou "indústria".
+        regime_atual: Regime tributario atual. Aceita: "Simples Nacional",
+            "Lucro Presumido" ou "Lucro Real".
+        aliquota_icms_atual: Aliquota do ICMS (%) vigente no estado da empresa.
+            Obrigatoria para comercio/industria para maior precisao. Se None, assume 12%.
+        aliquota_iss_atual: Aliquota do ISS (%) vigente no municipio da empresa.
+            Obrigatoria para servicos para maior precisao. Se None, assume 5%.
+        aliquota_pis_cofins: Aliquota efetiva de PIS/COFINS (%) sobre o faturamento.
+            Se None, usa o padrao do regime informado (LP: 3,65%; LR: 9,25%; SN: 3,65%).
+
+    Returns:
+        dict com projecao anual 2026-2033, premissas utilizadas e avisos legais obrigatorios.
+    """
+    # Normaliza entradas aceitando variantes sem acento e em qualquer caixa
+    # (ex.: "comercio", "COMERCIO", "Comércio" -> "comércio")
+    setor_canonico = _normalizar_setor(setor)
+    regime_canonico = _normalizar_regime(regime_atual)
+
+    resultado = simular_transicao_reforma_tributaria(
+        faturamento_anual=faturamento_anual,
+        setor=setor_canonico,
+        regime_atual=regime_canonico,
+        aliquota_icms_atual=aliquota_icms_atual,
+        aliquota_iss_atual=aliquota_iss_atual,
+        aliquota_pis_cofins=aliquota_pis_cofins,
     )
     return resultado.model_dump(mode="json", exclude_none=True)
 

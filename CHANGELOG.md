@@ -2,10 +2,25 @@
 
 ## [0.4.0] - 2026-06-20
 
-Onda 2 NF-e: parse, DANFE, assinatura, distribuicao e manifestacao. Total de tools
-sobe de 36 para 41.
+Onda 2: modulo NF-e completo (parse, DANFE, assinatura, distribuicao, manifestacao) e
+simulador da transicao tributaria IBS/CBS (Reforma Tributaria 2026-2033). Total de tools
+sobe de 36 para 42.
 
 ### Added
+
+#### Simulador da Reforma Tributaria IBS/CBS (modulo `agentic.reforma`)
+
+- `simular_transicao_reforma_tributaria` - simula o impacto financeiro da transicao
+  tributaria entre 2026 e 2033 para um produto dado. Recebe valor bruto, aliquota atual
+  de PIS/COFINS/ISS/ICMS e CNAE, retorna tabela anual com aliquotas IBS/CBS por fase,
+  carga tributaria comparada (atual vs. nova) e economia/custo estimado por ano.
+  Sem API key, offline. Fonte: LC 214/2025 e Resolucao Comite Gestor CG-IBS n. 1/2025.
+
+#### Normalizacao auxiliar (modulo `agentic.reforma`)
+
+- Helpers internos `normalizar_aliquota_atual` e `normalizar_regime` para canonicalizacao
+  de inputs antes do calculo - garantem que entradas em percentual (ex: 12 vs 0.12) e
+  strings de regime (simples, lucro_presumido, lucro_real) sejam tratadas uniformemente.
 
 #### Parse e DANFE offline (modulo `nfe`)
 

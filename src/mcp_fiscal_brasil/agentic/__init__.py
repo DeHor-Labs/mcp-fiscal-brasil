@@ -12,6 +12,7 @@ Cada tool expoe:
 
 from .compliance import analyze_cnpj_compliance
 from .nfe import validate_nfe_full
+from .reforma import SimulacaoReformaResult, simular_transicao_reforma_tributaria
 from .regimes import compare_tax_regimes
 from .schemas import (
     ComplianceReport,
@@ -29,6 +30,7 @@ __all__ = [
     "ComplianceReport",
     "NFeValidationReport",
     "SPEDSummary",
+    "SimulacaoReformaResult",
     "SupplierRiskBatchItem",
     "SupplierRiskBatchResult",
     "SupplierRiskScore",
@@ -37,6 +39,7 @@ __all__ = [
     "compare_tax_regimes",
     "consultar_empresas_lote",
     "risk_score_supplier",
+    "simular_transicao_reforma_tributaria",
     "summarize_sped",
     "validate_nfe_full",
 ]
