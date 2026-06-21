@@ -6,7 +6,22 @@
       "release-type": "python",
       "package-name": "mcp-fiscal-brasil",
       "extra-files": [
-        "src/mcp_fiscal_brasil/__init__.py"
+        "src/mcp_fiscal_brasil/__init__.py",
+        {
+          "type": "json",
+          "path": "server.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "server.json",
+          "jsonpath": "$.packages[0].version"
+        },
+        {
+          "type": "json",
+          "path": "npm-wrapper/package.json",
+          "jsonpath": "$.version"
+        }
       ],
       "changelog-sections": [
         { "type": "feat", "section": "Novas funcionalidades" },
