@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.1](https://github.com/DeHor-Labs/mcp-fiscal-brasil/compare/v0.5.0...v0.5.1) (2026-06-21)
+
+
+### Documentação
+
+* polimento das notas de release em pt-BR ([#101](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/101)) ([c26e4d9](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/c26e4d95a779dcb19ebb0938ac10ae6b89e6ad45))
+
+
+### Integração contínua
+
+* sincroniza metadados JSON no Release Please
+
 ## [0.5.0](https://github.com/DeHor-Labs/mcp-fiscal-brasil/compare/v0.4.0...v0.5.0) (2026-06-21)
 
 
