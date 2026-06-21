@@ -242,6 +242,14 @@ def parse_nfe_xml(xml_content: str | bytes, chave: str) -> NFeResponse:
         nfe_el = root
 
     inf_nfe = _find_any(nfe_el, ".//nfe:infNFe", ".//infNFe", ns)
+    chave_acesso = "".join(char for char in chave if char.isdigit())
+    if len(chave_acesso) != 44:
+        raw_id = cast(str, inf_nfe.get("Id", "")) if inf_nfe is not None else ""
+        chave_id = raw_id.removeprefix("NFe")
+        if len(chave_id) == 44 and chave_id.isdigit():
+            chave_acesso = chave_id
+        else:
+            chave_acesso = chave
 
     ide = _find_any(inf_nfe, "nfe:ide", "ide", ns)
     emit = _find_any(inf_nfe, "nfe:emit", "emit", ns)
@@ -320,7 +328,7 @@ def parse_nfe_xml(xml_content: str | bytes, chave: str) -> NFeResponse:
         )
 
     return NFeResponse(
-        chave_acesso=chave,
+        chave_acesso=chave_acesso,
         número=_xpath_text_any(ide, "nfe:nNF/text()", "nNF/text()", ns),
         serie=_xpath_text_any(ide, "nfe:serie/text()", "serie/text()", ns),
         modelo=_xpath_text_any(ide, "nfe:mod/text()", "mod/text()", ns) or "55",

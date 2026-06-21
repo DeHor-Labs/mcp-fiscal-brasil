@@ -1,5 +1,6 @@
 """Testes para shared/http_client.py (FiscalHTTPClient)."""
 
+from importlib.metadata import version
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
@@ -55,6 +56,14 @@ def test_init_custom_headers():
     client = FiscalHTTPClient("https://api.example.com", headers={"X-Token": "abc"})
     assert client._default_headers["X-Token"] == "abc"
     assert client._default_headers["Accept"] == "application/json"
+
+
+def test_init_default_user_agent_usa_versao_do_pacote():
+    client = FiscalHTTPClient("https://api.example.com")
+
+    assert client._default_headers["User-Agent"] == (
+        f"mcp-fiscal-brasil/{version('mcp-fiscal-brasil')}"
+    )
 
 
 def test_init_with_rate_limiter():

@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from lxml import etree
-from signxml import XMLVerifier  # type: ignore[attr-defined]
+from signxml import XMLVerifier  # type: ignore[attr-defined, unused-ignore]
 
 from .._core.errors import FiscalValidationError
 from .._core.logging import get_logger

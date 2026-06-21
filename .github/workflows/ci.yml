@@ -39,6 +39,9 @@ jobs:
       - name: Install dependencies
         run: pip install -e ".[dev]"
 
+      - name: Check release metadata
+        run: python scripts/check_release_metadata.py
+
       - name: Lint (ruff)
         run: ruff check src/ tests/
 

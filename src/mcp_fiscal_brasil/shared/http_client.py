@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+from importlib.metadata import PackageNotFoundError, version
 from typing import Any
 
 import httpx
@@ -10,9 +11,18 @@ from .exceptions import APIError, RateLimitError, TimeoutError
 from .rate_limiter import SlidingWindowRateLimiter
 
 logger = logging.getLogger(__name__)
+_PACKAGE_NAME = "mcp-fiscal-brasil"
 
 # Timeout padrao (segundos): connect=5, read=30, write=10
 DEFAULT_TIMEOUT = httpx.Timeout(connect=5.0, read=30.0, write=10.0, pool=5.0)
+
+
+def _default_user_agent() -> str:
+    try:
+        package_version = version(_PACKAGE_NAME)
+    except PackageNotFoundError:
+        package_version = "0.0.0"
+    return f"{_PACKAGE_NAME}/{package_version}"
 
 
 class FiscalHTTPClient:
@@ -40,7 +50,7 @@ class FiscalHTTPClient:
         self.rate_limiter = rate_limiter
         self._default_headers = {
             "Accept": "application/json",
-            "User-Agent": "mcp-fiscal-brasil/0.1.0",
+            "User-Agent": _default_user_agent(),
             **(headers or {}),
         }
         self._client: httpx.AsyncClient | None = None

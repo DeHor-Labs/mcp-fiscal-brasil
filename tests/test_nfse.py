@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 
 from mcp_fiscal_brasil.nfse.tools import consultar_nfse
@@ -20,6 +22,19 @@ async def test_consultar_nfse_normaliza_entrada() -> None:
     assert resultado["municipio"] == "São Paulo"
     assert resultado["uf"] == "SP"
     assert resultado["status"] == "consulta_manual_necessaria"
+
+
+@pytest.mark.asyncio
+async def test_consultar_nfse_municipio_com_acento_encontra_portal() -> None:
+    with patch("mcp_fiscal_brasil.nfse.tools.NFSeNacionalClient") as mock_client_class:
+        client = MagicMock()
+        client.consultar_por_chave = AsyncMock(return_value=None)
+        mock_client_class.return_value = client
+
+        resultado = await consultar_nfse(numero="123", municipio="Goiânia", uf="GO")
+
+    assert resultado["portal_municipio"] == "https://nfse.goiania.go.gov.br/"
+    assert resultado["sistema_nfse"] == "ABRASF"
 
 
 @pytest.mark.asyncio

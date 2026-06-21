@@ -1,6 +1,7 @@
 """Ferramentas MCP para NFSe."""
 
 import logging
+import unicodedata
 
 from mcp_fiscal_brasil.nfse.client import NFSeNacionalClient, NFSeNacionalUnavailableError
 from mcp_fiscal_brasil.shared.validators import validate_cnpj
@@ -31,6 +32,13 @@ def _validar_uf_nfse(uf: str) -> str:
     if len(uf_limpa) != 2 or not uf_limpa.isalpha():
         raise ValueError("uf deve ser uma sigla com 2 letras")
     return uf_limpa
+
+
+def _normalizar_chave_municipio(municipio: str) -> str:
+    sem_acentos = "".join(
+        char for char in unicodedata.normalize("NFKD", municipio) if not unicodedata.combining(char)
+    )
+    return " ".join(sem_acentos.upper().split())
 
 
 def _validar_cnpj_prestador(cnpj_prestador: str | None) -> str | None:
@@ -236,7 +244,7 @@ async def consultar_nfse(
         },
     }
 
-    municipio_upper = municipio.upper()
+    municipio_upper = _normalizar_chave_municipio(municipio)
 
     # Tenta buscar com formato "MUNICIPIO/UF"
     chave = f"{municipio_upper}/{uf_upper}"

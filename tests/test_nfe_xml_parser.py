@@ -69,3 +69,21 @@ def test_parse_nfe_xml_without_namespace_extracts_basic_fields() -> None:
     assert response.itens[0].valor_total == 100.0
     assert response.totais is not None
     assert response.totais.valor_nota == 100.0
+
+
+def test_parse_nfe_xml_extrai_chave_do_id_quando_chave_vazia() -> None:
+    xml = """
+    <NFe>
+      <infNFe Id="NFe35240112345678000195550010000001231000000012">
+        <ide>
+          <mod>55</mod>
+          <serie>1</serie>
+          <nNF>123</nNF>
+        </ide>
+      </infNFe>
+    </NFe>
+    """
+
+    response = parse_nfe_xml(xml, "")
+
+    assert response.chave_acesso == "35240112345678000195550010000001231000000012"

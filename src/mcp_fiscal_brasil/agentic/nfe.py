@@ -73,7 +73,7 @@ async def validate_nfe_full(xml_path: str | Path) -> NFeValidationReport:
     if chave_acesso:
         try:
             chave_result = await validar_chave_nfe(chave_acesso)
-            chave_consistente = bool(chave_result.get("válida", False))
+            chave_consistente = bool(chave_result.get("válido", chave_result.get("válida", False)))
             if not chave_consistente:
                 issues.append(
                     NFeValidationIssue(
