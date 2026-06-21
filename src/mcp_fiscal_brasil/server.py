@@ -634,7 +634,9 @@ async def tool_analisar_sped(conteudo: str, nome_arquivo: str | None = None) -> 
         "Exemplo: buscar todos os registros C100 (documentos fiscais) ou E110 (apuração ICMS)."
     ),
 )
-async def tool_listar_registros_sped(conteudo: str, tipo_registro: str) -> list[dict[str, str]]:
+async def tool_listar_registros_sped(
+    conteudo: str, tipo_registro: str
+) -> list[dict[str, str | list[str]]]:
     """Lista todas as ocorrencias de um tipo de registro dentro de um arquivo SPED.
 
     Para cada linha cujo codigo inicial coincide com tipo_registro, retorna o codigo,

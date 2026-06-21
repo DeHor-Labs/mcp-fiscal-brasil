@@ -15,6 +15,100 @@ TIPOS_SPED: dict[str, str] = {
     "3": "ECF",
 }
 
+# Posições dos campos com valores monetários por registro (layout pipe-delimitado).
+# Os índices referem-se à lista campos[1:] retornada por listar_registros_sped
+# (ou seja, após remover o campo REG que ocupa a posição 0 da linha completa).
+#
+# Fontes:
+#   EFD-Contribuicoes: Guia Prático EFD Contribuições, Ato COTEPE/ICMS 65/2013
+#     M210 campo 7 (índice 6) = VL_CONT_PER (contribuicao PIS apurada no período)
+#     M610 campo 7 (índice 6) = VL_CONT_PER (contribuicao COFINS apurada no período)
+#     0110 campo 1 (índice 0) = COD_INC_TRIB (1=cumulativo, 2=nao-cumulativo)
+#   EFD ICMS/IPI: Guia Prático EFD ICMS/IPI, Ato COTEPE/ICMS 44/2018 (versao 018)
+#     E110 layout completo (campos 01 a 15):
+#       campo 02 (índice  0) = VL_TOT_DEBITOS       - total de débitos BRUTOS de saídas/prestações
+#       campo 03 (índice  1) = VL_AJ_DEBITOS        - ajustes a débito por doc. fiscal
+#       campo 04 (índice  2) = VL_TOT_AJ_DEBITOS    - total de ajustes a débito
+#       campo 05 (índice  3) = VL_ESTORNOS_CRED     - estornos de créditos
+#       campo 06 (índice  4) = VL_TOT_CREDITOS      - total de créditos por entradas
+#       campo 07 (índice  5) = VL_AJ_CREDITOS       - ajustes a crédito por doc. fiscal
+#       campo 08 (índice  6) = VL_TOT_AJ_CREDITOS   - total de ajustes a crédito
+#       campo 09 (índice  7) = VL_ESTORNOS_DEB      - estornos de débitos
+#       campo 10 (índice  8) = VL_SLD_CREDOR_ANT    - saldo credor do período anterior
+#       campo 11 (índice  9) = VL_SLD_APURADO       - saldo devedor apurado (= débitos - créditos)
+#       campo 12 (índice 10) = VL_TOT_DED           - total de deduções
+#       campo 13 (índice 11) = VL_ICMS_RECOLHER     - ICMS a recolher (= VL_SLD_APURADO - VL_TOT_DED)
+#       campo 14 (índice 12) = VL_SLD_CREDOR_TRANSPORTAR
+#       campo 15 (índice 13) = DEB_ESP              - valores extra-apuração
+# Constantes de layout expostas como nomes públicos para que módulos consumidores
+# (ex.: agentic/sped.py) possam importá-las sem acoplamento a nomes privados (_).
+# O typechecker verifica esses imports normalmente pois os nomes são públicos.
+
+CAMPO_VALOR: dict[str, int] = {
+    "M210": 6,  # VL_CONT_PER - PIS (campo 7 do registro, índice 6 em campos[1:])
+    "M610": 6,  # VL_CONT_PER - COFINS (campo 7 do registro, índice 6 em campos[1:])
+}
+
+# Para o registro E110 são extraídos dois campos com semânticas distintas.
+# Usar CAMPO_E110_* em vez de CAMPO_VALOR para o processamento especializado do ICMS.
+CAMPO_E110_TOT_DEBITOS: int = 0  # campo 02 - VL_TOT_DEBITOS: débitos BRUTOS (informativo)
+CAMPO_E110_RECOLHER: int = 11  # campo 13 - VL_ICMS_RECOLHER: valor LÍQUIDO a recolher
+
+# Campo do regime PIS/COFINS no registro 0110
+CAMPO_0110_REGIME: int = 0  # COD_INC_TRIB: "1"=cumulativo, "2"=nao-cumulativo
+REGIME_0110: dict[str, str] = {
+    "1": "cumulativo",
+    "2": "nao-cumulativo",
+}
+
+# Aliases com underscore mantidos para compatibilidade com código legado.
+# Novos módulos devem importar os nomes sem underscore acima.
+_CAMPO_VALOR = CAMPO_VALOR
+_CAMPO_E110_TOT_DEBITOS = CAMPO_E110_TOT_DEBITOS
+_CAMPO_E110_RECOLHER = CAMPO_E110_RECOLHER
+_CAMPO_0110_REGIME = CAMPO_0110_REGIME
+_REGIME_0110 = REGIME_0110
+
+
+def _to_float(valor: str | None) -> float:
+    """Converte valor monetário SPED (vírgula decimal) para float.
+
+    O layout oficial do SPED (EFD-Contribuições, EFD ICMS/IPI, ECD, ECF)
+    define a VÍRGULA como único separador decimal. O ponto, quando presente,
+    é separador de milhar (formato brasileiro), conforme Guia Prático EFD
+    Contribuições (Ato COTEPE/ICMS 65/2013) e EFD ICMS/IPI (Ato COTEPE/ICMS
+    44/2018). Valores no padrão en-US (ponto decimal sem vírgula) não são
+    esperados no SPED e, se ocorrerem, serão interpretados como inteiro
+    (ponto removido como milhar), o que é seguro para os casos reais.
+
+    Premissa: vírgula é SEMPRE o separador decimal neste contexto.
+    Estratégia: remover todos os pontos (milhar) e trocar a vírgula por ponto.
+
+    Exemplos de entradas suportadas:
+      "3.708.500,27" -> 3708500.27  (milhar + decimal)
+      "1.500,00"     -> 1500.0      (milhar + decimal)
+      "3708500,27"   -> 3708500.27  (sem milhar, apenas decimal)
+      "100,00"       -> 100.0
+      "-500,50"      -> -500.5      (negativo)
+      "0"            -> 0.0
+      ""             -> 0.0
+      None           -> 0.0
+
+    Args:
+        valor: String monetária SPED ou None/vazia.
+
+    Returns:
+        Valor como float. Retorna 0.0 para entradas vazias, None ou inválidas.
+    """
+    if not valor or not valor.strip():
+        return 0.0
+    try:
+        # Remove pontos de milhar e converte vírgula decimal para ponto
+        normalizado = valor.strip().replace(".", "").replace(",", ".")
+        return float(normalizado)
+    except ValueError:
+        return 0.0
+
 
 def _parse_linha_sped(linha: str) -> list[str]:
     """Analisa uma linha SPED (delimitada por '|') e remove os pipes externos."""
@@ -132,7 +226,9 @@ async def analisar_sped(conteudo: str, nome_arquivo: str | None = None) -> SPEDA
     )
 
 
-async def listar_registros_sped(conteudo: str, tipo_registro: str) -> list[dict[str, str]]:
+async def listar_registros_sped(
+    conteudo: str, tipo_registro: str
+) -> list[dict[str, str | list[str]]]:
     """
     Lista todos os registros de um determinado tipo em um arquivo SPED.
 
@@ -142,9 +238,13 @@ async def listar_registros_sped(conteudo: str, tipo_registro: str) -> list[dict[
 
     Returns:
         Lista de dicionários com os campos de cada ocorrência do registro.
+        Cada dicionário contém:
+          - "registro": código do registro (string)
+          - "campos": lista de campos (excluindo REG), indexável por posição
+          - "raw": linha original intacta (string)
     """
     tipo_registro = tipo_registro.upper().strip()
-    resultado = []
+    resultado: list[dict[str, str | list[str]]] = []
 
     for linha in conteudo.strip().splitlines():
         linha = linha.strip()
@@ -153,7 +253,11 @@ async def listar_registros_sped(conteudo: str, tipo_registro: str) -> list[dict[
         campos = _parse_linha_sped(linha)
         if campos and campos[0] == tipo_registro:
             resultado.append(
-                {"registro": tipo_registro, "campos": "|".join(campos[1:]), "raw": linha}
+                {
+                    "registro": tipo_registro,
+                    "campos": campos[1:],  # lista indexável, sem o campo REG
+                    "raw": linha,
+                }
             )
 
     return resultado

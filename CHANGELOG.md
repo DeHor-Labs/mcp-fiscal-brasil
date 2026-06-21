@@ -1,5 +1,30 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- Parser SPED agora extrai corretamente os valores de PIS (M210 `VL_CONT_PER`),
+  COFINS (M610 `VL_CONT_PER`) e ICMS (E110 `VL_ICMS_RECOLHER`) como valores a
+  recolher do período, garantindo comparabilidade entre os três tributos (#61).
+
+### Changed
+
+- **BREAKING:** `summarize_sped` renomeia a chave `icms_total` de `metricas_chave`
+  para duas chaves distintas, eliminando a inconsistência semântica entre bruto e
+  líquido:
+  - `icms_a_recolher` - `VL_ICMS_RECOLHER` (campo 13 do E110): valor líquido a
+    recolher após créditos e deduções; comparável com `pis_total` e `cofins_total`.
+  - `icms_total_debitos` - `VL_TOT_DEBITOS` (campo 02 do E110): total bruto de
+    débitos por saídas/prestações; informativo, não deve ser somado aos demais para
+    calcular carga fiscal total.
+
+  Fonte: Guia Prático EFD ICMS/IPI, Ato COTEPE/ICMS 44/2018 (versão 018).
+
+- **BREAKING:** `listar_registros_sped` retorna `campos` como `list[str]` (indexável
+  por posição) em vez da string bruta com separadores `|`. Código que fazia
+  `registro["campos"].split("|")` deve passar a usar `registro["campos"]` diretamente.
+
 ## [0.4.0] - 2026-06-20
 
 Onda 2: modulo NF-e completo (parse, DANFE, assinatura, distribuicao, manifestacao) e
