@@ -4,6 +4,20 @@
 
 ### Added
 
+#### Cálculo de tributos de importação por NCM (módulo `importacao`)
+
+- `calcular_tributos_importacao` - calcula a cascata completa de tributos de importação
+  (II, IPI, PIS/COFINS-importação, ICMS grossed-up, AFRMM e taxa Siscomex) a partir do
+  valor aduaneiro, alíquota II (TEC) informada pelo usuário, UF importadora e modal.
+  Offline para IPI (banco NCM/TIPI), ICMS (tabela interna de alíquotas estaduais),
+  AFRMM e Siscomex. Retorna breakdown por tributo com base, alíquota, valor, fundamento
+  legal, avisos e disclaimers obrigatórios. Sem API key. Escopo MVP: fora de antidumping,
+  regimes especiais, acordos bilaterais e alíquotas diferenciadas de PIS/COFINS.
+- `consultar_aliquotas_importacao` - retorna a alíquota IPI do banco NCM/TIPI bundled,
+  os defaults de PIS/COFINS-importação (2,1% e 9,65%, Lei 10.865/2004) e aviso sobre
+  a alíquota II (TEC), que não está disponível offline e deve ser informada pelo usuário.
+  Útil para conferir a alíquota IPI antes de usar calcular_tributos_importacao.
+
 - Circuit breaker para o client da NFS-e Nacional (ADN): apos 5 falhas consecutivas,
   novas chamadas sao bloqueadas por 60 s sem tocar a API, evitando sobrecarga em
   instabilidades do servico. O estado e reset automaticamente apos o periodo de
