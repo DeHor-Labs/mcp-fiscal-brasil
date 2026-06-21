@@ -342,7 +342,7 @@ class TestConsultarAliquotaICMS:
         assert resp.aliquota_interestadual == 7.0
 
     async def test_difal_positivo_para_estado_com_aliquota_maior(self) -> None:
-        # SP (18%) -> MA (22%): alíquota interestadual é 7% (SP->MA, Nordeste), DIFAL = 22 - 7 = 15
+        # SP (18%) -> MA (23%): alíquota interestadual é 7% (SP->MA, Nordeste), DIFAL = 23 - 7 = 16
         resp = await consultar_aliquota_icms("SP", "MA")
         assert resp.diferencial_aliquota > 0
 
