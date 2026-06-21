@@ -5,12 +5,12 @@ mcp-name: io.github.DeHor-Labs/mcp-fiscal-brasil
 </p>
 
 <p align="center">
-  <strong>41 ferramentas fiscais. Zero API key. Zero cadastro. 100% open source.</strong><br>
-  O primeiro MCP com suporte a Reforma Tributaria 2026 (IBS/CBS) - a camada open source para agentes de IA trabalharem com compliance fiscal brasileiro.
+  <strong>O único servidor MCP com suporte nativo a NF-e, NFS-e, SPED, eSocial, Simples Nacional e Reforma Tributária 2026 (IBS/CBS) - sem conta, sem chave e sem configuração.</strong>
 </p>
 
 <p align="center">
   <a href="https://pypi.org/project/mcp-fiscal-brasil/"><img src="https://img.shields.io/pypi/v/mcp-fiscal-brasil?color=009c3b&label=PyPI" alt="PyPI version"></a>
+  <a href="https://pypi.org/project/mcp-fiscal-brasil/"><img src="https://img.shields.io/pypi/dm/mcp-fiscal-brasil?color=009c3b&label=downloads%2Fmês" alt="PyPI downloads"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10%2B-002776?logo=python&logoColor=white" alt="Python 3.10+"></a>
   <a href="https://github.com/DeHor-Labs/mcp-fiscal-brasil/actions/workflows/ci.yml"><img src="https://github.com/DeHor-Labs/mcp-fiscal-brasil/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/licenca-MIT-FFDF00?labelColor=002776" alt="License MIT"></a>
@@ -27,6 +27,53 @@ mcp-name: io.github.DeHor-Labs/mcp-fiscal-brasil
   <a href="#-roadmap">Roadmap</a> ·
   <a href="#-contribuindo">Contribuindo</a>
 </p>
+
+---
+
+## Início rápido
+
+```bash
+uvx mcp-fiscal-brasil
+```
+
+> **Para manter sempre atualizado:** `uvx` cacheia a versão instalada. Use `uvx mcp-fiscal-brasil@latest` ou `uvx --refresh mcp-fiscal-brasil` para forçar a versão mais recente do [PyPI](https://pypi.org/project/mcp-fiscal-brasil/).
+
+### Claude Desktop
+
+Edite `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) ou `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
+
+```json
+{
+  "mcpServers": {
+    "fiscal-brasil": {
+      "command": "uvx",
+      "args": ["mcp-fiscal-brasil"]
+    }
+  }
+}
+```
+
+Reinicie o Claude Desktop. As ferramentas fiscais aparecem automaticamente, sem nenhuma chave de API.
+
+---
+
+## Por que mcp-fiscal-brasil e não outros servidores MCP brasileiros?
+
+| Funcionalidade | mcp-fiscal-brasil | mcp-brasil | brasil-data-mcp |
+|---|:---:|:---:|:---:|
+| Foco | Vertical fiscal profunda | Dados públicos gerais | Dados públicos gerais |
+| NF-e: parse, validação, DANFE, assinatura | Sim | Nao | Nao |
+| SPED/eSocial: análise offline | Sim | Nao | Nao |
+| Tabelas offline (NCM, CFOP, CNAE) | Sim | Nao | Nao |
+| Reforma Tributária 2026 (IBS/CBS) | Sim | Nao | Nao |
+| Simples Nacional/MEI | Sim | Nao | Nao |
+| Certidão federal/FGTS | Sim (orientação) | Nao | Nao |
+| Certificado A1 (mTLS SEFAZ) | Sim (opt-in) | Nao | Nao |
+| Zero-cadastro, zero chave obrigatória | Sim | Parcial (3 APIs exigem chave) | Sim |
+| Tools agênticas de alto nível | Sim (6 tools) | Parcial | Nao |
+| Linguagem de implementação | Python | Python | Node.js |
+
+**mcp-brasil** (1.6k stars) e **brasil-data-mcp** cobrem dados públicos gerais - CEP, bancos, feriados, economia. Este projeto faz algo diferente: é uma vertical fiscal, com parsing offline de XML, validação XSD, tabelas de referência embutidas e suporte à Reforma 2026. Focos diferentes, públicos distintos.
 
 ---
 
@@ -223,6 +270,8 @@ uvx mcp-fiscal-brasil
 ```
 
 > **O que é `uvx`?** É o gerenciador de ferramentas do [uv](https://docs.astral.sh/uv/), que baixa e executa pacotes Python em ambiente isolado, sem poluir seu sistema. Se ainda não tem o uv: `curl -LsSf https://astral.sh/uv/install.sh | sh`
+
+> **Mantendo atualizado via PyPI:** use `uvx mcp-fiscal-brasil@latest` ou `uvx --refresh mcp-fiscal-brasil` para forçar a versão mais recente. O `uvx` cacheia localmente, então sem `@latest` você pode continuar numa versão antiga.
 
 ---
 
@@ -484,6 +533,8 @@ ReceitaWS       estaduais municipais Federal  local   local  governamentais
 
 [![GitHub Discussions](https://img.shields.io/github/discussions/DeHor-Labs/mcp-fiscal-brasil)](https://github.com/DeHor-Labs/mcp-fiscal-brasil/discussions)
 [![GitHub Stars](https://img.shields.io/github/stars/DeHor-Labs/mcp-fiscal-brasil)](https://github.com/DeHor-Labs/mcp-fiscal-brasil/stargazers)
+
+[![Star History Chart](https://api.star-history.com/svg?repos=DeHor-Labs/mcp-fiscal-brasil&type=Date)](https://star-history.com/#DeHor-Labs/mcp-fiscal-brasil)
 
 - **Releases**: clique em **Watch -> Releases** no topo do repositório para ser notificado a cada versão nova
 - **Discussions**: [github.com/DeHor-Labs/mcp-fiscal-brasil/discussions](https://github.com/DeHor-Labs/mcp-fiscal-brasil/discussions) - canal para sugestões de feature, dúvidas fiscais e técnicas, e casos de uso. Sugestões feitas aqui entram no roadmap de verdade
