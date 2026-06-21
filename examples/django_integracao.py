@@ -28,9 +28,12 @@ Incluir em urls.py:
 
 import asyncio
 import json
+import logging
 from typing import Any
 
 from mcp_fiscal_brasil import FiscalBrasil, validate_cnpj, validate_cpf
+
+logger = logging.getLogger(__name__)
 
 # Instância global reutilizada entre requests (sem recursos persistentes a fechar)
 _fiscal = FiscalBrasil()
@@ -56,8 +59,9 @@ def consultar_cnpj(request: Any, cnpj: str) -> Any:
     try:
         empresa = asyncio.run(_fiscal.consultar_cnpj(cnpj))
         return JsonResponse(empresa.model_dump(), json_dumps_params={"default": str})
-    except Exception as e:
-        return JsonResponse({"erro": str(e)}, status=503)
+    except Exception:
+        logger.exception("Erro ao consultar CNPJ %s", cnpj)
+        return JsonResponse({"erro": "Serviço temporariamente indisponível"}, status=503)
 
 
 def consultar_simples(request: Any, cnpj: str) -> Any:
@@ -74,8 +78,9 @@ def consultar_simples(request: Any, cnpj: str) -> Any:
     try:
         resultado = asyncio.run(_fiscal.consultar_simples(cnpj))
         return JsonResponse(resultado.model_dump(), json_dumps_params={"default": str})
-    except Exception as e:
-        return JsonResponse({"erro": str(e)}, status=503)
+    except Exception:
+        logger.exception("Erro ao consultar Simples para CNPJ %s", cnpj)
+        return JsonResponse({"erro": "Serviço temporariamente indisponível"}, status=503)
 
 
 def validar_cpf(request: Any, cpf: str) -> Any:
@@ -111,8 +116,9 @@ def status_sefaz(request: Any, uf: str) -> Any:
     try:
         status = asyncio.run(_fiscal.status_sefaz(uf.upper()))
         return JsonResponse(status.model_dump(), json_dumps_params={"default": str})
-    except Exception as e:
-        return JsonResponse({"erro": str(e)}, status=503)
+    except Exception:
+        logger.exception("Erro ao consultar status SEFAZ para UF %s", uf)
+        return JsonResponse({"erro": "Serviço temporariamente indisponível"}, status=503)
 
 
 # ---------------------------------------------------------------------------
@@ -135,8 +141,9 @@ async def consultar_cnpj_async(request: Any, cnpj: str) -> Any:
         async with FiscalBrasil() as fiscal:
             empresa = await fiscal.consultar_cnpj(cnpj)
         return JsonResponse(empresa.model_dump(), json_dumps_params={"default": str})
-    except Exception as e:
-        return JsonResponse({"erro": str(e)}, status=503)
+    except Exception:
+        logger.exception("Erro ao consultar CNPJ %s (async)", cnpj)
+        return JsonResponse({"erro": "Serviço temporariamente indisponível"}, status=503)
 
 
 # ---------------------------------------------------------------------------

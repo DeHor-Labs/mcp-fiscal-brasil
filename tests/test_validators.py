@@ -6,6 +6,7 @@ from mcp_fiscal_brasil.shared.validators import (
     format_cnpj,
     format_cpf,
     normalizar_cnpj,
+    validar_caminho_arquivo,
     validate_chave_nfe,
     validate_cnpj,
     validate_cnpj_alfanumerico,
@@ -176,3 +177,66 @@ class TestNormalizarCNPJ:
     def test_ja_normalizado_retorna_igual(self) -> None:
         # CNPJ já normalizado (sem máscara, maiúsculas) deve retornar igual
         assert normalizar_cnpj("33000167000101") == "33000167000101"
+
+
+class TestValidarCaminhoArquivo:
+    """Testes para o helper de validacao de caminho contra path injection."""
+
+    def test_caminho_legitimo_retorna_path_resolvido(
+        self, tmp_path: "pytest.TempPathFactory"
+    ) -> None:  # type: ignore[name-defined]
+        arquivo = tmp_path / "sped_fiscal.txt"
+        arquivo.write_text("conteudo", encoding="utf-8")
+        resultado = validar_caminho_arquivo(arquivo)
+        assert resultado == arquivo.resolve()
+        assert resultado.exists()
+
+    def test_aceita_objeto_path(self, tmp_path: "pytest.TempPathFactory") -> None:  # type: ignore[name-defined]
+        from pathlib import Path
+
+        arquivo = tmp_path / "nota.xml"
+        arquivo.write_text("<xml/>", encoding="utf-8")
+        resultado = validar_caminho_arquivo(Path(arquivo))
+        assert resultado.is_file()
+
+    def test_aceita_string(self, tmp_path: "pytest.TempPathFactory") -> None:  # type: ignore[name-defined]
+        arquivo = tmp_path / "arquivo.txt"
+        arquivo.write_text("dados", encoding="utf-8")
+        resultado = validar_caminho_arquivo(str(arquivo))
+        assert resultado.is_file()
+
+    def test_rejeita_traversal_com_ponto_ponto_barra(
+        self, tmp_path: "pytest.TempPathFactory"
+    ) -> None:  # type: ignore[name-defined]
+        with pytest.raises(ValueError, match="suspeito"):
+            validar_caminho_arquivo(str(tmp_path) + "/../etc/passwd")
+
+    def test_rejeita_traversal_url_encoded(self, tmp_path: "pytest.TempPathFactory") -> None:  # type: ignore[name-defined]
+        with pytest.raises(ValueError, match="suspeito"):
+            validar_caminho_arquivo("/tmp/%2e%2e/etc/passwd")
+
+    def test_rejeita_null_byte(self, tmp_path: "pytest.TempPathFactory") -> None:  # type: ignore[name-defined]
+        with pytest.raises(ValueError, match="suspeito"):
+            validar_caminho_arquivo("/tmp/arquivo\x00.txt")
+
+    def test_levanta_file_not_found_para_inexistente(
+        self, tmp_path: "pytest.TempPathFactory"
+    ) -> None:  # type: ignore[name-defined]
+        with pytest.raises(FileNotFoundError):
+            validar_caminho_arquivo(str(tmp_path / "nao_existe.txt"))
+
+    def test_levanta_value_error_para_diretorio(self, tmp_path: "pytest.TempPathFactory") -> None:  # type: ignore[name-defined]
+        with pytest.raises(ValueError, match="não é um arquivo"):
+            validar_caminho_arquivo(str(tmp_path))
+
+    def test_label_aparece_na_mensagem_de_erro(self, tmp_path: "pytest.TempPathFactory") -> None:  # type: ignore[name-defined]
+        with pytest.raises(FileNotFoundError, match="Arquivo SPED"):
+            validar_caminho_arquivo(str(tmp_path / "sped.txt"), label="Arquivo SPED")
+
+    def test_rejeita_traversal_com_sep_do_os(self, tmp_path: "pytest.TempPathFactory") -> None:  # type: ignore[name-defined]
+        import os
+
+        # Constroi payload com os.sep explicitamente
+        payload = ".." + os.sep + "passwd"
+        with pytest.raises(ValueError, match="suspeito"):
+            validar_caminho_arquivo(payload)
