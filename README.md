@@ -1,7 +1,7 @@
 mcp-name: io.github.DeHor-Labs/mcp-fiscal-brasil
 
 <p align="center">
-  <img src="assets/banner.svg" width="800" alt="MCP Fiscal Brasil">
+  <img src="https://raw.githubusercontent.com/DeHor-Labs/mcp-fiscal-brasil/main/assets/banner.svg" width="800" alt="MCP Fiscal Brasil">
 </p>
 
 <p align="center">
