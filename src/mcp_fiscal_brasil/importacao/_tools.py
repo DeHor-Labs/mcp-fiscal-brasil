@@ -114,7 +114,7 @@ def register(app: FastMCP) -> None:
             valor_aduaneiro=valor_aduaneiro,
             uf_importador=uf_importador,
             aliquota_ii=aliquota_ii,
-            modal=modal,  # type: ignore[arg-type]
+            modal=modal,  # type: ignore[arg-type]  # FastMCP expõe str no schema; Literal validado em runtime em _MODAIS_VALIDOS
             frete_maritimo=frete_maritimo,
             aliquota_pis=aliquota_pis,
             aliquota_cofins=aliquota_cofins,

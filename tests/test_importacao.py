@@ -1,23 +1,30 @@
 """
 Testes para o módulo de cálculo de tributos de importação por NCM.
 
-Exemplo numérico de referência (validado):
+Exemplo numérico de referência (validado - valores pós-correção fiscal):
   NCM: 22030000 (cerveja)
   VA  = R$ 10.000,00
   II  = 20%  ->  base = 10.000  ->  II = 2.000
   IPI = 30%  ->  base = VA + II = 12.000  ->  IPI = 3.600
   PIS-imp = 2,1%  ->  base = VA = 10.000  ->  PIS = 210
   COFINS-imp = 9,65%  ->  base = VA = 10.000  ->  COFINS = 965
+  AFRMM (8% do frete marítimo, modal=maritimo, frete=0) -> 0
+    [Lei 10.893/2004 art. 6º, redação da Lei 14.301/2022]
   ICMS-SP (18%) "por dentro" (grossed-up):
-    carga_sem_icms = VA + II + IPI + PIS + COFINS = 16.775
+    carga_sem_icms = VA + II + IPI + PIS + COFINS + AFRMM = 16.775 + 0 = 16.775
     ICMS = carga_sem_icms * aliquota / (1 - aliquota)
          = 16.775 * 0,18 / 0,82
          = 16.775 * 0,21951... = 3.682,32
-  AFRMM (25% do frete marítimo, modal=maritimo, frete=0) -> 0
-  Siscomex = R$ 40,00 (taxa fixa padrão)
+    [AFRMM integra base do ICMS via LC 87/96 art. 13 V "e" e Súmula STF 553]
+  Siscomex = R$ 115,67 (Portaria ME nº 4.131/2021, 1 adição)
 
-  total_tributos = 2.000 + 3.600 + 210 + 965 + 3.682,32 + 0 + 40 = 10.497,32
-  custo_total = 10.000 + 10.497,32 = 20.497,32
+  ANTES (errado): AFRMM=25%, Siscomex=40,00, AFRMM fora da base do ICMS
+    total_tributos = 2.000 + 3.600 + 210 + 965 + 3.682,32 + 0 + 40 = 10.497,32
+    custo_total = 20.497,32
+
+  DEPOIS (correto):
+    total_tributos = 2.000 + 3.600 + 210 + 965 + 0 + 3.682,32 + 115,67 = 10.572,99
+    custo_total = 10.000 + 10.572,99 = 20.572,99
 """
 
 import math
@@ -188,20 +195,8 @@ class TestCalcularTributosImportacao:
         )
         afrmm = _tributo_por_nome(resp.breakdown, "AFRMM")
         assert afrmm is not None
-        # AFRMM = 25% do frete marítimo
-        assert afrmm.valor == pytest.approx(250.0)
-
-    async def test_modal_aereo_sem_afrmm(self) -> None:
-        resp = await calcular_tributos_importacao(
-            ncm=_NCM_CERVEJA,
-            valor_aduaneiro=_VA,
-            uf_importador=_UF_SP,
-            aliquota_ii=_ALIQ_II,
-            modal="aereo",
-        )
-        afrmm = _tributo_por_nome(resp.breakdown, "AFRMM")
-        # Modal aéreo não gera AFRMM
-        assert afrmm is None or afrmm.valor == pytest.approx(0.0)
+        # AFRMM = 8% do frete marítimo (Lei 10.893/2004 art. 6º, redação Lei 14.301/2022)
+        assert afrmm.valor == pytest.approx(80.0)
 
     async def test_siscomex_presente_no_breakdown(self) -> None:
         resp = await calcular_tributos_importacao(
@@ -212,7 +207,8 @@ class TestCalcularTributosImportacao:
         )
         siscomex = _tributo_por_nome(resp.breakdown, "Siscomex")
         assert siscomex is not None
-        assert siscomex.valor > 0
+        # Portaria ME nº 4.131/2021 - R$ 115,67 por DI (1 adição)
+        assert siscomex.valor == pytest.approx(115.67)
 
     async def test_custo_total_soma_va_mais_tributos(self) -> None:
         resp = await calcular_tributos_importacao(
@@ -236,7 +232,15 @@ class TestCalcularTributosImportacao:
         assert resp.total_tributos == pytest.approx(soma, abs=0.01)
 
     async def test_exemplo_referencia_ponta_a_ponta(self) -> None:
-        """Valida o exemplo numérico completo do docstring deste módulo."""
+        """Valida o exemplo numérico completo do docstring deste módulo (pós-correção fiscal).
+
+        Valores corrigidos:
+          - AFRMM: 8% (Lei 10.893/2004 art. 6º, redação Lei 14.301/2022), frete=0 -> 0
+          - AFRMM integra base do ICMS (LC 87/96 art. 13 V "e", Súmula STF 553)
+          - Siscomex: R$ 115,67 (Portaria ME nº 4.131/2021)
+          - total_tributos = 2000 + 3600 + 210 + 965 + 0 + 3682.32 + 115.67 = 10572.99
+          - custo_total = 10000 + 10572.99 = 20572.99
+        """
         resp = await calcular_tributos_importacao(
             ncm=_NCM_CERVEJA,
             valor_aduaneiro=_VA,
@@ -247,21 +251,26 @@ class TestCalcularTributosImportacao:
             aliquota_pis=2.1,
             aliquota_cofins=9.65,
         )
-        # Siscomex é taxa fixa; AFRMM é 0 (sem frete)
         ii = _tributo_por_nome(resp.breakdown, "II")
         ipi = _tributo_por_nome(resp.breakdown, "IPI")
         pis = _tributo_por_nome(resp.breakdown, "PIS-Importação")
         cofins = _tributo_por_nome(resp.breakdown, "COFINS-Importação")
+        afrmm = _tributo_por_nome(resp.breakdown, "AFRMM")
         icms = _tributo_por_nome(resp.breakdown, "ICMS")
+        siscomex = _tributo_por_nome(resp.breakdown, "Siscomex")
 
         assert ii is not None and ii.valor == pytest.approx(2_000.0)
         assert ipi is not None and ipi.valor == pytest.approx(3_600.0)
         assert pis is not None and pis.valor == pytest.approx(210.0)
         assert cofins is not None and cofins.valor == pytest.approx(965.0)
+        # AFRMM = 0 (frete=0); quando frete > 0 seria 8% do frete
+        assert afrmm is not None and afrmm.valor == pytest.approx(0.0)
+        # ICMS: base = 10000+2000+3600+210+965+0 = 16775; 16775*0.18/0.82 = 3682.32
         assert icms is not None and icms.valor == pytest.approx(3_682.32, abs=0.05)
-        # total > 10.000 (há vários tributos)
-        assert resp.total_tributos > 10_000.0
-        assert resp.custo_total > 20_000.0
+        assert siscomex is not None and siscomex.valor == pytest.approx(115.67)
+        # total_tributos = 2000 + 3600 + 210 + 965 + 0 + 3682.32 + 115.67 = 10572.99
+        assert resp.total_tributos == pytest.approx(10_572.99, abs=0.05)
+        assert resp.custo_total == pytest.approx(20_572.99, abs=0.05)
 
     async def test_disclaimers_presentes(self) -> None:
         resp = await calcular_tributos_importacao(
@@ -397,6 +406,107 @@ class TestCalcularTributosImportacao:
         assert pis is not None and cofins is not None
         assert pis.valor == pytest.approx(165.0)
         assert cofins.valor == pytest.approx(760.0)
+
+    async def test_frete_negativo_levanta_erro(self) -> None:
+        with pytest.raises(FiscalValidationError):
+            await calcular_tributos_importacao(
+                ncm=_NCM_CERVEJA,
+                valor_aduaneiro=_VA,
+                uf_importador=_UF_SP,
+                aliquota_ii=_ALIQ_II,
+                frete_maritimo=-100.0,
+            )
+
+    async def test_ipi_override_negativo_levanta_erro(self) -> None:
+        with pytest.raises(FiscalValidationError):
+            await calcular_tributos_importacao(
+                ncm=_NCM_CERVEJA,
+                valor_aduaneiro=_VA,
+                uf_importador=_UF_SP,
+                aliquota_ii=_ALIQ_II,
+                aliquota_ipi_override=-1.0,
+            )
+
+    async def test_modal_invalido_levanta_erro(self) -> None:
+        with pytest.raises(FiscalValidationError):
+            await calcular_tributos_importacao(
+                ncm=_NCM_CERVEJA,
+                valor_aduaneiro=_VA,
+                uf_importador=_UF_SP,
+                aliquota_ii=_ALIQ_II,
+                modal="ferroviario",  # type: ignore[arg-type]
+            )
+
+    async def test_valor_aduaneiro_zero_levanta_erro(self) -> None:
+        with pytest.raises(FiscalValidationError):
+            await calcular_tributos_importacao(
+                ncm=_NCM_CERVEJA,
+                valor_aduaneiro=0.0,
+                uf_importador=_UF_SP,
+                aliquota_ii=_ALIQ_II,
+            )
+
+    async def test_modal_aereo_sem_afrmm(self) -> None:
+        """Modal aéreo não deve gerar AFRMM."""
+        resp = await calcular_tributos_importacao(
+            ncm=_NCM_CERVEJA,
+            valor_aduaneiro=_VA,
+            uf_importador=_UF_SP,
+            aliquota_ii=_ALIQ_II,
+            modal="aereo",
+            frete_maritimo=0.0,
+        )
+        afrmm = _tributo_por_nome(resp.breakdown, "AFRMM")
+        assert afrmm is None or afrmm.valor == pytest.approx(0.0)
+
+    async def test_modal_terrestre_sem_afrmm(self) -> None:
+        """Modal terrestre não deve gerar AFRMM."""
+        resp = await calcular_tributos_importacao(
+            ncm=_NCM_CERVEJA,
+            valor_aduaneiro=_VA,
+            uf_importador=_UF_SP,
+            aliquota_ii=_ALIQ_II,
+            modal="terrestre",
+        )
+        afrmm = _tributo_por_nome(resp.breakdown, "AFRMM")
+        assert afrmm is None or afrmm.valor == pytest.approx(0.0)
+
+    async def test_modal_postal_sem_afrmm(self) -> None:
+        """Modal postal não deve gerar AFRMM."""
+        resp = await calcular_tributos_importacao(
+            ncm=_NCM_CERVEJA,
+            valor_aduaneiro=_VA,
+            uf_importador=_UF_SP,
+            aliquota_ii=_ALIQ_II,
+            modal="postal",
+        )
+        afrmm = _tributo_por_nome(resp.breakdown, "AFRMM")
+        assert afrmm is None or afrmm.valor == pytest.approx(0.0)
+
+    async def test_afrmm_integra_base_icms_com_frete(self) -> None:
+        """AFRMM deve integrar a base do ICMS quando frete > 0."""
+        frete = 5_000.0
+        resp_com_frete = await calcular_tributos_importacao(
+            ncm=_NCM_CERVEJA,
+            valor_aduaneiro=_VA,
+            uf_importador=_UF_SP,
+            aliquota_ii=_ALIQ_II,
+            modal="maritimo",
+            frete_maritimo=frete,
+        )
+        resp_sem_frete = await calcular_tributos_importacao(
+            ncm=_NCM_CERVEJA,
+            valor_aduaneiro=_VA,
+            uf_importador=_UF_SP,
+            aliquota_ii=_ALIQ_II,
+            modal="maritimo",
+            frete_maritimo=0.0,
+        )
+        icms_com = _tributo_por_nome(resp_com_frete.breakdown, "ICMS")
+        icms_sem = _tributo_por_nome(resp_sem_frete.breakdown, "ICMS")
+        # Com AFRMM na base, o ICMS deve ser maior
+        assert icms_com is not None and icms_sem is not None
+        assert icms_com.valor > icms_sem.valor
 
 
 # ---------------------------------------------------------------------------

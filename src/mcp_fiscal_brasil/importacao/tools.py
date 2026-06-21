@@ -7,13 +7,19 @@ Cascata de cálculo (ordem obrigatória):
   3. IPI - Imposto sobre Produtos Industrializados: base = VA + II, alíquota do banco NCM
   4. PIS-Importação: base = VA, alíquota default 2,1% (Lei 10.865/2004, art. 1º)
   5. COFINS-Importação: base = VA, alíquota default 9,65% (Lei 10.865/2004, art. 1º)
-  6. ICMS "por dentro" (grossed-up):
-       carga_sem_icms = VA + II + IPI + PIS + COFINS
+  6. AFRMM - Adicional ao Frete para Renovação da Marinha Mercante.
+     Alíquota padrão marítimo (longo curso e cabotagem): 8% do frete.
+     Aplica-se apenas ao modal marítimo. (Lei 10.893/2004, art. 6º, redação da
+     Lei 14.301/2022 - Programa BR do Mar, vigência 25/03/2022)
+  7. ICMS "por dentro" (grossed-up):
+       carga_sem_icms = VA + II + IPI + PIS + COFINS + AFRMM
        ICMS = carga_sem_icms * aliq_icms / (1 - aliq_icms)
+     O AFRMM integra a base do ICMS-Importação como "despesa aduaneira" (LC 87/96,
+     art. 13, V, "e" e Súmula STF 553 - interpretação majoritária, pode variar por UF).
      Alíquota interna da UF importadora (tabela ICMS_ALIQUOTA_INTERNA).
-  7. AFRMM - Adicional ao Frete para Renovação da Marinha Mercante (25% do frete marítimo).
-     Aplica-se apenas ao modal marítimo. (Lei 10.893/2004, art. 4º)
-  8. Siscomex - Taxa fixa de R$ 40,00 por declaração de importação (CAMEX).
+  8. Siscomex - Taxa simplificada de R$ 115,67 por declaração de importação
+     (Portaria ME nº 4.131/2021, vigência 01/06/2021). Simplificação: a taxa real
+     é escalonada por número de adições na DI.
 
 DISCLAIMER: Antidumping, regimes especiais, acordos bilaterais, Drawback, ZFM/ALC,
 benefícios fiscais estaduais específicos e alíquotas diferenciadas de PIS/COFINS
@@ -38,11 +44,26 @@ logger = get_logger(__name__)
 _DEFAULT_PIS_IMPORTACAO: float = 2.1
 _DEFAULT_COFINS_IMPORTACAO: float = 9.65
 
-# Alíquota AFRMM (Lei 10.893/2004, art. 4º)
-_ALIQ_AFRMM: float = 25.0
+# Alíquota AFRMM para modal marítimo (longo curso e cabotagem):
+# Lei 10.893/2004, art. 6º, redação da Lei 14.301/2022 (BR do Mar, vigência 25/03/2022)
+# Casos especiais fluviais/lacustres Norte-Nordeste:
+#   - granéis líquidos: 40%
+#   - outras cargas: 8%
+# O cálculo abaixo usa 8% como padrão marítimo (cobre longo curso e cabotagem).
+# Para granéis líquidos fluviais no Norte/Nordeste, use alíquota manual via override.
+_ALIQ_AFRMM_MARITIMO: float = 8.0  # longo curso e cabotagem
+_ALIQ_AFRMM_FLUVIAL_GRANEIS_LIQUIDOS: float = (
+    40.0  # fluvial/lacustre granéis líquidos (Norte/Nordeste)
+)
+_ALIQ_AFRMM_FLUVIAL_OUTRAS: float = 8.0  # fluvial/lacustre outras cargas (Norte/Nordeste)
 
-# Taxa Siscomex: R$ 40,00 por declaração de importação (Portaria CAMEX 54/2022)
-_TAXA_SISCOMEX: float = 40.0
+# Alias usado no cálculo (padrão marítimo)
+_ALIQ_AFRMM: float = _ALIQ_AFRMM_MARITIMO
+
+# Taxa Siscomex: R$ 115,67 por declaração de importação (simplificação - 1 adição)
+# Portaria ME nº 4.131/2021 (vigência 01/06/2021)
+# A taxa real é escalonada por número de adições na DI; este valor representa 1 adição.
+_TAXA_SISCOMEX: float = 115.67
 
 # UFs válidas (mesmas do loader de ICMS)
 _UFS_VALIDAS: frozenset[str] = frozenset(ICMS_ALIQUOTA_INTERNA.keys())
@@ -105,13 +126,22 @@ def _calcular_icms_por_dentro(carga_sem_icms: float, aliquota_icms: float) -> fl
     Fórmula: ICMS = carga_sem_icms * aliq / (1 - aliq)
 
     Args:
-        carga_sem_icms: Soma de VA + II + IPI + PIS + COFINS.
+        carga_sem_icms: Soma de VA + II + IPI + PIS + COFINS + AFRMM.
         aliquota_icms: Alíquota interna da UF em percentual (ex: 18.0).
 
     Returns:
         Valor do ICMS em R$.
+
+    Raises:
+        FiscalValidationError: Se aliquota_icms >= 100% (divisão por zero).
     """
     aliq = aliquota_icms / 100.0
+    if aliq >= 1.0:
+        raise FiscalValidationError(
+            f"aliquota_icms deve ser menor que 100%. Recebido: {aliquota_icms}%.",
+            field="aliquota_icms",
+            value=str(aliquota_icms),
+        )
     return round(carga_sem_icms * aliq / (1.0 - aliq), 2)
 
 
@@ -259,6 +289,18 @@ async def calcular_tributos_importacao(
             field="aliquota_cofins",
             value=str(aliquota_cofins),
         )
+    if aliquota_ipi_override is not None and aliquota_ipi_override < 0:
+        raise FiscalValidationError(
+            f"aliquota_ipi_override não pode ser negativa. Recebido: {aliquota_ipi_override}.",
+            field="aliquota_ipi_override",
+            value=str(aliquota_ipi_override),
+        )
+    if frete_maritimo < 0:
+        raise FiscalValidationError(
+            f"frete_maritimo não pode ser negativo. Recebido: {frete_maritimo}.",
+            field="frete_maritimo",
+            value=str(frete_maritimo),
+        )
     modal_lower = modal.strip().lower()
     if modal_lower not in _MODAIS_VALIDOS:
         raise FiscalValidationError(
@@ -384,23 +426,9 @@ async def calcular_tributos_importacao(
         ),
     )
 
-    # 6. ICMS "por dentro" (grossed-up)
-    # Base = VA + II + IPI + PIS + COFINS (antes do ICMS, pois ele integra a própria base)
-    carga_sem_icms = round(va + valor_ii + valor_ipi + valor_pis + valor_cofins, 2)
-    valor_icms = _calcular_icms_por_dentro(carga_sem_icms, aliq_icms)
-    item_icms = TributoItem(
-        nome="ICMS",
-        base_calculo=carga_sem_icms,
-        aliquota=aliq_icms,
-        valor=valor_icms,
-        fundamento=(
-            f"RICMS/{uf} (alíquota interna {aliq_icms}%). "
-            "Cálculo 'por dentro': ICMS = (VA+II+IPI+PIS+COFINS) * aliq / (1-aliq). "
-            "Base: Convênio ICMS 87/2002 e Res. Senado Federal 13/2012."
-        ),
-    )
-
-    # 7. AFRMM - Adicional ao Frete para Renovação da Marinha Mercante
+    # 6. AFRMM - Adicional ao Frete para Renovação da Marinha Mercante
+    # Calculado ANTES do ICMS pois integra a base de cálculo do ICMS-Importação
+    # como "despesa aduaneira" (LC 87/96, art. 13, V, "e" e Súmula STF 553).
     valor_afrmm = 0.0
     if modal_lower == "maritimo" and frete_maritimo > 0:
         valor_afrmm = round(frete_maritimo * _ALIQ_AFRMM / 100.0, 2)
@@ -410,20 +438,50 @@ async def calcular_tributos_importacao(
         aliquota=_ALIQ_AFRMM if modal_lower == "maritimo" else 0.0,
         valor=valor_afrmm,
         fundamento=(
-            "Lei 10.893/2004, art. 4º. Alíquota 25% sobre o frete marítimo. "
-            "Aplica-se apenas ao modal marítimo."
+            "Lei 10.893/2004, art. 6º, redação da Lei 14.301/2022 (BR do Mar, "
+            "vigência 25/03/2022). Alíquota 8% (longo curso e cabotagem) sobre o frete "
+            "marítimo. Aplica-se apenas ao modal marítimo. "
+            "DISCLAIMER: alíquota de 40% aplica-se a granéis líquidos fluviais/lacustres "
+            "no Norte/Nordeste; 8% para demais cargas fluviais nessas regiões."
         ),
     )
 
-    # 8. Taxa Siscomex (taxa fixa por declaração de importação)
+    # 7. ICMS "por dentro" (grossed-up)
+    # Base = VA + II + IPI + PIS + COFINS + AFRMM
+    # O AFRMM integra a base do ICMS-Importação como "despesa aduaneira"
+    # (LC 87/96, art. 13, V, "e" e Súmula STF 553 - interpretação majoritária,
+    # pode variar por UF; confirmar com contador).
+    carga_sem_icms = round(va + valor_ii + valor_ipi + valor_pis + valor_cofins + valor_afrmm, 2)
+    valor_icms = _calcular_icms_por_dentro(carga_sem_icms, aliq_icms)
+    item_icms = TributoItem(
+        nome="ICMS",
+        base_calculo=carga_sem_icms,
+        aliquota=aliq_icms,
+        valor=valor_icms,
+        fundamento=(
+            f"LC 87/96 (Lei Kandir), art. 13, V. RICMS/{uf} (alíquota interna {aliq_icms}%). "
+            "Cálculo 'por dentro': ICMS = (VA+II+IPI+PIS+COFINS+AFRMM) * aliq / (1-aliq). "
+            "AFRMM incluído na base como despesa aduaneira (Súmula STF 553). "
+            "DISCLAIMER: inclusão do AFRMM na base é interpretação majoritária; "
+            "pode variar por UF - confirmar com contador."
+        ),
+    )
+    avisos.append(
+        f"ICMS calculado sobre base que inclui AFRMM (interpretação majoritária via LC 87/96 "
+        f"art. 13, V, 'e' e Súmula STF 553). Base do ICMS: R$ {carga_sem_icms:,.2f}. "
+        "Confirmar com RICMS estadual e contador especializado."
+    )
+
+    # 8. Taxa Siscomex (simplificação: 1 adição na DI)
     item_siscomex = TributoItem(
         nome="Siscomex",
         base_calculo=1.0,
         aliquota=0.0,
         valor=_TAXA_SISCOMEX,
         fundamento=(
-            "Portaria CAMEX 54/2022. Taxa fixa de R$ 40,00 por declaração de importação. "
-            "Valor estimado; varia por adição/produto na DI."
+            "Portaria ME nº 4.131/2021 (vigência 01/06/2021). "
+            "Taxa simplificada de R$ 115,67 por DI (1 adição). "
+            "A taxa real é escalonada por número de adições; confirmar no SISCOMEX."
         ),
     )
 
@@ -433,8 +491,8 @@ async def calcular_tributos_importacao(
         item_ipi,
         item_pis,
         item_cofins,
-        item_icms,
         item_afrmm,
+        item_icms,
         item_siscomex,
     ]
 
