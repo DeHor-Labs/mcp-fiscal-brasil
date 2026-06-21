@@ -10,12 +10,12 @@
       ],
       "changelog-sections": [
         { "type": "feat", "section": "Novas funcionalidades" },
-        { "type": "fix", "section": "Correcoes" },
+        { "type": "fix", "section": "Correções" },
         { "type": "perf", "section": "Melhorias de desempenho" },
-        { "type": "docs", "section": "Documentacao" },
-        { "type": "ci", "section": "Integracao continua" },
-        { "type": "chore", "section": "Manutencao", "hidden": true },
-        { "type": "refactor", "section": "Refatoracao", "hidden": true }
+        { "type": "docs", "section": "Documentação" },
+        { "type": "ci", "section": "Integração contínua" },
+        { "type": "chore", "section": "Manutenção", "hidden": true },
+        { "type": "refactor", "section": "Refatoração", "hidden": true }
       ],
       "include-component-in-tag": false
     }
