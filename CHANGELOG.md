@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.5.0](https://github.com/DeHor-Labs/mcp-fiscal-brasil/compare/v0.4.0...v0.5.0) (2026-06-21)
+
+
+### Novas funcionalidades
+
+* cálculo de impostos de importação por NCM (MVP) ([#70](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/70)) ([85916e2](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/85916e23f41149d8f02d8bca3d8dead3a4df2fc2))
+* circuit breaker para a NFS-e Nacional ADN ([#49](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/49)) ([#68](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/68)) ([2fa2f52](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/2fa2f52a4783eb79d12a076efb1b46f75a8fd3fc))
+
+
+### Correcoes
+
+* harden fiscal validation and release metadata ([#99](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/99)) ([93ec232](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/93ec2327404f04991cee035845f9d176264d8e4b))
+* parser SPED extrai valores de PIS/COFINS/ICMS ([#61](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/61)) ([#67](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/67)) ([6078b7b](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/6078b7b66c79879cda24bf8ffe9e3cde89ea315c))
+* render do README no PyPI (imagem com URL absoluta + numero de tools) ([#80](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/80)) ([db2fd31](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/db2fd310e841076a85c5d9ac4e9a8763adce87c1))
+* valida caminhos de arquivo contra path injection (CodeQL High) ([#81](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/81)) ([be6f39e](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/be6f39e25aaa9680f7d88f32cfc67138d5988a11))
+* welcome bot em pt-BR e sem comentar em bots ([#82](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/82)) ([8a47c4d](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/8a47c4de6293def59b17070c7d4f0914771e2cc3))
+
+
+### Documentacao
+
+* fix SPED docstring indentation ([#100](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/100)) ([42734bb](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/42734bb16e4b578c5ee8670837d4ad63eb59f8b4))
+* secao Como acompanhar (Discussions, releases, newsletter) ([#75](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/75)) ([18366f7](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/18366f7acd82f25fa4b2bceb401dfe8e24fd9104))
+
+
+### Integracao continua
+
+* adiciona workflow CodeQL com workflow_dispatch para re-scan manual ([bc96ed5](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/bc96ed5bc2701079127737fcdf5c5398c916ba81))
+* auto-aprovar e auto-mergear Dependabot patch/minor (vulns inclusas) ([#83](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/83)) ([c852707](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/c852707d3cd14157924600a058da2670d4f6cc7d))
+* bots de triagem de issues (on-open + re-triagem semanal) ([#69](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/69)) ([51263b5](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/51263b5266b2846df3f74d725ea10d1f55e8f510))
+* CodeQL focado em seguranca (security-extended) ([#85](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/85)) ([72ebaf6](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/72ebaf60f800d0cbc3bc39abbf72efc5f61f506a))
+* pina actions por SHA (supply chain, CodeQL) ([#86](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/86)) ([fce7066](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/fce70663c90976d1b15d2c50027cfc537118e847))
+* release automatizado com release-please (Release PR + publish encadeado) ([#87](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/87)) ([1875227](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/18752278f4bd153743ff0ee32e733cf28acfbb63))
+* release notes automaticas com release-drafter (motor de newsletter via GitHub) ([#79](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/79)) ([26a3dda](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/26a3dda93578c888d76a6fd6f70fdef3c015ec4c))
+
 ## [Unreleased]
 
 ### Added
