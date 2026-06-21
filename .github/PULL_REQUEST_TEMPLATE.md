@@ -10,3 +10,4 @@
 - [ ] Type check passes (`mypy src/`)
 - [ ] No breaking changes to existing tool interfaces
 - [ ] Documentation updated (if applicable)
+- [ ] Release note text is polished pt-BR when the PR title will appear in Release Please
