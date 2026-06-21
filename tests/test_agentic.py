@@ -13,6 +13,7 @@ from mcp_fiscal_brasil.agentic import (
     compare_tax_regimes,
     consultar_empresas_lote,
     risk_score_supplier,
+    validate_nfe_full,
 )
 from mcp_fiscal_brasil.agentic.regimes import (
     _calc_lucro_presumido,
@@ -76,6 +77,53 @@ def _cnpj_baixado() -> CNPJResponse:
         qsa=[],
         origem="BrasilAPI",
     )
+
+
+@pytest.mark.asyncio
+async def test_validate_nfe_full_extrai_chave_do_xml_e_marca_consistente(
+    tmp_path, chave_nfe_valida: str
+) -> None:
+    xml_path = tmp_path / "nfe.xml"
+    xml_path.write_text(
+        f"""
+        <NFe>
+          <infNFe Id="NFe{chave_nfe_valida}">
+            <ide>
+              <mod>55</mod>
+              <serie>1</serie>
+              <nNF>1</nNF>
+              <dhEmi>2023-01-01T10:00:00-03:00</dhEmi>
+            </ide>
+            <emit>
+              <CNPJ>12345678000190</CNPJ>
+              <xNome>EMPRESA TESTE LTDA</xNome>
+            </emit>
+            <dest>
+              <CNPJ>33000167000101</CNPJ>
+              <xNome>CLIENTE TESTE SA</xNome>
+            </dest>
+            <total>
+              <ICMSTot>
+                <vNF>100.00</vNF>
+              </ICMSTot>
+            </total>
+          </infNFe>
+        </NFe>
+        """,
+        encoding="utf-8",
+    )
+
+    with patch("mcp_fiscal_brasil.agentic.nfe.CNPJClient") as mock_cnpj_class:
+        cnpj_inst = MagicMock()
+        cnpj_inst.consultar = AsyncMock(return_value=_cnpj_ativo())
+        mock_cnpj_class.return_value = cnpj_inst
+
+        report = await validate_nfe_full(xml_path)
+
+    assert report.chave_acesso == chave_nfe_valida
+    assert report.chave_consistente is True
+    assert report.valida_estruturalmente is True
+    assert report.issues == []
 
 
 # ---------------------------------------------------------------------------

@@ -40,11 +40,32 @@ export interface RegimesComparison {
   observacoes: string;
 }
 
+export type SetorRegime =
+  | "comércio"
+  | "comercio"
+  | "serviços"
+  | "servicos"
+  | "indústria"
+  | "industria";
+
+const SETOR_CLI_MAP: Record<SetorRegime, "comércio" | "serviços" | "indústria"> = {
+  comércio: "comércio",
+  comercio: "comércio",
+  serviços: "serviços",
+  servicos: "serviços",
+  indústria: "indústria",
+  industria: "indústria",
+};
+
 export class MCPFiscalError extends Error {
   constructor(message: string, public exitCode: number, public stderr: string) {
     super(message);
     this.name = "MCPFiscalError";
   }
+}
+
+function normalizeSetorForCli(setor: SetorRegime): string {
+  return SETOR_CLI_MAP[setor];
 }
 
 function runCli(args: string[]): Promise<unknown> {
@@ -115,7 +136,7 @@ export async function scoreSupplier(
 /** Compara regimes tributarios. */
 export async function compareRegimes(params: {
   faturamento: number;
-  setor: "comercio" | "servicos" | "industria";
+  setor: SetorRegime;
   folha?: number;
 }): Promise<RegimesComparison> {
   const args = [
@@ -123,7 +144,7 @@ export async function compareRegimes(params: {
     "--faturamento",
     String(params.faturamento),
     "--setor",
-    params.setor,
+    normalizeSetorForCli(params.setor),
   ];
   if (params.folha !== undefined) {
     args.push("--folha", String(params.folha));

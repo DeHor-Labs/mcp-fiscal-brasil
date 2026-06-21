@@ -28,9 +28,9 @@ def cpf_invalido() -> str:
 @pytest.fixture
 def chave_nfe_valida() -> str:
     """Chave NFe válida para testes (chave publica de exemplo)."""
-    # Chave: cUF=35(SP) AAMM=2301 CNPJ=12345678901234 mod=55 serie=001 nNF=000000001 tpEmis=1 cNF=00000001 cDV=?
-    # Usamos uma chave real conhecida para testes
-    return "35230112345678901234550010000000011000000018"
+    # cUF=35(SP) AAMM=2301 CNPJ=12345678000190 mod=55 serie=001
+    # nNF=000000001 tpEmis=1 cNF=00000001 cDV=8.
+    return "35230112345678000190550010000000011000000018"
 
 
 @pytest.fixture
