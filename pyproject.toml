@@ -61,7 +61,7 @@ dependencies = [
     "structlog>=25.5.0",
     "pydantic-settings>=2.14.2",
     "typer>=0.25.1",
-    "fastapi>=0.136.1",
+    "fastapi>=0.138.0",
     "uvicorn>=0.42.0",
     "brazilfiscalreport==1.0.0",
     "signxml>=4.5.1",
