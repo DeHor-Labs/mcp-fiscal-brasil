@@ -1,0 +1,23 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "python",
+  "packages": {
+    ".": {
+      "release-type": "python",
+      "package-name": "mcp-fiscal-brasil",
+      "extra-files": [
+        "src/mcp_fiscal_brasil/__init__.py"
+      ],
+      "changelog-sections": [
+        { "type": "feat", "section": "Novas funcionalidades" },
+        { "type": "fix", "section": "Correcoes" },
+        { "type": "perf", "section": "Melhorias de desempenho" },
+        { "type": "docs", "section": "Documentacao" },
+        { "type": "ci", "section": "Integracao continua" },
+        { "type": "chore", "section": "Manutencao", "hidden": true },
+        { "type": "refactor", "section": "Refatoracao", "hidden": true }
+      ],
+      "include-component-in-tag": false
+    }
+  }
+}
