@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Added
+
+- Circuit breaker para o client da NFS-e Nacional (ADN): apos 5 falhas consecutivas,
+  novas chamadas sao bloqueadas por 60 s sem tocar a API, evitando sobrecarga em
+  instabilidades do servico. O estado e reset automaticamente apos o periodo de
+  cooldown ou em caso de sucesso (#49).
+
 ### Fixed
 
 - Parser SPED agora extrai corretamente os valores de PIS (M210 `VL_CONT_PER`),
