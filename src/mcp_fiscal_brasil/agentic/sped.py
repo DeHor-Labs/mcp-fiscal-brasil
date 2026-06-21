@@ -7,6 +7,7 @@ from typing import Literal
 
 from mcp_fiscal_brasil._core import get_logger
 
+from ..shared.validators import validar_caminho_arquivo
 from ..sped.tools import (
     CAMPO_0110_REGIME,
     CAMPO_E110_RECOLHER,
@@ -160,10 +161,7 @@ async def summarize_sped(file_path: str | Path) -> SPEDSummary:
         for metrica, valor in sumário.metricas_chave.items():
             print(f"{metrica}: {valor}")
     """
-    path = Path(file_path)
-    if not path.exists():
-        raise FileNotFoundError(f"Arquivo SPED não encontrado: {file_path}")
-
+    path = validar_caminho_arquivo(file_path, label="Arquivo SPED")
     conteudo = path.read_text(encoding="latin-1")
     analise = await analisar_sped(conteudo, nome_arquivo=path.name)
     metricas_financeiras = _extrair_metricas_financeiras(conteudo)
