@@ -31,6 +31,7 @@ from .cpf.tools import validar_cpf_tool
 from .empresa import _tools as empresa_tools
 from .esocial.tools import listar_eventos_esocial, validar_evento_esocial
 from .ibge import _tools as ibge_tools
+from .importacao import _tools as importacao_tools
 from .mei import _tools as mei_tools
 from .nfe.assinatura import AssinaturaResult, validar_assinatura_nfe
 from .nfe.danfe import DanfeResult, gerar_danfe
@@ -1026,6 +1027,7 @@ cnae_tools.register(app)
 ibge_tools.register(app)
 mei_tools.register(app)
 empresa_tools.register(app)
+importacao_tools.register(app)
 
 
 def main() -> None:

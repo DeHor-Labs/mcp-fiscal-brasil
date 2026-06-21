@@ -1666,36 +1666,45 @@ CST_IPI_SAIDA: dict[str, str] = {
 # ---------------------------------------------------------------------------
 
 # Alíquotas internas do ICMS por UF (valores predominantes para cálculo do DIFAL)
-# Fonte: legislação estadual compilada (CONFAZ/SEFAZ estaduais)
+# Fonte: legislação estadual compilada (CONFAZ/SEFAZ estaduais) - atualizado em 2026-06-21
 # AVISO: alíquotas internas podem variar por produto/operação; estes são os valores
-# gerais de referência. Consultar a legislação estadual específica para cada caso.
+# gerais de referência (alíquota geral, sem FECP). Consultar o RICMS estadual vigente
+# ou contador para produto/operação específicos.
+#
+# Alterações recentes incorporadas:
+#   AC: 17% -> 19% (RICMS/AC art. 17, inc. I - vigente em 2025)
+#   AL: 19% -> 20,5% (Lei AL 9776/2025, vigência 01/04/2026)
+#   BA: 19,5% -> 20,5% (legislação estadual BA, vigente em 2025)
+#   MA: 22% -> 23% (Lei MA 12.426/2024, vigência 23/02/2025)
+#   PI: 21% -> 22,5% (Lei PI 8.558/2024, vigência 01/04/2025)
+#   RS: 17,5% -> 17% (RICMS/RS art. 27, inc. X - taxa geral vigente em 2026)
 ICMS_ALIQUOTA_INTERNA: dict[str, float] = {
-    "AC": 17.0,
-    "AL": 19.0,
+    "AC": 19.0,  # RICMS/AC art. 17, inc. I
+    "AL": 20.5,  # Lei AL 9776/2025, vigência 01/04/2026
     "AM": 20.0,
     "AP": 18.0,
-    "BA": 19.5,
+    "BA": 20.5,  # legislação estadual BA 2025
     "CE": 20.0,
     "DF": 20.0,
     "ES": 17.0,
     "GO": 19.0,
-    "MA": 22.0,
+    "MA": 23.0,  # Lei MA 12.426/2024, vigência 23/02/2025
     "MT": 17.0,
     "MS": 17.0,
-    "MG": 18.0,
+    "MG": 18.0,  # RICMS/MG subitem 7.1 Parte 1 Anexo I
     "PA": 19.0,
     "PB": 20.0,
     "PR": 19.5,
     "PE": 20.5,
-    "PI": 21.0,
-    "RJ": 22.0,
+    "PI": 22.5,  # Lei PI 8.558/2024, vigência 01/04/2025
+    "RJ": 22.0,  # 20% + 2% FECP (LC RJ 210/2023, vigência 20/03/2024)
     "RN": 20.0,
-    "RS": 17.5,
+    "RS": 17.0,  # RICMS/RS art. 27, inc. X
     "RO": 19.5,
     "RR": 20.0,
     "SC": 17.0,
-    "SP": 18.0,
-    "SE": 19.0,
+    "SP": 18.0,  # RICMS/SP art. 52, inc. I (Decreto 45.490/2000)
+    "SE": 19.0,  # RICMS/SE art. 40, inc. I (+ 1% FECP totaliza 20%)
     "TO": 20.0,
 }
 

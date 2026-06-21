@@ -122,6 +122,7 @@ module = [
     "mcp_fiscal_brasil.ibge._tools",
     "mcp_fiscal_brasil.mei._tools",
     "mcp_fiscal_brasil.tabelas._tools",
+    "mcp_fiscal_brasil.importacao._tools",
 ]
 # Decoradores @app.tool() do FastMCP nao sao tipados; o override por modulo
 # e mais cirurgico do que rebaixar o strict global.
