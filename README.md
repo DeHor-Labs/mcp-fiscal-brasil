@@ -480,6 +480,18 @@ ReceitaWS       estaduais municipais Federal  local   local  governamentais
 
 ---
 
+## Como acompanhar
+
+[![GitHub Discussions](https://img.shields.io/github/discussions/DeHor-Labs/mcp-fiscal-brasil)](https://github.com/DeHor-Labs/mcp-fiscal-brasil/discussions)
+[![GitHub Stars](https://img.shields.io/github/stars/DeHor-Labs/mcp-fiscal-brasil)](https://github.com/DeHor-Labs/mcp-fiscal-brasil/stargazers)
+
+- **Releases**: clique em **Watch -> Releases** no topo do repositório para ser notificado a cada versão nova
+- **Discussions**: [github.com/DeHor-Labs/mcp-fiscal-brasil/discussions](https://github.com/DeHor-Labs/mcp-fiscal-brasil/discussions) - canal para sugestões de feature, dúvidas fiscais e técnicas, e casos de uso. Sugestões feitas aqui entram no roadmap de verdade
+- **Newsletter**: acompanhe os releases comentados na LinkedIn Newsletter mcp-fiscal-brasil <!-- TODO: inserir link da newsletter LinkedIn apos criacao --> - cada numero explica o que chegou, o que foi corrigido e o que vem por ai
+- **Issues**: bugs com contexto completo (versão, XML de exemplo sem dados reais, comportamento esperado vs. obtido)
+
+---
+
 ## 🤝 Contribuindo
 
 Contribuições são bem-vindas!
