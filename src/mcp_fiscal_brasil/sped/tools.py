@@ -239,9 +239,9 @@ async def listar_registros_sped(
     Returns:
         Lista de dicionários com os campos de cada ocorrência do registro.
         Cada dicionário contém:
-          - "registro": código do registro (string)
-          - "campos": lista de campos (excluindo REG), indexável por posição
-          - "raw": linha original intacta (string)
+        - "registro": código do registro (string)
+        - "campos": lista de campos (excluindo REG), indexável por posição
+        - "raw": linha original intacta (string)
     """
     tipo_registro = tipo_registro.upper().strip()
     resultado: list[dict[str, str | list[str]]] = []
