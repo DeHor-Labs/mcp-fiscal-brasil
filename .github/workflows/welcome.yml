@@ -9,6 +9,7 @@ on:
 jobs:
   welcome:
     runs-on: ubuntu-latest
+    if: ${{ !endsWith(github.actor, '[bot]') }}
     permissions:
       issues: write
       pull-requests: write
@@ -17,16 +18,18 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           issue_message: |
-            Thanks for opening an issue! We'll take a look as soon as possible.
+            Obrigado por abrir uma issue! Vamos analisar assim que possivel.
 
-            Please make sure you've included:
-            - A clear description of the problem or suggestion
-            - Steps to reproduce (if it's a bug)
-            - Your environment (Python/Node version, OS)
+            Para nos ajudar a entender o problema, inclua:
+            - Descricao clara do que aconteceu e o que era esperado
+            - Para bugs: UF e SEFAZ envolvida, versao do pacote (`pip show mcp-fiscal-brasil`), e passos para reproduzir
+            - Versao do Python e sistema operacional
+
+            Tem uma duvida ou sugestao mais aberta? Use o [Discussions](../../discussions) do projeto.
           pr_message: |
-            Thanks for your contribution! We appreciate your time and effort.
+            Obrigado pela contribuicao! Agradecemos o tempo dedicado.
 
-            Please make sure:
-            - Tests pass locally
-            - Code follows the project style
-            - Changes are described in the PR description
+            Antes de seguir, confira:
+            - Os testes e o lint passam localmente (`pytest` e `ruff check`)
+            - A mudanca esta descrita na descricao do PR (o que foi alterado e por que)
+            - Notas fiscais e regras fiscais afetadas estao mencionadas, se aplicavel
