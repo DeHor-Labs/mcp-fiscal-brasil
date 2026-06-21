@@ -64,7 +64,7 @@ dependencies = [
     "fastapi>=0.136.1",
     "uvicorn>=0.42.0",
     "brazilfiscalreport==1.0.0",
-    "signxml>=4.5.1",
+    "signxml>=5.0.0",
     "cryptography>=48.0.1",
 ]
 
