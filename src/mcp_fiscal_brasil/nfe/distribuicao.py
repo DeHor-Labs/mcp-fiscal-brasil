@@ -30,7 +30,7 @@ from typing import TYPE_CHECKING, Literal
 
 import httpx
 from lxml import etree
-from signxml import XMLSigner  # type: ignore[attr-defined]
+from signxml import XMLSigner
 
 from .._core.errors import FiscalHTTPError, FiscalValidationError
 from .._core.logging import get_logger
