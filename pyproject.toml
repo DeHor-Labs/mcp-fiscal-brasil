@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mcp-fiscal-brasil"
-version = "0.5.1"
+version = "0.5.2"
 description = "MCP fiscal brasileiro - 44 ferramentas, zero API key. CNPJ, NF-e, Reforma Tributaria IBS/CBS, ICMS, Simples Nacional, NCM/CFOP, indexadores BCB."
 authors = [
     { name = "Nikolas de Hor" }
