@@ -521,11 +521,14 @@ ReceitaWS       estaduais municipais Federal  local   local  governamentais
 
 ## 📍 Roadmap
 
-- [x] **v0.1.x** - Consultas CNPJ, CPF, NFe, Simples, SPED
-- [x] **v0.2.x** - CLI, REST API, Web UI demo, wrapper Node.js em preview e tools agênticas
-- [ ] **v0.3.x** - Lote de empresas, cache persistente, mais fontes públicas e relatórios exportáveis
-- [ ] **v0.4.x** - NFSe por provedor/município, validação XSD NFe/SPED e eSocial versionado
-- [ ] **v1.0.0** - Suite fiscal com LGPD audit, contratos de API estáveis e cobertura operacional ampliada
+- [x] **v0.1.x** - Consultas CNPJ, CPF, NFe, Simples Nacional e SPED; ~14 tools MCP
+- [x] **v0.2.x** - Infra production-grade (_core), CLI, REST API, Web UI demo, wrapper npm/Node.js e tools agênticas (compliance, due diligence, comparativo de regimes); ~20 tools MCP
+- [x] **v0.3.x** - Tabelas fiscais offline (NCM/TIPI, CFOP, CST, CEST, ICMS interestadual) e indexadores BCB (Selic, IPCA, PTAX, correção monetária); ~36 tools MCP
+- [x] **v0.4.x** - Módulo NF-e completo (parse, DANFE, assinatura XMLDSig, distribuição mTLS, manifestação do destinatário) e simulador da Reforma Tributária IBS/CBS (LC 214/2025); ~42 tools MCP
+- [x] **v0.5.x** - Módulo de importação (II, IPI, PIS/COFINS-importação, ICMS grossed-up, AFRMM, Siscomex) por NCM; circuit breaker NFS-e; correções SPED e path injection; automação de release; ~44 tools MCP
+- [ ] **v0.6.x** - NFC-e modelo 65 (DANFE cupom, autorizacao e cancelamento); NFS-e por provedor/municipio; validação XSD completa NF-e e SPED
+- [ ] **v0.7.x** - eSocial versionado (S-1.1); cache persistente entre sessões; LGPD audit trail
+- [ ] **v1.0.0** - Suíte fiscal com contratos de API estáveis, cobertura operacional ampliada e SLA de manutenção documentado
 
 ---
 
@@ -534,7 +537,13 @@ ReceitaWS       estaduais municipais Federal  local   local  governamentais
 [![GitHub Discussions](https://img.shields.io/github/discussions/DeHor-Labs/mcp-fiscal-brasil)](https://github.com/DeHor-Labs/mcp-fiscal-brasil/discussions)
 [![GitHub Stars](https://img.shields.io/github/stars/DeHor-Labs/mcp-fiscal-brasil)](https://github.com/DeHor-Labs/mcp-fiscal-brasil/stargazers)
 
-[![Star History Chart](https://api.star-history.com/svg?repos=DeHor-Labs/mcp-fiscal-brasil&type=Date)](https://star-history.com/#DeHor-Labs/mcp-fiscal-brasil)
+<a href="https://star-history.com/#DeHor-Labs/mcp-fiscal-brasil&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=DeHor-Labs/mcp-fiscal-brasil&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=DeHor-Labs/mcp-fiscal-brasil&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=DeHor-Labs/mcp-fiscal-brasil&type=Date" />
+ </picture>
+</a>
 
 - **Releases**: clique em **Watch -> Releases** no topo do repositório para ser notificado a cada versão nova
 - **Discussions**: [github.com/DeHor-Labs/mcp-fiscal-brasil/discussions](https://github.com/DeHor-Labs/mcp-fiscal-brasil/discussions) - canal para sugestões de feature, dúvidas fiscais e técnicas, e casos de uso. Sugestões feitas aqui entram no roadmap de verdade
