@@ -1,9 +1,33 @@
+from typing import Any
+
 from mcp_fiscal_brasil._core import FiscalNotFoundError, HTTPClient, get_logger, settings
 from mcp_fiscal_brasil._core.errors import FiscalHTTPError
 
 from .schemas import Estado, Municipio
 
 logger = get_logger(__name__)
+
+
+def _municipio_from_item(item: dict[str, Any]) -> Municipio:
+    """Constroi Municipio a partir de um item JSON da API IBGE Localidades."""
+    microrregiao_raw = item.get("microrregiao")
+    microrregiao_nome: str | None = None
+    estado_sigla: str | None = None
+
+    if isinstance(microrregiao_raw, dict):
+        microrregiao_nome = microrregiao_raw.get("nome")
+        mesorregiao = microrregiao_raw.get("mesorregiao")
+        if isinstance(mesorregiao, dict):
+            uf = mesorregiao.get("UF")
+            if isinstance(uf, dict):
+                estado_sigla = uf.get("sigla")
+
+    return Municipio(
+        id=item["id"],
+        nome=item["nome"],
+        microrregiao=microrregiao_nome,
+        estado=estado_sigla,
+    )
 
 
 class IBGEClient:
@@ -41,6 +65,7 @@ class IBGEClient:
         logger.info("ibge_get_state_started", uf=uf)
         async with self._http_client() as client:
             try:
+                # /estados/{uf} retorna objeto, nao lista
                 item = await client.get(f"/estados/{uf}")
                 return Estado(
                     id=item["id"],
@@ -64,46 +89,16 @@ class IBGEClient:
         async with self._http_client() as client:
             data = await client.get_list(path)
 
-        return [
-            Municipio(
-                id=item["id"],
-                nome=item["nome"],
-                microrregiao=item.get("microrregiao", {}).get("nome")
-                if isinstance(item.get("microrregiao"), dict)
-                else None,
-                estado=item.get("microrregiao", {})
-                .get("mesorregiao", {})
-                .get("UF", {})
-                .get("sigla")
-                if isinstance(item.get("microrregiao"), dict)
-                and isinstance(item.get("microrregiao").get("mesorregiao"), dict)
-                and isinstance(item.get("microrregiao").get("mesorregiao").get("UF"), dict)
-                else None,
-            )
-            for item in data
-        ]
+        return [_municipio_from_item(item) for item in data]
 
     async def get_municipality(self, code: int) -> Municipio:
         """Consulta um município específico por código."""
         logger.info("ibge_get_municipality_started", code=code)
         async with self._http_client() as client:
             try:
+                # /municipios/{code} retorna objeto, nao lista
                 item = await client.get(f"/municipios/{code}")
-                return Municipio(
-                    id=item["id"],
-                    nome=item["nome"],
-                    microrregiao=item.get("microrregiao", {}).get("nome")
-                    if isinstance(item.get("microrregiao"), dict)
-                    else None,
-                    estado=item.get("microrregiao", {})
-                    .get("mesorregiao", {})
-                    .get("UF", {})
-                    .get("sigla")
-                    if isinstance(item.get("microrregiao"), dict)
-                    and isinstance(item.get("microrregiao").get("mesorregiao"), dict)
-                    and isinstance(item.get("microrregiao").get("mesorregiao").get("UF"), dict)
-                    else None,
-                )
+                return _municipio_from_item(item)
             except FiscalHTTPError as exc:
                 if exc.status_code == 404:
                     raise FiscalNotFoundError(

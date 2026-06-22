@@ -1,9 +1,31 @@
+from typing import Any
+
 from mcp_fiscal_brasil._core import FiscalNotFoundError, HTTPClient, get_logger, settings
 from mcp_fiscal_brasil._core.errors import FiscalHTTPError
 
 from .schemas import CNAEActivity, CNAEClass
 
 logger = get_logger(__name__)
+
+
+def _cnae_class_from_item(item: dict[str, Any]) -> CNAEClass:
+    """Constroi CNAEClass a partir de um item JSON da API IBGE CNAE."""
+    grupo_raw = item.get("grupo")
+    grupo: str | None = None
+    divisao: str | None = None
+
+    if isinstance(grupo_raw, dict):
+        grupo = grupo_raw.get("descricao")
+        divisao_raw = grupo_raw.get("divisao")
+        if isinstance(divisao_raw, dict):
+            divisao = divisao_raw.get("descricao")
+
+    return CNAEClass(
+        código=str(item.get("id", "")),
+        descrição=item.get("descricao", ""),
+        grupo=grupo,
+        divisao=divisao,
+    )
 
 
 class CNAEClient:
@@ -78,28 +100,7 @@ class CNAEClient:
                     ) from exc
                 raise
 
-        result = []
-        for item in data:
-            grupo = (
-                item.get("grupo", {}).get("descricao")
-                if isinstance(item.get("grupo"), dict)
-                else None
-            )
-            divisao = (
-                item.get("grupo", {}).get("divisao", {}).get("descricao")
-                if isinstance(item.get("grupo"), dict)
-                and isinstance(item.get("grupo").get("divisao"), dict)
-                else None
-            )
-            result.append(
-                CNAEClass(
-                    código=str(item.get("id", "")),
-                    descrição=item.get("descricao", ""),
-                    grupo=grupo,
-                    divisao=divisao,
-                )
-            )
-        return result
+        return [_cnae_class_from_item(item) for item in data]
 
     async def get_class(self, code: str) -> CNAEClass:
         """Consulta uma classe específica por código."""
@@ -109,25 +110,7 @@ class CNAEClient:
             try:
                 # /classes/{code} retorna objeto, nao lista
                 item = await client.get(f"/classes/{code_clean}")
-
-                grupo = (
-                    item.get("grupo", {}).get("descricao")
-                    if isinstance(item.get("grupo"), dict)
-                    else None
-                )
-                divisao = (
-                    item.get("grupo", {}).get("divisao", {}).get("descricao")
-                    if isinstance(item.get("grupo"), dict)
-                    and isinstance(item.get("grupo").get("divisao"), dict)
-                    else None
-                )
-
-                return CNAEClass(
-                    código=str(item.get("id", "")),
-                    descrição=item.get("descricao", ""),
-                    grupo=grupo,
-                    divisao=divisao,
-                )
+                return _cnae_class_from_item(item)
             except FiscalHTTPError as exc:
                 if exc.status_code == 404:
                     raise FiscalNotFoundError(
