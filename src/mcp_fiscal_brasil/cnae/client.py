@@ -1,9 +1,31 @@
+from typing import Any
+
 from mcp_fiscal_brasil._core import FiscalNotFoundError, HTTPClient, get_logger, settings
 from mcp_fiscal_brasil._core.errors import FiscalHTTPError
 
 from .schemas import CNAEActivity, CNAEClass
 
 logger = get_logger(__name__)
+
+
+def _cnae_class_from_item(item: dict[str, Any]) -> CNAEClass:
+    """Constroi CNAEClass a partir de um item JSON da API IBGE CNAE."""
+    grupo_raw = item.get("grupo")
+    grupo: str | None = None
+    divisao: str | None = None
+
+    if isinstance(grupo_raw, dict):
+        grupo = grupo_raw.get("descricao")
+        divisao_raw = grupo_raw.get("divisao")
+        if isinstance(divisao_raw, dict):
+            divisao = divisao_raw.get("descricao")
+
+    return CNAEClass(
+        código=str(item.get("id", "")),
+        descrição=item.get("descricao", ""),
+        grupo=grupo,
+        divisao=divisao,
+    )
 
 
 class CNAEClient:
@@ -25,18 +47,9 @@ class CNAEClient:
         if search:
             params["busca"] = search
 
-        try:
-            async with self._http_client() as client:
-                data = await client.get_list("/subclasses", params=params)
-        except Exception:
-            pass
-
-        # Let's fix this properly. The prompt explicitly says GET /atividades.
-        # But IBGE API has /classes and /subclasses. Let's use /subclasses to be safe or what the prompt says.
-        # Actually I will just use /subclasses for get_activities since CNAE Activity is 7 digits.
+        # /subclasses (sem codigo) retorna lista
         async with self._http_client() as client:
             try:
-                # Let's use what the prompt said literally: GET /atividades
                 data = await client.get_list("/subclasses", params=params)
             except FiscalHTTPError as exc:
                 if exc.status_code == 404:
@@ -46,7 +59,7 @@ class CNAEClient:
                 raise
 
         return [
-            CNAEActivity(código=item.get("id", ""), descrição=item.get("descrição", ""))
+            CNAEActivity(código=str(item.get("id", "")), descrição=item.get("descricao", ""))
             for item in data
         ]
 
@@ -56,14 +69,12 @@ class CNAEClient:
         code_clean = "".join(c for c in code if c.isdigit())
         async with self._http_client() as client:
             try:
-                data = await client.get_list(f"/subclasses/{code_clean}")
-                if not data:
-                    raise FiscalNotFoundError(
-                        f"CNAE activity {code_clean} not found", "Recurso", "desconhecido"
-                    )
-                # IBGE often returns a list with one item for specific queries
-                item = data[0] if isinstance(data, list) else data
-                return CNAEActivity(código=item.get("id", ""), descrição=item.get("descrição", ""))
+                # /subclasses/{code} retorna objeto, nao lista
+                item = await client.get(f"/subclasses/{code_clean}")
+                return CNAEActivity(
+                    código=str(item.get("id", "")),
+                    descrição=item.get("descricao", ""),
+                )
             except FiscalHTTPError as exc:
                 if exc.status_code == 404:
                     raise FiscalNotFoundError(
@@ -78,6 +89,7 @@ class CNAEClient:
         if search:
             params["busca"] = search
 
+        # /classes (sem codigo) retorna lista
         async with self._http_client() as client:
             try:
                 data = await client.get_list("/classes", params=params)
@@ -88,28 +100,7 @@ class CNAEClient:
                     ) from exc
                 raise
 
-        result = []
-        for item in data:
-            grupo = (
-                item.get("grupo", {}).get("descrição")
-                if isinstance(item.get("grupo"), dict)
-                else None
-            )
-            divisao = (
-                item.get("grupo", {}).get("divisao", {}).get("descrição")
-                if isinstance(item.get("grupo"), dict)
-                and isinstance(item.get("grupo").get("divisao"), dict)
-                else None
-            )
-            result.append(
-                CNAEClass(
-                    código=item.get("id", ""),
-                    descrição=item.get("descrição", ""),
-                    grupo=grupo,
-                    divisao=divisao,
-                )
-            )
-        return result
+        return [_cnae_class_from_item(item) for item in data]
 
     async def get_class(self, code: str) -> CNAEClass:
         """Consulta uma classe específica por código."""
@@ -117,31 +108,9 @@ class CNAEClient:
         code_clean = "".join(c for c in code if c.isdigit())
         async with self._http_client() as client:
             try:
-                data = await client.get_list(f"/classes/{code_clean}")
-                if not data:
-                    raise FiscalNotFoundError(
-                        f"CNAE class {code_clean} not found", "Recurso", "desconhecido"
-                    )
-                item = data[0] if isinstance(data, list) else data
-
-                grupo = (
-                    item.get("grupo", {}).get("descrição")
-                    if isinstance(item.get("grupo"), dict)
-                    else None
-                )
-                divisao = (
-                    item.get("grupo", {}).get("divisao", {}).get("descrição")
-                    if isinstance(item.get("grupo"), dict)
-                    and isinstance(item.get("grupo").get("divisao"), dict)
-                    else None
-                )
-
-                return CNAEClass(
-                    código=item.get("id", ""),
-                    descrição=item.get("descrição", ""),
-                    grupo=grupo,
-                    divisao=divisao,
-                )
+                # /classes/{code} retorna objeto, nao lista
+                item = await client.get(f"/classes/{code_clean}")
+                return _cnae_class_from_item(item)
             except FiscalHTTPError as exc:
                 if exc.status_code == 404:
                     raise FiscalNotFoundError(
