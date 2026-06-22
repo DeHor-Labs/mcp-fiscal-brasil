@@ -41,12 +41,7 @@ class IBGEClient:
         logger.info("ibge_get_state_started", uf=uf)
         async with self._http_client() as client:
             try:
-                data = await client.get_list(f"/estados/{uf}")
-                if not data:
-                    raise FiscalNotFoundError(
-                        f"Estado {uf} não encontrado", "Recurso", "desconhecido"
-                    )
-                item = data[0] if isinstance(data, list) else data
+                item = await client.get(f"/estados/{uf}")
                 return Estado(
                     id=item["id"],
                     sigla=item["sigla"],
@@ -93,12 +88,7 @@ class IBGEClient:
         logger.info("ibge_get_municipality_started", code=code)
         async with self._http_client() as client:
             try:
-                data = await client.get_list(f"/municipios/{code}")
-                if not data:
-                    raise FiscalNotFoundError(
-                        f"Município {code} não encontrado", "Recurso", "desconhecido"
-                    )
-                item = data[0] if isinstance(data, list) else data
+                item = await client.get(f"/municipios/{code}")
                 return Municipio(
                     id=item["id"],
                     nome=item["nome"],
