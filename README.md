@@ -528,7 +528,7 @@ ReceitaWS       estaduais municipais Federal  local   local  governamentais
 - [x] **v0.5.x** - Módulo de importação (II, IPI, PIS/COFINS-importação, ICMS grossed-up, AFRMM, Siscomex) por NCM; circuit breaker NFS-e; correções SPED e path injection; automação de release; ~44 tools MCP
 - [ ] **v0.6.x** - NFC-e modelo 65 (DANFE cupom, autorizacao e cancelamento); NFS-e por provedor/municipio; validação XSD completa NF-e e SPED
 - [ ] **v0.7.x** - eSocial versionado (S-1.1); cache persistente entre sessões; LGPD audit trail
-- [ ] **v1.0.0** - Suite fiscal com contratos de API estáveis, cobertura operacional ampliada e SLA de manutenção documentado
+- [ ] **v1.0.0** - Suíte fiscal com contratos de API estáveis, cobertura operacional ampliada e SLA de manutenção documentado
 
 ---
 
