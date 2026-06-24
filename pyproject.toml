@@ -71,7 +71,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=9.1.1",
-    "pytest-asyncio>=0.23",
+    "pytest-asyncio>=1.4.0",
     "ruff>=0.15.18",
     "mypy>=1.10",
     "pre-commit>=3.7",
@@ -146,7 +146,7 @@ dev = [
     "mkdocs-mermaid2-plugin>=1.2.3",
     "mkdocstrings[python]>=1.0.4",
     "pymdown-extensions>=10.21.3",
-    "pytest-asyncio>=0.23",
+    "pytest-asyncio>=1.4.0",
     "pytest-cov>=7.1.0",
     "types-cachetools>=7.0.0.20260518",
 ]
