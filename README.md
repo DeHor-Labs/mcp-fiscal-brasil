@@ -23,7 +23,7 @@
   <a href="https://dehor-labs.github.io/mcp-fiscal-brasil/">📚 Documentação</a> ·
   <a href="#-instalação">Instalação</a> ·
   <a href="#-ferramentas-disponíveis">Ferramentas</a> ·
-  <a href="#-workflows-agênticos">Workflows</a> ·
+  <a href="#workflows-que-vendem-sozinho">Workflows</a> ·
   <a href="#-roadmap">Roadmap</a> ·
   <a href="#-contribuindo">Contribuindo</a>
 </p>
