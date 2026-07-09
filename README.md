@@ -570,9 +570,11 @@ pre-commit install
 git checkout -b feature/meu-recurso
 
 # 4. Implemente, teste e verifique
-pytest
-ruff check src/
+python scripts/check_release_metadata.py
+ruff check src/ tests/
+ruff format --check src/ tests/
 mypy src/
+pytest
 
 # 5. Abra um Pull Request
 ```
