@@ -4,9 +4,9 @@ Wrapper Node.js/TypeScript para o pacote Python [`mcp-fiscal-brasil`](https://gi
 
 Permite consultar dados fiscais brasileiros (CNPJ, NFe, SPED, Simples Nacional, compliance) em apps JavaScript/TypeScript chamando o CLI Python por baixo.
 
-## Pre-requisitos
+## Pré-requisitos
 
-O CLI Python precisa estar instalado e disponivel no PATH:
+O CLI Python precisa estar instalado e disponível no PATH:
 
 ```bash
 pipx install mcp-fiscal-brasil
@@ -29,7 +29,7 @@ npm run build
 
 Antes de usar o CLI abaixo, rode `npm run build` neste diretório (ou execute `npm link` após o build para expor `mcp-fiscal` no `PATH`).
 
-## Uso programatico
+## Uso programático
 
 ```ts
 import { lookupCNPJ, analyzeCompliance, compareRegimes } from "mcp-fiscal-brasil";
@@ -59,21 +59,21 @@ node dist/cli.js regimes --faturamento 500000 --setor servicos
 mcp-fiscal cnpj 12345678000190
 ```
 
-## Funcoes disponiveis
+## Funções disponíveis
 
-| Funcao | Descricao |
+| Função | Descrição |
 |--------|-----------|
 | `lookupCNPJ(cnpj)` | Dados cadastrais de empresa |
-| `validateCPF(cpf)` | Validacao de CPF (offline) |
-| `lookupCEP(cep)` | Endereco por CEP |
+| `validateCPF(cpf)` | Validação de CPF (offline) |
+| `lookupCEP(cep)` | Endereço por CEP |
 | `analyzeCompliance(cnpj)` | Compliance consolidado |
 | `scoreSupplier(cnpj, opts)` | Due diligence de fornecedor |
 | `compareRegimes(params)` | Comparativo MEI/Simples/LP/LR |
 
-## Por que wrapper e nao reimplementacao
+## Por que wrapper e não reimplementação
 
-A logica fiscal brasileira muda com frequencia (tabelas Simples, regras CNAE, schemas SPED). Manter UMA implementacao em Python e expor por wrappers leves em outras linguagens reduz drift entre ecossistemas. Tradeoffs: requer Python instalado, overhead de subprocess por chamada (50-150ms).
+A lógica fiscal brasileira muda com frequência (tabelas Simples, regras CNAE, schemas SPED). Manter UMA implementação em Python e expor por wrappers leves em outras linguagens reduz drift entre ecossistemas. Tradeoffs: requer Python instalado, overhead de subprocess por chamada (50-150ms).
 
-## Licenca
+## Licença
 
 MIT - Nikolas de Hor
