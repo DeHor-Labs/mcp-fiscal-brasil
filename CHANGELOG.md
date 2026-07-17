@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.5.2](https://github.com/DeHor-Labs/mcp-fiscal-brasil/compare/v0.5.1...v0.5.2) (2026-07-12)
+
+
+### Correções
+
+* corrige ferramentas que liam endpoints de objeto como lista ([#107](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/107)) ([d055004](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/d055004f89bb0bea2505b212d39e156d624a83d1))
+
+
+### Documentação
+
+* adiciona badge de cobertura de testes (85%) ao README ([#108](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/108)) ([fc2a086](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/fc2a086475de3f8059104594b61d79e3d31ec9ea))
+* adiciona link da LinkedIn Newsletter no README ([#105](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/105)) ([ce614b6](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/ce614b652171f73c62b5acb711795a2e6c5814d0))
+* alinha comandos de contribuição com CI ([#111](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/111)) ([21b46a4](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/21b46a4d737de96f05512b05808984aa56e01c2e))
+* atualiza roadmap para o estado real (v0.5.x) e Star History responsivo a tema ([#106](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/106)) ([b0d3a74](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/b0d3a74e0255e2f8a145815ff533ac27fd95b9c7))
+* corrige acentos no README do wrapper npm ([#112](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/112)) ([9fbb1eb](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/9fbb1ebea47a45c7cf7966a67a972d3745e7670c))
+* corrige ancora de workflows no README ([#110](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/110)) ([6fbae4e](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/6fbae4e90b02b47f575719ce049627f2f2dd4d71))
+* limpa cabeçalho do README (oculta mcp-name + corrige badge de downloads) ([#103](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/103)) ([7f2981f](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/7f2981f5354cb0fe1ed315cdf0bc03a25e1c46e9))
+
 ## [0.5.1](https://github.com/DeHor-Labs/mcp-fiscal-brasil/compare/v0.5.0...v0.5.1) (2026-06-21)
 
 
