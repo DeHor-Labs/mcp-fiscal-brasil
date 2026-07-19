@@ -123,7 +123,18 @@ class FiscalNotFoundError(FiscalError):
         return fields
 
 
+class FiscalConfigurationError(FiscalError):
+    """Exception raised when a required fiscal integration is not configured.
+
+    Distinct from FiscalValidationError (bad input) and FiscalHTTPError
+    (upstream reachable but failed): this means the deployment itself is
+    missing a prerequisite (e.g. no A1 certificate configured), not a
+    request-level or upstream failure.
+    """
+
+
 __all__ = [
+    "FiscalConfigurationError",
     "FiscalError",
     "FiscalHTTPError",
     "FiscalNotFoundError",

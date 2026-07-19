@@ -14,16 +14,19 @@ OpenAPI docs em http://localhost:8000/docs (Swagger UI).
 
 from __future__ import annotations
 
+import asyncio
 import os
+import tempfile
 from pathlib import Path
 from typing import Any, Literal
 
+from cachetools import TTLCache
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
 from . import __version__
-from ._core import get_logger
+from ._core import FiscalHTTPError, get_logger
 from ._core.config import settings
 from .agentic import (
     analyze_cnpj_compliance,
@@ -36,7 +39,8 @@ from .cep.client import CEPClient
 from .cnpj.tools import consultar_cnpj
 from .cpf.tools import validar_cpf_tool
 from .ibge.client import IBGEClient
-from .nfe.tools import validar_chave_nfe
+from .nfe.status_sefaz import obter_status_certificado
+from .nfe.tools import UFS_VALIDAS, consultar_status_sefaz, validar_chave_nfe
 from .shared.validators import validate_cnpj
 from .simples.client import SimplesClient
 
@@ -194,15 +198,164 @@ async def nfe_chave_validate(chave: str) -> dict[str, Any]:
     return await validar_chave_nfe(chave)
 
 
+_STATUS_SEFAZ_CACHE_TTL_SEGUNDOS = 60
+
+# Cache in-memory por UF (nao distribuido - ponytail: um pod novo comeca frio,
+# suficiente para o caso de uso atual de mitigar fan-out por instancia). Reduz
+# o disparo repetido das ~27 chamadas mTLS reais ao certificado do operador em
+# rajadas de requisicoes ao endpoint dentro da mesma janela de 60s.
+_status_sefaz_cache: TTLCache[str, dict[str, Any]] = TTLCache(
+    maxsize=len(UFS_VALIDAS), ttl=_STATUS_SEFAZ_CACHE_TTL_SEGUNDOS
+)
+
+
+def _certificado_configurado() -> bool:
+    return bool(settings.nfe_certificado_path and settings.nfe_certificado_senha)
+
+
+async def _consultar_status_sefaz_cache(uf: str) -> dict[str, Any] | None:
+    """Consulta o status SEFAZ de uma UF, com cache de 60s e degradacao por falha pontual.
+
+    FiscalHTTPError (falha de rede ou rejeicao da SEFAZ) e tratado como
+    degradacao silenciosa (log + omite a UF). Qualquer outro erro propaga.
+    """
+    cacheado = _status_sefaz_cache.get(uf)
+    if cacheado is not None:
+        return cacheado
+
+    try:
+        resultado = await consultar_status_sefaz(uf)
+    except FiscalHTTPError as exc:
+        logger.warning("sefaz_status_failed", uf=uf, error=str(exc))
+        return None
+
+    data = resultado.model_dump(mode="json", exclude_none=True)
+    _status_sefaz_cache[uf] = data
+    return data
+
+
+@app.get(
+    "/v1/nfe/status-sefaz",
+    tags=["nfe"],
+    summary="Status operacional das SEFAZ (requer certificado A1)",
+)
+async def nfe_status_sefaz(
+    uf: str | None = Query(
+        None,
+        description="UF especifica (2 letras). Sem esse parametro, consulta todas as UFs.",
+    ),
+) -> dict[str, Any]:
+    """Consulta o status operacional dos webservices SEFAZ (NfeStatusServico4).
+
+    Requer certificado digital A1 configurado no servidor (NFE_CERTIFICADO_PATH /
+    NFE_CERTIFICADO_SENHA) - mTLS é exigência de transporte de todo webservice
+    SEFAZ, inclusive consulta de status. Sem certificado configurado, responde
+    503 (indisponibilidade de configuração, não uma falha de UF). Em caso de
+    falha pontual de rede em uma UF específica, essa UF é omitida da resposta
+    em vez de derrubar a chamada inteira com 500.
+
+    O resultado por UF é cacheado em memória por até 60 segundos: dentro dessa
+    janela, chamadas repetidas não disparam nova consulta mTLS real à SEFAZ.
+    """
+    # Erro de input do chamador (UF invalida) precede a checagem de config do
+    # servidor: 400 antes de 503, na ordem usual de validacao HTTP.
+    if uf:
+        uf_upper = uf.upper().strip()
+        if uf_upper not in UFS_VALIDAS:
+            raise HTTPException(status_code=400, detail="UF inválida")
+
+    if not _certificado_configurado():
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Certificado digital A1 não configurado no servidor "
+                "(NFE_CERTIFICADO_PATH / NFE_CERTIFICADO_SENHA). "
+                "Consulta de status SEFAZ exige certificado."
+            ),
+        )
+
+    if uf:
+        resultado = await _consultar_status_sefaz_cache(uf_upper)
+        return {"ufs": [resultado] if resultado is not None else []}
+
+    tarefas = [_consultar_status_sefaz_cache(u) for u in sorted(UFS_VALIDAS)]
+    concluidos = await asyncio.gather(*tarefas)
+    return {"ufs": [r for r in concluidos if r is not None]}
+
+
+class CertificadoStatusResponse(BaseModel):
+    configurado: bool
+    valido: bool | None = None
+    validade_fim: str | None = None
+
+
+@app.get(
+    "/v1/fiscal/certificado/status",
+    response_model=CertificadoStatusResponse,
+    tags=["nfe"],
+    summary="Estado do certificado digital A1 configurado no servidor fiscal",
+)
+async def fiscal_certificado_status() -> CertificadoStatusResponse:
+    """
+    Informa se há certificado A1 configurado, sem expor identidade do titular.
+
+    Endpoint sem autenticação: retorna apenas configurado/válido/validade_fim.
+    Nunca expõe o arquivo do certificado, a senha, o titular ou o CNPJ -
+    reconhecimento (recon) de identidade não é necessário para o chamador
+    saber se "há certificado configurado e válido".
+    """
+    resultado = obter_status_certificado(
+        caminho_certificado=settings.nfe_certificado_path,
+        senha=settings.nfe_certificado_senha,
+        ambiente=settings.nfe_ambiente,
+    )
+    return CertificadoStatusResponse(
+        configurado=resultado.configurado,
+        valido=resultado.valido,
+        validade_fim=resultado.validade_fim.isoformat() if resultado.validade_fim else None,
+    )
+
+
+_MAX_XML_INLINE_BYTES = 5 * 1024 * 1024  # 5 MB, generoso para NF-e completa com muitos itens
+
+
 class NFeValidateRequest(BaseModel):
-    xml_path: str = Field(description="Caminho absoluto para arquivo XML da NFe.")
+    xml: str | None = Field(default=None, description="Conteúdo XML da NFe (string).")
+    xml_path: str | None = Field(
+        default=None, description="Caminho absoluto para arquivo XML da NFe (legado)."
+    )
 
 
 @app.post("/v1/nfe/validate", tags=["nfe", "agentic"], summary="Validacao consolidada de NFe")
 async def nfe_validate_full(req: NFeValidateRequest) -> dict[str, Any]:
-    """Parse XML + válida chave + verifica situacao do emissor."""
-    xml_path = _validated_input_file(req.xml_path, label="Arquivo XML")
-    resultado = await validate_nfe_full(xml_path)
+    """Parse XML + válida chave + verifica situação do emissor.
+
+    Aceita `xml` (conteúdo XML inline) ou `xml_path` (caminho de arquivo, legado).
+    """
+    if req.xml is not None:
+        xml_bytes = req.xml.encode("utf-8")
+        if len(xml_bytes) > _MAX_XML_INLINE_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail="Conteúdo XML excede o tamanho máximo permitido (5 MB)",
+            )
+        base_dir = _allowed_file_base_dir()
+        fd, tmp_name = tempfile.mkstemp(suffix=".xml", dir=base_dir)
+        tmp_path = Path(tmp_name)
+        try:
+            with os.fdopen(fd, "wb") as tmp_file:
+                tmp_file.write(xml_bytes)
+            resultado = await validate_nfe_full(tmp_path)
+        finally:
+            tmp_path.unlink(missing_ok=True)
+    elif req.xml_path:
+        xml_path = _validated_input_file(req.xml_path, label="Arquivo XML")
+        resultado = await validate_nfe_full(xml_path)
+    else:
+        raise HTTPException(
+            status_code=400, detail="Forneça 'xml' (conteúdo) ou 'xml_path' (caminho)"
+        )
+
     return resultado.model_dump(mode="json", exclude_none=True)
 
 
@@ -394,6 +547,9 @@ def run() -> None:
     """Entry point para o comando `mcp-fiscal-api`."""
     import uvicorn
 
+    # Default seguro fora de container e loopback. Em Docker, o Dockerfile ja
+    # define ENV HOST=0.0.0.0 na imagem - a exposicao externa vem da camada de
+    # deploy (container/proxy), nao de um default aberto aqui.
     host = os.environ.get("HOST", "127.0.0.1")
     port = int(os.environ.get("PORT", "8000"))
     uvicorn.run("mcp_fiscal_brasil.api:app", host=host, port=port, reload=False)

@@ -213,11 +213,11 @@ Funcionam 100% sem chaves de API. Instale e use imediatamente.
 | CNPJ | `consultar_cnpj` | Dados completos: razão social, sócios, CNAE, endereço | BrasilAPI (grátis) |
 | CNPJ | `consultar_simples_nacional` | Optante Simples/MEI com datas de entrada e exclusão | BrasilAPI (grátis) |
 | NFe | `validar_chave_nfe` | Valida dígito + extrai UF, CNPJ, data, número | Offline |
-| NFe | `consultar_status_sefaz` | Status do webservice SEFAZ por estado | BrasilAPI (grátis) |
 | NFe | `consultar_nfe` | Consulta NFe completa pela chave de 44 dígitos | BrasilAPI (grátis) |
 | NFe | `parse_nfe_xml` | Parseia XML bruto de NF-e/NFC-e e retorna dados estruturados | Offline |
 | NFe | `gerar_danfe` | Gera DANFE PDF (A4) a partir do XML de NF-e (mod 55) | Offline |
 | NFe | `validar_assinatura_nfe` | Valida assinatura XMLDSig e extrai dados do certificado | Offline |
+| NFe | `consultar_status_sefaz` | Status real do webservice SEFAZ por estado via NfeStatusServico4 (requer cert A1) | SEFAZ (mTLS) |
 | NFe | `baixar_nfe_distribuicao` | Baixa documentos via NFeDistribuicaoDFe (requer cert A1 local) | SEFAZ (mTLS) |
 | NFe | `manifestar_nfe` | Manifesta destinatario em NF-e via NFeRecepcaoEvento (requer cert A1) | SEFAZ (mTLS) |
 | CPF | `validar_cpf` | Validação de dígito verificador | Offline |
@@ -242,13 +242,40 @@ Retornam URLs e instruções - exigem ação manual nos portais governamentais.
 
 ### 🔐 Ferramentas com Certificado A1 (opt-in)
 
-As tools `baixar_nfe_distribuicao` e `manifestar_nfe` requerem um certificado
-digital A1 (`.pfx`/`.p12`) **instalado localmente no seu computador**.
+As tools `baixar_nfe_distribuicao`, `manifestar_nfe` e `consultar_status_sefaz`
+requerem um certificado digital A1 (`.pfx`/`.p12`). mTLS é exigência de
+transporte de todo webservice SEFAZ, inclusive a consulta de status - não há
+como consultar o status real sem certificado.
 
-- O certificado e a senha **nunca sao enviados a nenhum servidor externo**.
-- A autenticacao mTLS e a assinatura XMLDSig sao feitas localmente.
-- Estas tools se conectam diretamente aos webservices da SEFAZ (Ambiente Nacional).
-- Todas as demais tools (parse, DANFE, assinatura, consultas) funcionam sem certificado.
+- O certificado e a senha **nunca são enviados a nenhum servidor externo**.
+- A autenticação mTLS e a assinatura XMLDSig são feitas localmente.
+- `baixar_nfe_distribuicao` e `manifestar_nfe` recebem o caminho do certificado
+  como parâmetro da própria tool (`.pfx`/`.p12` local).
+- `consultar_status_sefaz` (via servidor MCP/API REST) usa o certificado
+  configurado nas variáveis de ambiente abaixo, e se conecta ao webservice
+  próprio da UF consultada ou ao ambiente virtual (SVRS/SVAN) quando a UF não
+  tem infraestrutura própria.
+- As demais tools (parse, DANFE, assinatura, consultas de CNPJ/NFe via
+  BrasilAPI) funcionam sem certificado.
+
+**Configuração** (variáveis em `.env` ou secret do provedor de deploy - ver
+`.env.example`):
+
+| Variável | Descrição |
+|----------|-----------|
+| `NFE_CERTIFICADO_PATH` | Caminho absoluto do `.pfx`/`.p12` montado no container |
+| `NFE_CERTIFICADO_SENHA` | Senha do certificado (sempre via gestor de segredos, nunca em `.env` versionado) |
+| `NFE_EMITENTE_CNPJ` | CNPJ do titular do certificado (14 dígitos, opcional) |
+| `NFE_AMBIENTE` | `producao` ou `homologacao` (padrão `producao`) |
+
+Sem `NFE_CERTIFICADO_PATH`/`NFE_CERTIFICADO_SENHA`, `consultar_status_sefaz`
+levanta `FiscalConfigurationError` e o endpoint HTTP `GET /v1/nfe/status-sefaz`
+responde 503 - o chamador deve tratar isso como "sem certificado configurado",
+não como SEFAZ fora do ar (falha pontual de rede em uma UF especifica, essa
+sim, degrada omitindo a UF em vez de derrubar a chamada). `GET
+/v1/fiscal/certificado/status` informa apenas se há certificado configurado e
+válido (sem titular nem CNPJ - endpoint sem autenticação, não deve permitir
+reconhecimento de identidade), sem nunca expor o arquivo ou a senha.
 
 ---
 

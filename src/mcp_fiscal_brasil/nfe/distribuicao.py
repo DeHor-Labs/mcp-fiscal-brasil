@@ -17,37 +17,30 @@ SEGURANCA:
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import gzip
-import os
 import re
-import ssl
-import tempfile
 import xml.sax.saxutils
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Literal
 
-import httpx
 from lxml import etree
 from signxml import XMLSigner  # type: ignore[attr-defined, unused-ignore]
 
 from .._core.errors import FiscalHTTPError, FiscalValidationError
 from .._core.logging import get_logger
-from ..shared.rate_limiter import SlidingWindowRateLimiter
 from ..shared.validators import validate_chave_nfe
-from ..shared.xml_utils import build_soap_envelope, extract_soap_body, parse_xml
+from ..shared.xml_utils import parse_xml
+from ._soap_mtls import carregar_pkcs12, criar_ssl_context_em_memoria
+from ._soap_mtls import enviar_soap as _enviar_soap_mtls
 from .xml_parser import parse_nfe_xml
 
 if TYPE_CHECKING:
     from .schemas import NFeResponse
 
 logger = get_logger(__name__)
-
-# Rate limiter conservador para endpoints SEFAZ (~1 req/s).
-# Distribui a cota por chave de endpoint para nao misturar
-# distribuicao e recepcao de eventos.
-_sefaz_nfe_limiter = SlidingWindowRateLimiter(max_requests=1, window_seconds=1.0)
 
 # Tipo de ambiente SEFAZ
 Ambiente = Literal["producao", "homologacao"]
@@ -229,115 +222,6 @@ def _validar_chave(chave: str) -> str:
             value=chave,
         )
     return chave_limpa
-
-
-def _carregar_pkcs12(
-    caminho_certificado: str,
-    senha: str,
-) -> tuple[bytes, bytes, list[bytes]]:
-    """
-    Carrega um arquivo PKCS12 (.pfx/.p12) e retorna (chave_pem, cert_pem, chain_pem).
-
-    SEGURANCA: a senha NAO e logada nem incluida em mensagens de excecao.
-    """
-    from cryptography.hazmat.primitives import serialization
-    from cryptography.hazmat.primitives.serialization import pkcs12
-
-    try:
-        with open(caminho_certificado, "rb") as f:
-            pfx_data = f.read()
-    except OSError as exc:
-        raise FiscalValidationError(
-            message=f"Nao foi possivel abrir o certificado: {exc.strerror}. Verifique o caminho.",
-            field="caminho_certificado",
-            value=caminho_certificado,
-        ) from exc
-
-    try:
-        private_key, certificate, additional_certs = pkcs12.load_key_and_certificates(
-            pfx_data, senha.encode("utf-8")
-        )
-    except Exception as exc:
-        # Evitar vazar a senha na mensagem
-        exc_str = str(exc)
-        if "password" in exc_str.lower() or "senha" in exc_str.lower():
-            motivo = "Senha incorreta ou certificado corrompido."
-        else:
-            motivo = f"Erro ao carregar certificado PKCS12: {exc.__class__.__name__}"
-        raise FiscalValidationError(
-            message=motivo,
-            field="caminho_certificado",
-            value=caminho_certificado,
-        ) from exc
-
-    if private_key is None or certificate is None:
-        raise FiscalValidationError(
-            message="Certificado ou chave privada ausente no arquivo PKCS12.",
-            field="caminho_certificado",
-            value=caminho_certificado,
-        )
-
-    chave_pem = private_key.private_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PrivateFormat.TraditionalOpenSSL,
-        encryption_algorithm=serialization.NoEncryption(),
-    )
-    cert_pem = certificate.public_bytes(serialization.Encoding.PEM)
-    chain_pem = []
-    for c in additional_certs or []:
-        chain_pem.append(c.public_bytes(serialization.Encoding.PEM))
-
-    return chave_pem, cert_pem, chain_pem
-
-
-def _escrever_pem_atomico(suffix: str, conteudo: bytes) -> str:
-    """
-    Cria um arquivo PEM temporario com permissao 0600 de forma atomica.
-
-    Usa tempfile.mkstemp(), que cria o arquivo atomicamente com permissao 0600
-    (sem janela de exposicao em 0644). Retorna o caminho do arquivo criado;
-    o chamador e responsavel por apagar o arquivo no bloco finally.
-    """
-    fd, path = tempfile.mkstemp(suffix=suffix)
-    try:
-        os.write(fd, conteudo)
-    finally:
-        os.close(fd)
-    return path
-
-
-def _criar_ssl_context_em_memoria(
-    chave_pem: bytes,
-    cert_pem: bytes,
-    chain_pem: list[bytes],
-) -> ssl.SSLContext:
-    """
-    Monta um ssl.SSLContext usando arquivos PEM temporarios com permissao 0600.
-
-    Os arquivos sao criados com os.open (O_CREAT|O_WRONLY|O_EXCL, 0o600)
-    para que ja nascam com a permissao restrita, sem janela 0644. Sao
-    apagados no bloco finally. A chave privada nunca e logada.
-    """
-    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-    ctx.check_hostname = True
-    ctx.verify_mode = ssl.CERT_REQUIRED
-    ctx.load_default_certs()
-
-    tmp_key: str | None = None
-    tmp_cert: str | None = None
-
-    try:
-        tmp_key = _escrever_pem_atomico("_key.pem", chave_pem)
-        tmp_cert = _escrever_pem_atomico("_cert.pem", cert_pem + b"".join(chain_pem))
-
-        ctx.load_cert_chain(certfile=tmp_cert, keyfile=tmp_key)
-    finally:
-        if tmp_key and os.path.exists(tmp_key):
-            os.unlink(tmp_key)
-        if tmp_cert and os.path.exists(tmp_cert):
-            os.unlink(tmp_cert)
-
-    return ctx
 
 
 def _descompactar_doc_zip(doc_zip_b64: str) -> bytes:
@@ -557,47 +441,6 @@ def _parse_retorno_dist(body_el: etree._Element) -> DistribuicaoResult:
     )
 
 
-async def _enviar_soap(
-    url: str,
-    soap_body_content: str,
-    ssl_ctx: ssl.SSLContext,
-    timeout: float = 30.0,
-) -> etree._Element:
-    """Envia requisicao SOAP via mTLS e retorna o elemento Body da resposta.
-
-    Rate limit: maximo 1 req/s por endpoint SEFAZ (conservador para evitar
-    bloqueio por flood). O limitador e aplicado por URL de endpoint.
-    """
-    # Aplica rate-limit por endpoint antes de enviar a requisicao
-    await _sefaz_nfe_limiter.acquire(url)
-
-    envelope = build_soap_envelope(soap_body_content, namespace=_NS_NFE)
-
-    headers = {
-        "Content-Type": "application/soap+xml; charset=utf-8",
-        "SOAPAction": "",
-    }
-
-    try:
-        async with httpx.AsyncClient(verify=ssl_ctx, timeout=timeout) as client:
-            response = await client.post(url, content=envelope.encode("utf-8"), headers=headers)
-    except httpx.RequestError as exc:
-        raise FiscalHTTPError(
-            message=f"Falha de conexao com a SEFAZ: {exc.__class__.__name__}",
-            status_code=0,
-            url=url,
-        ) from exc
-
-    if response.status_code != 200:
-        raise FiscalHTTPError(
-            message=f"SEFAZ retornou HTTP {response.status_code}",
-            status_code=response.status_code,
-            url=url,
-        )
-
-    return extract_soap_body(response.text)
-
-
 # ---------------------------------------------------------------------------
 # Funcoes publicas
 # ---------------------------------------------------------------------------
@@ -650,9 +493,12 @@ async def baixar_nfe_distribuicao(
     uf_str = str(uf).strip()
     uf_codigo = _UF_CODIGOS.get(uf_str.upper(), uf_str)
 
-    # Carrega o certificado A1
-    chave_pem, cert_pem, chain_pem = _carregar_pkcs12(caminho_certificado, senha)
-    ssl_ctx = _criar_ssl_context_em_memoria(chave_pem, cert_pem, chain_pem)
+    # Carrega o certificado A1 (I/O de disco + criptografia sincronos: roda em
+    # thread separada para nao bloquear o event loop).
+    chave_pem, cert_pem, chain_pem = await asyncio.to_thread(
+        carregar_pkcs12, caminho_certificado, senha
+    )
+    ssl_ctx = await asyncio.to_thread(criar_ssl_context_em_memoria, chave_pem, cert_pem, chain_pem)
 
     # Monta o corpo SOAP conforme o modo
     endpoint = _ENDPOINTS_DISTRIBUICAO[ambiente]
@@ -688,7 +534,9 @@ async def baixar_nfe_distribuicao(
             value=modo,
         )
 
-    body_el = await _enviar_soap(endpoint, body_content, ssl_ctx, timeout)
+    body_el = await _enviar_soap_mtls(
+        endpoint, body_content, ssl_ctx, namespace=_NS_NFE, timeout=timeout
+    )
     return _parse_retorno_dist(body_el)
 
 
@@ -866,8 +714,12 @@ async def manifestar_nfe(
     ambiente_codigo = "1" if ambiente == "producao" else "2"
     endpoint = _ENDPOINTS_EVENTO[ambiente]
 
-    chave_pem, cert_pem, chain_pem = _carregar_pkcs12(caminho_certificado, senha)
-    ssl_ctx = _criar_ssl_context_em_memoria(chave_pem, cert_pem, chain_pem)
+    # I/O de disco + criptografia sincronos: roda em thread separada para nao
+    # bloquear o event loop.
+    chave_pem, cert_pem, chain_pem = await asyncio.to_thread(
+        carregar_pkcs12, caminho_certificado, senha
+    )
+    ssl_ctx = await asyncio.to_thread(criar_ssl_context_em_memoria, chave_pem, cert_pem, chain_pem)
 
     evento_el = _montar_xml_evento(
         chave=chave_norm,
@@ -881,7 +733,9 @@ async def manifestar_nfe(
     signed_el = _assinar_evento(evento_el, chave_pem, cert_pem)
     body_content = etree.tostring(signed_el, encoding="unicode")
 
-    body_el = await _enviar_soap(endpoint, body_content, ssl_ctx, timeout)
+    body_el = await _enviar_soap_mtls(
+        endpoint, body_content, ssl_ctx, namespace=_NS_NFE, timeout=timeout
+    )
     return _parse_retorno_evento(body_el, chave_norm, tipo_evento)
 
 

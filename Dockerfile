@@ -44,6 +44,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 COPY --from=builder /build/dist/*.whl ./
+COPY scripts/docker_healthcheck.py ./docker_healthcheck.py
 
 RUN pip install --no-cache-dir *.whl && \
     rm -f *.whl && \
@@ -54,8 +55,12 @@ USER app
 
 EXPOSE 8000
 
+# O CMD padrao (mcp-fiscal-brasil, stdio) nao abre porta HTTP. O healthcheck
+# detecta automaticamente qual modo esta rodando: se a porta estiver
+# escutando, valida via GET /health; caso contrario, confirma so que o
+# pacote importa (modo stdio). Ver scripts/docker_healthcheck.py.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD python -c "import mcp_fiscal_brasil; print('ok')" || exit 1
+    CMD python docker_healthcheck.py || exit 1
 
 # Comando padrao: servidor MCP via stdio (uso por clientes MCP nativos).
 # Sobrescreva para REST API: docker run ... mcp-fiscal-api
