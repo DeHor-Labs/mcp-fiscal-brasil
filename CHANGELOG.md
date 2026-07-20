@@ -1,5 +1,73 @@
 # Changelog
 
+## Unreleased
+
+Correções originadas do fork de Italo9 (github.com/Italo9/mcp-fiscal-brasil),
+portadas seletivamente para o repositório canônico.
+
+### BREAKING CHANGES
+
+* `consultar_status_sefaz` agora consulta o webservice real da SEFAZ
+  (NfeStatusServico4, mTLS) em vez do proxy da BrasilAPI, e por isso passa a
+  exigir certificado digital A1 configurado (`NFE_CERTIFICADO_PATH` /
+  `NFE_CERTIFICADO_SENHA`). Sem certificado, a tool levanta
+  `FiscalConfigurationError`; o endpoint REST `GET /v1/nfe/status-sefaz`
+  responde 503 em vez de fingir sucesso com lista vazia.
+
+### Novas funcionalidades
+
+* consulta real de status da SEFAZ via NfeStatusServico4 (mTLS), substituindo
+  o antigo proxy da BrasilAPI que retornava 404 para toda UF
+* endpoint `GET /v1/fiscal/certificado/status` informa apenas
+  configurado/válido/validade_fim - sem titular nem CNPJ, para não permitir
+  reconhecimento de identidade em um endpoint sem autenticação - sem nunca
+  expor o arquivo ou a senha do certificado
+* endpoint `GET /v1/nfe/status-sefaz` consolidado, consultando as 27 UFs em
+  paralelo quando nenhuma UF específica é informada, com cache em memória de
+  60 segundos por UF para conter o fan-out de chamadas mTLS reais ao
+  certificado do operador; falha pontual de rede em uma UF é omitida da
+  resposta (sem derrubar a chamada inteira), mas certificado ausente responde
+  503 e não mais lista vazia
+* `POST /v1/nfe/validate` aceita conteúdo XML inline (campo `xml`), além do
+  `xml_path` (caminho de arquivo) já existente
+* configuração de certificado digital A1 via `NFE_CERTIFICADO_PATH`,
+  `NFE_CERTIFICADO_SENHA`, `NFE_EMITENTE_CNPJ` e `NFE_AMBIENTE`; quando
+  `NFE_EMITENTE_CNPJ` está definido, todo certificado carregado é conferido
+  contra esse CNPJ
+* nova exceção `FiscalConfigurationError` para integrações fiscais que
+  exigem configuração ausente no deploy (distinta de erro de validação de
+  input ou de falha do serviço externo)
+
+### Correções
+
+* healthcheck do Dockerfile passa a detectar automaticamente o modo do
+  container (stdio vs. REST API vs. MCP HTTP/SSE), evitando falso "unhealthy"
+  permanente; o servidor MCP passa a expor `GET /health` nos transportes
+  http/sse (antes só existia `/mcp`, então o healthcheck sempre falhava
+  nesses modos)
+* `GET /v1/nfe/status-sefaz` não engole mais `FiscalConfigurationError` como
+  sucesso vazio (200); certificado ausente agora responde 503 com detail
+  claro. Degradação silenciosa (log + omissão da UF) fica restrita a falha
+  pontual de rede (`FiscalHTTPError`)
+* `GET /v1/fiscal/certificado/status` deixa de expor titular e CNPJ do
+  certificado configurado (recon desnecessário em endpoint sem autenticação)
+
+### Refatoração
+
+* helpers de carregamento de certificado A1 e envio SOAP com mTLS
+  (`carregar_pkcs12`, `criar_ssl_context_em_memoria`, `enviar_soap`)
+  extraídos para `nfe/_soap_mtls.py` e compartilhados entre distribuição,
+  manifestação e consulta de status
+* `_endpoint_para_uf` (status_sefaz.py) passa a levantar
+  `FiscalValidationError` para UF sem endpoint mapeado, em vez de
+  `FiscalConfigurationError` (reservada a certificado A1 ausente)
+
+### Notas
+
+* Follow-up conhecido (pré-existente ao port, fora de escopo desta entrega):
+  as rotas REST deste serviço não possuem autenticação nem rate limit por
+  cliente. Avaliar API key e/ou rate limit por cliente em versão futura.
+
 ## [0.5.1](https://github.com/DeHor-Labs/mcp-fiscal-brasil/compare/v0.5.0...v0.5.1) (2026-06-21)
 
 

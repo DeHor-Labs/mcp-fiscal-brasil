@@ -9,6 +9,8 @@ import unicodedata
 from typing import Any, Literal
 
 from fastmcp import FastMCP
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 from . import __version__
 from .agentic import (
@@ -89,6 +91,18 @@ app = FastMCP(
         "Dados obtidos de fontes públicas: BrasilAPI, ReceitaWS, SEFAZ."
     ),
 )
+
+
+@app.custom_route("/health", methods=["GET"], include_in_schema=False)
+async def health(_request: Request) -> JSONResponse:
+    """Healthcheck HTTP para os transportes http/sse (FastMCP so expoe /mcp por padrao).
+
+    Consumido por scripts/docker_healthcheck.py quando o container roda em
+    modo --transport http/sse. No modo stdio (padrao), essa rota nunca e
+    montada, e o healthcheck do container degrada para "pacote importa".
+    """
+    return JSONResponse({"status": "ok"})
+
 
 # ---------------------------------------------------------------------------
 # CNPJ
@@ -236,22 +250,33 @@ async def tool_validar_chave_nfe(chave_acesso: str) -> dict[str, Any]:
 @app.tool(
     name="consultar_status_sefaz",
     description=(
-        "Consulta o status atual do serviço SEFAZ de um estado brasileiro. "
-        "Verifica se o webservice da SEFAZ para emissão de NFe está operacional. "
-        "Útil para diagnosticar falhas de transmissão de notas fiscais."
+        "Consulta o status real do serviço SEFAZ de um estado brasileiro via "
+        "NfeStatusServico4 (mTLS). Verifica se o webservice da SEFAZ para emissão "
+        "de NFe está operacional. Útil para diagnosticar falhas de transmissão de "
+        "notas fiscais. Requer certificado digital A1 configurado no servidor "
+        "(NFE_CERTIFICADO_PATH / NFE_CERTIFICADO_SENHA) - mTLS é exigência de "
+        "transporte de todo webservice SEFAZ, inclusive consulta de status."
     ),
 )
 async def tool_consultar_status_sefaz(uf: str) -> dict[str, Any]:
-    """Consulta o status do servico de autorizacao de NF-e da SEFAZ de uma UF.
+    """Consulta o status real do servico de autorizacao de NF-e da SEFAZ de uma UF.
 
     Indica se o webservice da SEFAZ do estado esta operacional, util para diagnosticar
     falhas na transmissao de notas fiscais.
+
+    IMPORTANTE: exige certificado digital A1 configurado no servidor via
+    NFE_CERTIFICADO_PATH / NFE_CERTIFICADO_SENHA. mTLS e exigencia de transporte
+    de todo webservice SEFAZ, inclusive consulta de status - sem certificado,
+    esta tool levanta FiscalConfigurationError.
 
     Args:
         uf: Sigla do estado com 2 letras (ex.: "SP", "MG", "RJ"). Validada contra as UFs do Brasil.
 
     Returns:
         dict com o status atual do servico e a descricao correspondente.
+
+    Raises:
+        FiscalConfigurationError: certificado digital A1 nao configurado no servidor.
     """
     resultado = await consultar_status_sefaz(uf)
     return resultado.model_dump(mode="json", exclude_none=True)

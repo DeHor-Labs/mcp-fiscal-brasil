@@ -2,6 +2,7 @@
 
 from .config import Settings, settings
 from .errors import (
+    FiscalConfigurationError,
     FiscalError,
     FiscalHTTPError,
     FiscalNotFoundError,
@@ -12,6 +13,7 @@ from .http import HTTPClient
 from .logging import get_logger
 
 __all__ = [
+    "FiscalConfigurationError",
     "FiscalError",
     "FiscalHTTPError",
     "FiscalNotFoundError",

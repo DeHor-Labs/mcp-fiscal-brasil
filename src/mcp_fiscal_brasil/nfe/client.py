@@ -12,6 +12,7 @@ from mcp_fiscal_brasil._core import (
 
 from ..shared.constants import CODIGO_UF
 from .schemas import NFeResponse, StatusSEFAZResponse
+from .status_sefaz import consultar_status_real
 from .xml_parser import parse_nfe_xml
 
 logger = get_logger(__name__)
@@ -194,29 +195,31 @@ class NFEClient:
         )
 
     async def consultar_status_servico(
-        self, uf: str, ambiente: str = "producao"
+        self, uf: str, ambiente: str | None = None
     ) -> StatusSEFAZResponse:
         """
-        Look up the SEFAZ service status for a state.
+        Consulta o status real do webservice SEFAZ da UF via NfeStatusServico4 (mTLS).
 
-        BrasilAPI acts as a proxy for the state SEFAZ webservice.
+        Exige certificado digital A1 configurado (NFE_CERTIFICADO_PATH /
+        NFE_CERTIFICADO_SENHA) - mTLS é exigência de transporte de todo webservice
+        SEFAZ, inclusive consulta de status. Sem certificado, propaga
+        FiscalConfigurationError; o chamador decide como tratar (api.py, por
+        exemplo, omite a UF da resposta em vez de fabricar um status falso).
         """
-        logger.info("sefaz_status_lookup_started", uf=uf, ambiente=ambiente)
+        ambiente_efetivo = ambiente or settings.nfe_ambiente
+        logger.info("sefaz_status_lookup_started", uf=uf, ambiente=ambiente_efetivo)
 
-        async with self._http_client(settings.brasilapi_base_url) as client:
-            try:
-                data = await client.get(f"/nfe/v1/status/{uf.upper()}")
-                return StatusSEFAZResponse(
-                    uf=uf.upper(),
-                    status=data.get("status", "Desconhecido"),
-                    descrição=data.get("descrição", ""),
-                    código=data.get("cStat"),
-                    ambiente=ambiente,
-                )
-            except Exception:
-                return StatusSEFAZResponse(
-                    uf=uf.upper(),
-                    status="Indisponível",
-                    descrição="Não foi possível consultar o status do serviço SEFAZ.",
-                    ambiente=ambiente,
-                )
+        resultado = await consultar_status_real(
+            uf.upper(),
+            caminho_certificado=settings.nfe_certificado_path,
+            senha=settings.nfe_certificado_senha,
+            ambiente="homologacao" if ambiente_efetivo == "homologacao" else "producao",
+        )
+
+        return StatusSEFAZResponse(
+            uf=resultado.uf,
+            status=resultado.status,
+            descrição=resultado.descricao or "",
+            código=resultado.codigo,
+            ambiente=ambiente_efetivo,
+        )

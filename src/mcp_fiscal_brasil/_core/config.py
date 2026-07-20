@@ -19,6 +19,15 @@ class Settings(BaseSettings):
     ibge_localidades_base_url: str = "https://servicodados.ibge.gov.br/api/v1/localidades"
     bcb_sgs_base_url: str = "https://api.bcb.gov.br/dados/serie"
 
+    # Certificado digital A1 (e-CNPJ) para consultas mTLS aos webservices SEFAZ
+    # (status de servico, distribuicao, manifestacao). Configurado via secret/volume
+    # montado no deploy (Cloud Run --set-secrets, Fly.io secrets ou volume Docker),
+    # nunca em texto plano no .env de producao.
+    nfe_certificado_path: str = ""
+    nfe_certificado_senha: str = ""
+    nfe_emitente_cnpj: str = ""
+    nfe_ambiente: str = "producao"
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
 
