@@ -1,3 +1,5 @@
+[![MCP Toplist](https://mcptoplist.com/badge/glama%2FDeHor-Labs%2Fmcp-fiscal-brasil.svg)](https://mcptoplist.com/server/glama%2FDeHor-Labs%2Fmcp-fiscal-brasil)
+
 <!-- mcp-name: io.github.DeHor-Labs/mcp-fiscal-brasil -->
 
 <p align="center">
