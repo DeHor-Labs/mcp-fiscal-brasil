@@ -63,15 +63,15 @@ Reinicie o Claude Desktop. As ferramentas fiscais aparecem automaticamente, sem 
 | Funcionalidade | mcp-fiscal-brasil | mcp-brasil | brasil-data-mcp |
 |---|:---:|:---:|:---:|
 | Foco | Vertical fiscal profunda | Dados públicos gerais | Dados públicos gerais |
-| NF-e: parse, validação, DANFE, assinatura | Sim | Nao | Nao |
-| SPED/eSocial: análise offline | Sim | Nao | Nao |
-| Tabelas offline (NCM, CFOP, CNAE) | Sim | Nao | Nao |
-| Reforma Tributária 2026 (IBS/CBS) | Sim | Nao | Nao |
-| Simples Nacional/MEI | Sim | Nao | Nao |
-| Certidão federal/FGTS | Sim (orientação) | Nao | Nao |
-| Certificado A1 (mTLS SEFAZ) | Sim (opt-in) | Nao | Nao |
+| NF-e: parse, validação, DANFE, assinatura | Sim | Não | Não |
+| SPED/eSocial: análise offline | Sim | Não | Não |
+| Tabelas offline (NCM, CFOP, CNAE) | Sim | Não | Não |
+| Reforma Tributária 2026 (IBS/CBS) | Sim | Não | Não |
+| Simples Nacional/MEI | Sim | Não | Não |
+| Certidão federal/FGTS | Sim (orientação) | Não | Não |
+| Certificado A1 (mTLS SEFAZ) | Sim (opt-in) | Não | Não |
 | Zero-cadastro, zero chave obrigatória | Sim | Parcial (3 APIs exigem chave) | Sim |
-| Tools agênticas de alto nível | Sim (6 tools) | Parcial | Nao |
+| Tools agênticas de alto nível | Sim (6 tools) | Parcial | Não |
 | Linguagem de implementação | Python | Python | Node.js |
 
 **mcp-brasil** (1.6k stars) e **brasil-data-mcp** cobrem dados públicos gerais - CEP, bancos, feriados, economia. Este projeto faz algo diferente: é uma vertical fiscal, com parsing offline de XML, validação XSD, tabelas de referência embutidas e suporte à Reforma 2026. Focos diferentes, públicos distintos.
