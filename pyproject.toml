@@ -65,7 +65,10 @@ dependencies = [
     "uvicorn>=0.42.0",
     "brazilfiscalreport==1.0.1",
     "signxml>=4.5.1",
-    "cryptography>=48.0.1",
+    "cryptography>=50.0.0",
+    "pillow>=12.3.0",
+    "mcp>=1.28.1",
+    "click>=8.3.3",
 ]
 
 [project.optional-dependencies]
