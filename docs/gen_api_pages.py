@@ -11,6 +11,7 @@ basta escrever boas docstrings nos `.py` e a doc fica em sincronia automatica.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import mkdocs_gen_files
@@ -92,3 +93,30 @@ for module in MODULES_TO_DOCUMENT:
 
 with mkdocs_gen_files.open(REFERENCE_ROOT / "SUMMARY.md", "w") as fd:
     fd.writelines(nav.build_literate_nav())
+
+
+# O MkDocs transforma docs/index.md em HTML. Esta cópia mantém a representação
+# Markdown disponível como arquivo real, sem cair no HTML da aplicação. Os links
+# relativos apontam para as rotas HTML geradas, não para fontes .md ausentes.
+RAW_INDEX_TARGET = Path("site/index.md")
+RAW_INDEX_TARGET.parent.mkdir(parents=True, exist_ok=True)
+
+
+def _published_markdown_link(match: re.Match[str]) -> str:
+    target = match.group("target")
+    if target in {"index.md", "./index.md"}:
+        target = "./"
+    elif target.endswith("/index.md"):
+        target = target[: -len("index.md")]
+    else:
+        target = target[:-3] + "/"
+    return f"]({target}{match.group('fragment') or ''})"
+
+
+raw_index = Path("docs/index.md").read_text(encoding="utf-8")
+raw_index = re.sub(
+    r"]\((?P<target>(?![A-Za-z][A-Za-z0-9+.-]*:|/|#)[^)#\s]+\.md)(?P<fragment>#[^)\s]+)?\)",
+    _published_markdown_link,
+    raw_index,
+)
+RAW_INDEX_TARGET.write_text(raw_index, encoding="utf-8")

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://dehor-labs.github.io/mcp-fiscal-brasil/sitemap.xml

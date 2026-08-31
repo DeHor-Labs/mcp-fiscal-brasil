@@ -111,4 +111,7 @@ asyncio.run(main())
 [:material-rocket: Comece pelo guia rápido](getting-started/quickstart.md){ .md-button .md-button--primary }
 [:material-tools: Explore as tools agenticas](agentic/index.md){ .md-button }
 [:material-file-document-outline: Casos de uso fiscais](use-cases/due-diligence.md){ .md-button }
+[:material-help-circle-outline: Leia as perguntas frequentes](faq.md){ .md-button }
+[:material-robot-outline: Contexto para assistentes](llms.txt){ .md-button }
+[:material-spider-web: Regras de rastreamento](robots.txt){ .md-button }
 [:material-github: Ver no GitHub](https://github.com/DeHor-Labs/mcp-fiscal-brasil){ .md-button }
