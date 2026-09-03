@@ -29,6 +29,7 @@ from mcp_fiscal_brasil.agentic.schemas import (
 )
 from mcp_fiscal_brasil.cnpj.schemas import AtividadeCNAE, CNPJResponse
 from mcp_fiscal_brasil.shared.schemas import Endereco
+from mcp_fiscal_brasil.simples.schemas import SimplesStatus
 
 
 def _cnpj_ativo() -> CNPJResponse:
@@ -286,6 +287,35 @@ async def test_compliance_empresa_baixada_eleva_risco() -> None:
     assert report.risco_geral == "critico"
     assert report.score < 30
     assert any(a.categoria == "situacao_cadastral" for a in report.achados)
+
+
+@pytest.mark.asyncio
+async def test_compliance_simples_data_real_nao_optante_gera_achado() -> None:
+    """Regressao: SimplesStatus real (não mockado como excecao) nao pode
+    disparar AttributeError ao acessar o campo de opcao pelo regime."""
+    with (
+        patch("mcp_fiscal_brasil.agentic.compliance.CNPJClient") as mock_cnpj_class,
+        patch("mcp_fiscal_brasil.agentic.compliance.SimplesClient") as mock_simples_class,
+        patch("mcp_fiscal_brasil.agentic.compliance.MEIClient") as mock_mei_class,
+    ):
+        cnpj_inst = MagicMock()
+        cnpj_inst.consultar = AsyncMock(return_value=_cnpj_ativo())
+        mock_cnpj_class.return_value = cnpj_inst
+
+        simples_inst = MagicMock()
+        simples_inst.get_simples_status = AsyncMock(
+            return_value=SimplesStatus(cnpj="12345678000190", simples_nacional=False, mei=False)
+        )
+        mock_simples_class.return_value = simples_inst
+
+        mei_inst = MagicMock()
+        mei_inst.get_mei_status = AsyncMock(side_effect=Exception("offline"))
+        mock_mei_class.return_value = mei_inst
+
+        report = await analyze_cnpj_compliance("12.345.678/0001-90")
+
+    assert "Simples Nacional" in report.fontes_consultadas
+    assert any(a.categoria == "regime_tributario" for a in report.achados)
 
 
 @pytest.mark.asyncio
