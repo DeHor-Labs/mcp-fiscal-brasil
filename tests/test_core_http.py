@@ -51,7 +51,9 @@ async def test_get_retries_500_and_fails_before_fourth_attempt(
 
 
 @pytest.mark.asyncio
-async def test_get_retries_429_then_returns_success(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_get_retries_429_then_returns_success(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     calls = 0
 
     def handler(_: httpx.Request) -> httpx.Response:
@@ -132,3 +134,52 @@ async def test_rate_limit_is_respected(monkeypatch: pytest.MonkeyPatch) -> None:
     assert second == {"call": 2}
     assert elapsed >= 0.9
     assert calls == 2
+
+
+@pytest.mark.asyncio
+async def test_get_raises_fiscal_error_on_non_json_body(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Um 200 com corpo que nao e JSON valido (HTML, texto truncado etc.) deve
+    virar FiscalHTTPError, nunca um json.JSONDecodeError cru."""
+
+    def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, headers={"content-type": "text/html"}, text="<html/>")
+
+    patch_async_client(monkeypatch, handler)
+    client = HTTPClient("https://example.test", max_retries=1, cache_ttl=0)
+
+    with pytest.raises(FiscalHTTPError) as exc_info:
+        await client.get("/broken")
+
+    assert exc_info.value.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_get_list_raises_fiscal_error_on_non_json_body(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text="not json at all")
+
+    patch_async_client(monkeypatch, handler)
+    client = HTTPClient("https://example.test", max_retries=1, cache_ttl=0)
+
+    with pytest.raises(FiscalHTTPError):
+        await client.get_list("/broken-list")
+
+
+@pytest.mark.asyncio
+async def test_get_raises_fiscal_error_on_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def handler(_: httpx.Request) -> httpx.Response:
+        raise httpx.ReadTimeout("timed out")
+
+    patch_async_client(monkeypatch, handler)
+    client = HTTPClient("https://example.test", max_retries=1, cache_ttl=0)
+
+    with pytest.raises(FiscalHTTPError) as exc_info:
+        await client.get("/slow")
+
+    assert exc_info.value.status_code is None

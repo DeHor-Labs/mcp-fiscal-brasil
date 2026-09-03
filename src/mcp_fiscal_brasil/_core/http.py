@@ -10,7 +10,12 @@ from typing import Any, cast
 import httpx
 from aiolimiter import AsyncLimiter
 from cachetools import TTLCache
-from tenacity import AsyncRetrying, retry_if_exception, stop_after_attempt, wait_exponential
+from tenacity import (
+    AsyncRetrying,
+    retry_if_exception,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 __all__ = ["HTTPClient"]
 
@@ -196,8 +201,18 @@ class HTTPClient:
             return tuple(sorted(self._freeze(item) for item in value))
         return value
 
+    def _parse_json(self, response: httpx.Response) -> Any:
+        try:
+            return response.json()
+        except ValueError as exc:
+            raise self._http_error(
+                response.request.method,
+                response,
+                "A resposta não é um JSON válido.",
+            ) from exc
+
     def _json_object(self, response: httpx.Response) -> dict[str, Any]:
-        data = response.json()
+        data = self._parse_json(response)
         if isinstance(data, dict):
             return cast(dict[str, Any], data)
         raise self._http_error(
@@ -207,7 +222,7 @@ class HTTPClient:
         )
 
     def _json_list(self, response: httpx.Response) -> list[Any]:
-        data = response.json()
+        data = self._parse_json(response)
         if isinstance(data, list):
             return data
         raise self._http_error(

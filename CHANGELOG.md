@@ -68,6 +68,12 @@ portadas seletivamente para o repositório canônico.
   as rotas REST deste serviço não possuem autenticação nem rate limit por
   cliente. Avaliar API key e/ou rate limit por cliente em versão futura.
 
+### Correções (CLI e Simples Nacional, 2026-09-03)
+
+* CLI `simples` não vaza mais traceback: CNPJ válido sem opção pelo Simples/MEI (BrasilAPI responde 404) agora retorna status negativo em vez de erro; CNPJ com dígito verificador inválido de fato continua sendo rejeitado antes de qualquer chamada de rede
+* nenhum subcomando do CLI (`cnpj`, `cpf`, `cep`, `simples`, `municipio`, `compliance`, `supplier`, `regimes`) vaza mais traceback: erro de negócio vira JSON estruturado no stdout com código de saída 1, erro inesperado com código 2
+* corpo de resposta HTTP não-JSON de serviços externos agora vira `FiscalHTTPError` em vez de `json.JSONDecodeError` não tratado
+
 ## [0.5.1](https://github.com/DeHor-Labs/mcp-fiscal-brasil/compare/v0.5.0...v0.5.1) (2026-06-21)
 
 
