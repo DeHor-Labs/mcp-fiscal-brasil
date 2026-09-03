@@ -74,6 +74,29 @@ portadas seletivamente para o repositório canônico.
 * nenhum subcomando do CLI (`cnpj`, `cpf`, `cep`, `simples`, `municipio`, `compliance`, `supplier`, `regimes`) vaza mais traceback: erro de negócio vira JSON estruturado no stdout com código de saída 1, erro inesperado com código 2
 * corpo de resposta HTTP não-JSON de serviços externos agora vira `FiscalHTTPError` em vez de `json.JSONDecodeError` não tratado
 
+## [0.5.2](https://github.com/DeHor-Labs/mcp-fiscal-brasil/compare/v0.5.1...v0.5.2) (2026-09-03)
+
+
+### Correções
+
+* CLI sem traceback e status do Simples sem falso erro para CNPJ não optante ([#139](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/139)) ([46ae8f2](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/46ae8f2b4a87a0cd52243e061c36f439d818be18))
+* corrige ferramentas que liam endpoints de objeto como lista ([#107](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/107)) ([d055004](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/d055004f89bb0bea2505b212d39e156d624a83d1))
+* corrige vulnerabilidades de dependências (auditoria supply chain) ([#130](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/130)) ([6bccf21](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/6bccf2123a734392953928cffb8fd05fdc877a98))
+* reimplementa consulta de status SEFAZ e porta correcoes do fork Italo9 ([#116](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/116)) ([34b648a](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/34b648ac2da35fdda288c1bda94438da3a767615))
+
+
+### Documentação
+
+* acentuar negativas no comparativo ([#123](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/123)) ([e78917a](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/e78917a7f6845b9f1b6701a61d20856ecf5fb5c8))
+* adiciona badge de cobertura de testes (85%) ao README ([#108](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/108)) ([fc2a086](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/fc2a086475de3f8059104594b61d79e3d31ec9ea))
+* adiciona link da LinkedIn Newsletter no README ([#105](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/105)) ([ce614b6](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/ce614b652171f73c62b5acb711795a2e6c5814d0))
+* alinha comandos de contribuição com CI ([#111](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/111)) ([21b46a4](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/21b46a4d737de96f05512b05808984aa56e01c2e))
+* atualiza roadmap para o estado real (v0.5.x) e Star History responsivo a tema ([#106](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/106)) ([b0d3a74](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/b0d3a74e0255e2f8a145815ff533ac27fd95b9c7))
+* corrige acentos no README do wrapper npm ([#112](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/112)) ([9fbb1eb](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/9fbb1ebea47a45c7cf7966a67a972d3745e7670c))
+* corrige ancora de workflows no README ([#110](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/110)) ([6fbae4e](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/6fbae4e90b02b47f575719ce049627f2f2dd4d71))
+* limpa cabeçalho do README (oculta mcp-name + corrige badge de downloads) ([#103](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/103)) ([7f2981f](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/7f2981f5354cb0fe1ed315cdf0bc03a25e1c46e9))
+* publica checklist verificável do MCP Fiscal ([#138](https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues/138)) ([c0ec426](https://github.com/DeHor-Labs/mcp-fiscal-brasil/commit/c0ec42609e9bb477c3f6f1fdae844d5f2ee9a2ce))
+
 ## [0.5.1](https://github.com/DeHor-Labs/mcp-fiscal-brasil/compare/v0.5.0...v0.5.1) (2026-06-21)
 
 
