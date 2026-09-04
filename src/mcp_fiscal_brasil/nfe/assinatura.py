@@ -1,4 +1,4 @@
-"""Validacao de assinatura digital XMLDSig em documentos NF-e (ICP-Brasil)."""
+"""Validação de assinatura digital XMLDSig em documentos NF-e (ICP-Brasil)."""
 
 from __future__ import annotations
 
@@ -18,34 +18,34 @@ from ..shared.xml_utils import parse_xml
 
 logger_assinatura = get_logger(__name__)
 
-# Limite maximo para o ca_bundle a fim de evitar processamento de entrada gigante
+# Limite máximo para o ca_bundle a fim de evitar processamento de entrada gigante
 _CA_BUNDLE_MAX_BYTES = 1 * 1024 * 1024  # 1 MB
 
 if TYPE_CHECKING:
     from cryptography.x509 import Certificate
 
-# Pattern para extrair CNPJ de 14 digitos numericos do CN do certificado
+# Pattern para extrair CNPJ de 14 dígitos numéricos do CN do certificado
 _CNPJ_RE = re.compile(r"\d{14}")
 
 
 @dataclass(frozen=True)
 class AssinaturaResult:
-    """Resultado da validacao de assinatura digital XMLDSig de uma NF-e."""
+    """Resultado da validação de assinatura digital XMLDSig de uma NF-e."""
 
     assinatura_valida: bool
-    """True se a assinatura criptografica e a integridade do digest forem validas."""
+    """True se a assinatura criptográfica e a integridade do digest forem válidas."""
 
     motivo: str | None = None
-    """Descricao do erro caso assinatura_valida seja False, None se valida."""
+    """Descrição do erro caso assinatura_valida seja False, None se válida."""
 
     titular: str | None = None
-    """CN (Common Name) do certificado assinante, normalmente razao social + CNPJ."""
+    """CN (Common Name) do certificado assinante, normalmente razão social + CNPJ."""
 
     cnpj_cpf: str | None = None
-    """CNPJ ou CPF extraido do CN do certificado, se presente."""
+    """CNPJ ou CPF extraído do CN do certificado, se presente."""
 
     validade_inicio: datetime | None = None
-    """Inicio da validade do certificado."""
+    """Início da validade do certificado."""
 
     validade_fim: datetime | None = None
     """Fim da validade do certificado."""
@@ -87,7 +87,7 @@ def _extrair_cn(cert: Certificate) -> str | None:
 
 
 def _extrair_cnpj_cpf(cn: str | None) -> str | None:
-    """Extrai CNPJ de 14 digitos numericos do CN do certificado, se presente."""
+    """Extrai CNPJ de 14 dígitos numéricos do CN do certificado, se presente."""
     if not cn:
         return None
     match = _CNPJ_RE.search(cn)
@@ -95,7 +95,7 @@ def _extrair_cnpj_cpf(cn: str | None) -> str | None:
 
 
 def _extrair_ac_emissora(cert: Certificate) -> str | None:
-    """Retorna o DN do emissor do certificado como string legivel."""
+    """Retorna o DN do emissor do certificado como string legível."""
     try:
         issuer_attrs = []
         for attr in cert.issuer:
@@ -146,28 +146,28 @@ def validar_assinatura_nfe(
     """
     Valida a assinatura digital XMLDSig de uma NF-e.
 
-    Verifica a integridade do Reference/DigestValue e a assinatura criptografica
+    Verifica a integridade do Reference/DigestValue e a assinatura criptográfica
     do elemento Signature presente em infNFe. Extrai dados do certificado assinante.
 
     Args:
-        xml_content: Conteudo XML da NF-e (str ou bytes). Todo XML externo
-            e parseado via parse_xml() (anti-XXE).
+        xml_content: Conteúdo XML da NF-e (str ou bytes). Todo XML externo
+            é parseado via parse_xml() (anti-XXE).
         ca_bundle: Opcional. PEM com cadeia ICP-Brasil para validar o emissor
             do certificado.
             - ``str``: caminho de arquivo PEM no sistema de arquivos. O arquivo
-              deve existir e ser legivel; caso contrario, levanta
+              deve existir e ser legível; caso contrário, levanta
               ``FiscalValidationError`` com mensagem clara.
-            - ``bytes``: conteudo PEM diretamente em memoria.
-            - ``None``: valida a assinatura sem exigir cadeia confiavel (nao
-              falha por ausencia de bundle, mas nao confirma a AC emissora).
+            - ``bytes``: conteúdo PEM diretamente em memória.
+            - ``None``: valida a assinatura sem exigir cadeia confiável (não
+              falha por ausência de bundle, mas não confirma a AC emissora).
 
     Returns:
-        AssinaturaResult com o resultado da validacao e dados do certificado.
-        NUNCA reporta assinatura invalida como valida.
+        AssinaturaResult com o resultado da validação e dados do certificado.
+        NUNCA reporta assinatura inválida como válida.
 
     Raises:
-        FiscalValidationError: Se ``ca_bundle`` for ``str`` e o caminho nao existir,
-            ou se o conteudo exceder 1 MB.
+        FiscalValidationError: Se ``ca_bundle`` for ``str`` e o caminho não existir,
+            ou se o conteúdo exceder 1 MB.
         XMLParseError: Se o XML for malformado (propagado de parse_xml).
     """
     # Valida ca_bundle str (caminho de arquivo) antes de qualquer processamento
@@ -175,8 +175,8 @@ def validar_assinatura_nfe(
         if not os.path.isfile(ca_bundle):
             raise FiscalValidationError(
                 message=(
-                    f"Arquivo ca_bundle nao encontrado: '{ca_bundle}'. "
-                    "Informe o caminho absoluto de um arquivo PEM valido da cadeia ICP-Brasil."
+                    f"Arquivo ca_bundle não encontrado: '{ca_bundle}'. "
+                    "Informe o caminho absoluto de um arquivo PEM válido da cadeia ICP-Brasil."
                 ),
                 field="ca_bundle",
                 value=ca_bundle,
@@ -187,7 +187,7 @@ def validar_assinatura_nfe(
         bundle_bytes = ca_bundle if isinstance(ca_bundle, bytes) else ca_bundle.encode()
         if len(bundle_bytes) > _CA_BUNDLE_MAX_BYTES:
             raise FiscalValidationError(
-                message="O ca_bundle excede o limite de 1 MB. Forneca apenas a cadeia ICP-Brasil necessaria.",
+                message="O ca_bundle excede o limite de 1 MB. Forneça apenas a cadeia ICP-Brasil necessária.",
                 field="ca_bundle",
                 value=f"{len(bundle_bytes)} bytes",
             )
@@ -201,10 +201,10 @@ def validar_assinatura_nfe(
     if not signature_nodes:
         return AssinaturaResult(
             assinatura_valida=False,
-            motivo="Elemento Signature nao encontrado no XML.",
+            motivo="Elemento Signature não encontrado no XML.",
         )
 
-    # Dados do certificado (extraidos antes da verificacao para retornar mesmo em falha)
+    # Dados do certificado (extraídos antes da verificação para retornar mesmo em falha)
     signature_el = signature_nodes[0]
     cert_obj = _extrair_cert_x509(signature_el)
     titular: str | None = None
@@ -223,23 +223,23 @@ def validar_assinatura_nfe(
         xml_bytes = etree.tostring(root)
 
         if ca_bundle is not None:
-            # Validacao completa: verifica assinatura + cadeia de confianca ICP-Brasil.
+            # Validação completa: verifica assinatura + cadeia de confiança ICP-Brasil.
             # ca_bundle pode ser bytes PEM ou str com caminho para arquivo PEM.
             verifier.verify(data=xml_bytes, ca_pem_file=ca_bundle)
         elif cert_obj is not None:
-            # Validacao sem cadeia: verifica integridade (DigestValue) e assinatura
-            # criptografica usando o certificado embutido no proprio XML.
-            # Nao valida se o certificado e confiavel (sem CA bundle).
+            # Validação sem cadeia: verifica integridade (DigestValue) e assinatura
+            # criptográfica usando o certificado embutido no próprio XML.
+            # Não valida se o certificado é confiável (sem CA bundle).
             verifier.verify(data=xml_bytes, x509_cert=cert_obj)
         else:
-            # Sem certificado embutido e sem ca_bundle: impossivel validar a
-            # confianca do assinante. Retorna invalido para evitar falsa validacao
+            # Sem certificado embutido e sem ca_bundle: impossível validar a
+            # confiança do assinante. Retorna inválido para evitar falsa validação
             # contra a CA store do sistema (que aceitaria qualquer cert SSL).
             return AssinaturaResult(
                 assinatura_valida=False,
                 motivo=(
-                    "XML nao contem certificado embutido e nenhum ca_bundle foi fornecido; "
-                    "impossivel validar a confianca do assinante."
+                    "XML não contém certificado embutido e nenhum ca_bundle foi fornecido; "
+                    "impossível validar a confiança do assinante."
                 ),
             )
 
