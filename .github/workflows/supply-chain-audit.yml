@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Scan de lockfiles (falha em vulnerabilidade conhecida não listada em osv-scanner.toml)
         uses: google/osv-scanner-action/osv-scanner-action@v2.5.1
         with:
