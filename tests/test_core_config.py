@@ -93,3 +93,32 @@ def test_cpfcnpj_base_url_https_customizada_e_aceita(monkeypatch: pytest.MonkeyP
     monkeypatch.setenv("CPFCNPJ_BASE_URL", "https://proxy.interno.example/cpfcnpj")
     settings = Settings(_env_file=None)
     assert settings.cpfcnpj_base_url == "https://proxy.interno.example/cpfcnpj"
+
+
+def test_cpfcnpj_timeout_padrao_60() -> None:
+    settings = Settings(_env_file=None)
+    assert settings.cpfcnpj_timeout == 60.0
+
+
+def test_cpfcnpj_timeout_override_via_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CPFCNPJ_TIMEOUT", "90")
+    settings = Settings(_env_file=None)
+    assert settings.cpfcnpj_timeout == 90.0
+
+
+@pytest.mark.parametrize("valor", ["0", "-5"])
+def test_cpfcnpj_timeout_rejeita_nao_positivo(monkeypatch: pytest.MonkeyPatch, valor: str) -> None:
+    monkeypatch.setenv("CPFCNPJ_TIMEOUT", valor)
+    with pytest.raises(ValueError):
+        Settings(_env_file=None)
+
+
+def test_cpfcnpj_cpf_packet_padrao_26() -> None:
+    settings = Settings(_env_file=None)
+    assert settings.cpfcnpj_cpf_packet == 26
+
+
+def test_cpfcnpj_cpf_packet_rejeita_invalido(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CPFCNPJ_CPF_PACKET", "9")
+    with pytest.raises(ValueError):
+        Settings(_env_file=None)
