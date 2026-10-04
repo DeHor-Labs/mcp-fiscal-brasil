@@ -147,16 +147,16 @@ wheels = [
 
 [[package]]
 name = "brazilfiscalreport"
-version = "1.1.0"
+version = "1.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "fpdf2" },
     { name = "phonenumbers" },
     { name = "python-barcode" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/91/3d/c69f57d5811811a81e864ae7d8c588fb8723077b8dc6d6a210e77510abcf/brazilfiscalreport-1.1.0.tar.gz", hash = "sha256:c9fd73c90101181a8fe319ca2f566b9a490ed75b6193d0f3c600c1407f71ebc0", size = 228618, upload-time = "2026-09-17T14:25:17.546Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/6d/f8/22b1e5c67d8dc6097a7140504cc9cfb05845adc6953a4e79cc3085585aa0/brazilfiscalreport-1.1.1.tar.gz", hash = "sha256:ae171454406a930033464ba961d7e8d2ef956cd28ff1a1db8e50d52b88a3478c", size = 228715, upload-time = "2026-09-29T00:19:09.666Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a5/1e/f706984407b043a82d380d68a7cd953017c1f82d192f225aac893e782890/brazilfiscalreport-1.1.0-py3-none-any.whl", hash = "sha256:87b8d95af1b603d6321665bacd1b885fa711e6d7807945189c43b42c1aefe876", size = 225572, upload-time = "2026-09-17T14:25:16.171Z" },
+    { url = "https://files.pythonhosted.org/packages/66/0a/65eebd62f020784d4b4b59baa7c640c1981a4e9ec09ab811a547b4025df4/brazilfiscalreport-1.1.1-py3-none-any.whl", hash = "sha256:dec1c43b46b294e487000607f697347fd2a8f8c72d8e77e58085e51f72e0c126", size = 225533, upload-time = "2026-09-29T00:19:08.475Z" },
 ]
 
 [[package]]
@@ -1518,7 +1518,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aiolimiter", specifier = ">=1.2.1" },
-    { name = "brazilfiscalreport", specifier = "==1.1.0" },
+    { name = "brazilfiscalreport", specifier = "==1.1.1" },
     { name = "cachetools", specifier = ">=7.0.5" },
     { name = "click", specifier = ">=8.3.3" },
     { name = "cryptography", specifier = ">=50.0.0" },
@@ -2951,7 +2951,7 @@ wheels = [
 
 [[package]]
 name = "virtualenv"
-version = "21.7.12"
+version = "21.7.13"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "distlib" },
@@ -2960,9 +2960,9 @@ dependencies = [
     { name = "python-discovery" },
     { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/40/db/2aae91b0237f5f6b1d1229bf4953f3b8bdd2c215312ad2d2b3f57fd831df/virtualenv-21.7.12.tar.gz", hash = "sha256:5b6576455f10637067cc20c3f9f7c677575eecaa8c95fc049db2f650652befd5", size = 5359483, upload-time = "2026-09-18T01:40:43.877Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/13/50/c9b84eb106d0db420b9878dac0a386c5791726f127ce20b06897f6e3a1e9/virtualenv-21.7.13.tar.gz", hash = "sha256:0355558b6f33619aab31347e43643b0ebc97f61ea3acf617b2b69e1f8a843d11", size = 5360306, upload-time = "2026-09-18T04:35:49.354Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4d/ef/39ecac9ca33d0b7994e63accc86d7224a4341d2e1b42b6da1aa5c24e6a5c/virtualenv-21.7.12-py3-none-any.whl", hash = "sha256:3572a2e13deac1c2727e48ec43dc962f698c453c5c90eb2bd737c81bcd2ac0b0", size = 5328681, upload-time = "2026-09-18T01:40:41.848Z" },
+    { url = "https://files.pythonhosted.org/packages/9a/ce/e74453531b0c49a58d0e8a4f9bab4495705859fee4a4f7de27d58f4a791a/virtualenv-21.7.13-py3-none-any.whl", hash = "sha256:1bea5af7463f59c4719db48fe739579a2a4f569c96f26c086edda85c96da9f59", size = 5328680, upload-time = "2026-09-18T04:35:47.194Z" },
 ]
 
 [[package]]
