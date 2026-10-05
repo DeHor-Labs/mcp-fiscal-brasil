@@ -5,6 +5,18 @@
 Correções originadas do fork de Italo9 (github.com/Italo9/mcp-fiscal-brasil),
 portadas seletivamente para o repositório canônico.
 
+### Ajustes de conformidade com a documentação do provedor cpfcnpj.com.br
+
+* timeout dedicado `CPFCNPJ_TIMEOUT` (padrão 60s, recomendado pela documentação),
+  usado só nas consultas ao provedor premium, sem alterar o timeout global das
+  fontes gratuitas
+* rate limit por pacote: NF-e/NFC-e por chave (100/102) usam um limitador próprio
+  de 2 req/s por conta (HTTP 429 + erroCodigo 1007), separado do de 20 req/s dos
+  demais pacotes (CPF/CNPJ/IE)
+* token do provedor mascarado na origem: o primeiro segmento do path (onde viaja o
+  token) é substituído por `***` nas URLs carregadas pelos erros de transporte,
+  apenas para o cliente do provedor premium (fontes gratuitas intactas)
+
 ### BREAKING CHANGES
 
 * `consultar_status_sefaz` agora consulta o webservice real da SEFAZ
@@ -16,6 +28,14 @@ portadas seletivamente para o repositório canônico.
 
 ### Novas funcionalidades
 
+* tool `consultar_cpf` (premium, opt-in via `CPFCNPJ_TOKEN`) consulta a situação
+  cadastral do CPF na Receita Federal para conferir destinatário de NF-e/NFC-e ou
+  tomador de NFS-e (pessoa física) antes de emitir; deriva `apto_emissao` (verdadeiro
+  só quando Regular), valida o dígito verificador antes de gastar crédito, mascara o
+  CPF em todo log e não expõe campos operacionais do provedor. Pacote configurável por
+  `CPFCNPJ_CPF_PACKET` (`26` padrão, `8`, `3` ou `1`). Exposta também no endpoint REST
+  `POST /v1/cpf/cadastro` (CPF no corpo JSON, fora do path) e no SDK
+  (`consultar_cpf` / `consultar_cpf_sync`)
 * consulta real de status da SEFAZ via NfeStatusServico4 (mTLS), substituindo
   o antigo proxy da BrasilAPI que retornava 404 para toda UF
 * endpoint `GET /v1/fiscal/certificado/status` informa apenas
