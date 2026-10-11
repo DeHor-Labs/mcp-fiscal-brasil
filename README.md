@@ -68,6 +68,7 @@ Reinicie o Claude Desktop. As ferramentas fiscais aparecem automaticamente, sem 
 | Tabelas offline (NCM, CFOP, CNAE) | Sim | Não | Não |
 | Reforma Tributária 2026 (IBS/CBS) | Sim | Não | Não |
 | Simples Nacional/MEI | Sim | Não | Não |
+| CPF: validação + situação cadastral (opt-in premium) | Sim | Não | Não |
 | Certidão federal/FGTS | Sim (orientação) | Não | Não |
 | Certificado A1 (mTLS SEFAZ) | Sim (opt-in) | Não | Não |
 | Zero-cadastro, zero chave obrigatória | Sim | Parcial (3 APIs exigem chave) | Sim |
@@ -222,6 +223,7 @@ Funcionam 100% sem chaves de API. Instale e use imediatamente.
 | NFe | `baixar_nfe_distribuicao` | Baixa documentos via NFeDistribuicaoDFe (requer cert A1 local) | SEFAZ (mTLS) |
 | NFe | `manifestar_nfe` | Manifesta destinatario em NF-e via NFeRecepcaoEvento (requer cert A1) | SEFAZ (mTLS) |
 | CPF | `validar_cpf` | Validação de dígito verificador | Offline |
+| CPF | `consultar_cpf` | Situação cadastral do titular (Regular, Suspensa, Titular Falecido, Pendente de Regularização, Cancelada por Multiplicidade, Nula, Cancelada de Ofício) para emissão a pessoa física | cpfcnpj.com.br (premium, opt-in) |
 | SPED | `analisar_sped` | Analisa arquivo EFD/ECD/ECF: período, empresa, erros | Offline |
 | SPED | `listar_registros_sped` | Filtra registros por tipo (C100, E110, etc.) | Offline |
 | eSocial | `listar_eventos_esocial` | Catálogo de eventos filtrável por grupo | Offline |
@@ -310,8 +312,24 @@ fallback automático, de forma transparente.
 | Ferramenta | Fonte premium | Pacote | Documentação |
 |-----------|---------------|--------|--------------|
 | `consultar_cnpj` | cpfcnpj.com.br | 5 ou 6 | [dev/](https://www.cpfcnpj.com.br/dev/) |
+| `consultar_cpf` | cpfcnpj.com.br | 1, 3, 8 ou 26 (padrão 26) | [dev/](https://www.cpfcnpj.com.br/dev/) |
 | `consultar_nfe` | cpfcnpj.com.br | 100 (modelo 55) | [#op-get-token-100-chave](https://www.cpfcnpj.com.br/dev/#op-get-token-100-chave) |
 | `consultar_nfce` | cpfcnpj.com.br | 102 (modelo 65) | [#op-get-token-102-chave](https://www.cpfcnpj.com.br/dev/#op-get-token-102-chave) |
+
+O `consultar_cpf` confere a situação cadastral do titular antes de emitir NF-e, NFC-e
+ou NFS-e a pessoa física (destinatário ou tomador), e deriva `apto_emissao` (verdadeiro
+só quando a situação é Regular). Não há fonte gratuita de dados de CPF, então a consulta
+só ocorre com o token configurado. O pacote define o que volta:
+
+| Pacote | O que devolve |
+|--------|---------------|
+| `26` (padrão) | Nome, nascimento e situação cadastral. Suficiente para o caso fiscal e o mais barato com situação. |
+| `8` | O do pacote 26 mais motivo da situação, ano de óbito, número e PDF do comprovante da Receita (para arquivar junto da nota). |
+| `3` | Nome, nascimento, gênero e endereço completo (preencher o destinatário da NF-e). |
+| `1` | Só o nome (conferir se o nome informado bate com o CPF). |
+
+O CPF é mascarado em todo log (`***.***.***-XX`) e os campos operacionais do provedor
+(saldo, consultaID, pacote usado) não são retornados.
 
 O `consultar_nfce` retorna a NFC-e completa apenas com o token configurado (pacote
 102). Sem token, ele recorre às fontes públicas e pode devolver dados parciais da
@@ -326,7 +344,9 @@ Gerais (MG); as demais UFs exigem habilitação sob demanda e podem retornar o e
 |----------|-----------|--------|
 | `CPFCNPJ_TOKEN` | Token da conta em cpfcnpj.com.br. **Vazio = fonte premium desligada.** | (vazio) |
 | `CPFCNPJ_BASE_URL` | URL base da API premium. Aceita somente `https://` (o token trafega no caminho da URL) | `https://api.cpfcnpj.com.br` |
+| `CPFCNPJ_TIMEOUT` | Timeout (segundos) das consultas ao provedor. A documentação recomenda 60 (valor menor pode cortar a requisição após o crédito já ter sido consumido) | `60` |
 | `CPFCNPJ_CNPJ_PACKET` | Pacote de CNPJ: `5` (enxuto) ou `6` (completo) | `6` |
+| `CPFCNPJ_CPF_PACKET` | Pacote de CPF do `consultar_cpf`: `26` (nome, nascimento, situação), `8` (situação + PDF do comprovante e óbito), `3` (nome, nascimento, gênero, endereço) ou `1` (só nome) | `26` |
 
 Trate o token como segredo: use o gestor de segredos do seu provedor de deploy,
 nunca um `.env` versionado em produção.
@@ -459,7 +479,9 @@ Todas as variáveis são opcionais. O servidor funciona sem nenhuma configuraç�
 | `HTTP_TIMEOUT` | Timeout em segundos para chamadas HTTP | `30` |
 | `CPFCNPJ_TOKEN` | Token do provedor premium opt-in [cpfcnpj.com.br](https://www.cpfcnpj.com.br/dev/). Vazio = desligado (padrão gratuito intacto) | (vazio) |
 | `CPFCNPJ_BASE_URL` | URL base da API premium cpfcnpj.com.br. Aceita somente `https://` | `https://api.cpfcnpj.com.br` |
+| `CPFCNPJ_TIMEOUT` | Timeout (segundos) das consultas à cpfcnpj.com.br (recomendado 60 pela documentação) | `60` |
 | `CPFCNPJ_CNPJ_PACKET` | Pacote de CNPJ na cpfcnpj.com.br: `5` ou `6` | `6` |
+| `CPFCNPJ_CPF_PACKET` | Pacote de CPF na cpfcnpj.com.br: `1`, `3`, `8` ou `26` | `26` |
 
 ---
 

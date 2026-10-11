@@ -29,7 +29,7 @@ from .cnae import _tools as cnae_tools
 
 # Importa todas as ferramentas dos modulos fiscais
 from .cnpj.tools import consultar_cnpj, listar_cnpjs_por_nome
-from .cpf.tools import validar_cpf_tool
+from .cpf.tools import consultar_cpf_tool, validar_cpf_tool
 from .empresa import _tools as empresa_tools
 from .esocial.tools import listar_eventos_esocial, validar_evento_esocial
 from .ibge import _tools as ibge_tools
@@ -211,6 +211,40 @@ async def tool_validar_cpf(cpf: str) -> dict[str, Any]:
         dict indicando se o CPF e matematicamente valido, com versao formatada e motivo da reprovacao.
     """
     resultado = await validar_cpf_tool(cpf)
+    return resultado.model_dump(mode="json", exclude_none=True)
+
+
+@app.tool(
+    name="consultar_cpf",
+    description=(
+        "Consulta a situação cadastral de um CPF na Receita Federal para conferir "
+        "destinatário de NF-e/NFC-e ou tomador de NFS-e (pessoa física) antes de emitir "
+        "o documento fiscal. Não é ferramenta de localização de pessoas. "
+        "Requer o provedor premium opcional cpfcnpj.com.br (CPFCNPJ_TOKEN): não há fonte "
+        "gratuita de dados de CPF. Valida o dígito verificador localmente antes de "
+        "consultar. Só os pacotes 26 e 8 retornam situação cadastral (Regular, Suspensa, "
+        "Titular Falecido, Pendente de Regularização, Cancelada por Multiplicidade, Nula, "
+        "Cancelada de Ofício) e o campo apto_emissao (verdadeiro só quando Regular); nos "
+        "pacotes 1 e 3 esses campos ficam ausentes, e a ausência não autoriza emissão "
+        "fiscal. CPF mascarado em todo log; pacote definido por CPFCNPJ_CPF_PACKET (padrão 26)."
+    ),
+)
+async def tool_consultar_cpf(cpf: str) -> dict[str, Any]:
+    """Consulta a situacao cadastral de um CPF pelo provedor premium opcional (opt-in).
+
+    Verifica se o titular esta Regular na Receita Federal antes de emitir NF-e, NFC-e ou
+    NFS-e a pessoa fisica. Exige CPFCNPJ_TOKEN; sem token, levanta erro amigavel. O CPF e
+    mascarado em todo log e os campos operacionais do provedor nao sao expostos.
+
+    Args:
+        cpf: Numero do CPF com 11 digitos, com ou sem formatacao
+            (ex.: "123.456.789-09" ou "12345678909").
+
+    Returns:
+        dict com nome, nascimento, situacao cadastral (codigo e descricao) e o derivado
+        apto_emissao; endereco (pacote 3) e comprovante em PDF (pacote 8) quando aplicavel.
+    """
+    resultado = await consultar_cpf_tool(cpf)
     return resultado.model_dump(mode="json", exclude_none=True)
 
 
