@@ -21,6 +21,7 @@
 </p>
 
 <p align="center">
+  <a href="https://fiscal.dehor.dev">🌐 Site</a> ·
   <a href="https://dehor-labs.github.io/mcp-fiscal-brasil/">📚 Documentação</a> ·
   <a href="#-instalação">Instalação</a> ·
   <a href="#-ferramentas-disponíveis">Ferramentas</a> ·
@@ -610,7 +611,7 @@ ReceitaWS       estaduais municipais Federal  local   local  governamentais
 - [x] **v0.2.x** - Infra production-grade (_core), CLI, REST API, Web UI demo, wrapper npm/Node.js e tools agênticas (compliance, due diligence, comparativo de regimes); ~20 tools MCP
 - [x] **v0.3.x** - Tabelas fiscais offline (NCM/TIPI, CFOP, CST, CEST, ICMS interestadual) e indexadores BCB (Selic, IPCA, PTAX, correção monetária); ~36 tools MCP
 - [x] **v0.4.x** - Módulo NF-e completo (parse, DANFE, assinatura XMLDSig, distribuição mTLS, manifestação do destinatário) e simulador da Reforma Tributária IBS/CBS (LC 214/2025); ~42 tools MCP
-- [x] **v0.5.x** - Módulo de importação (II, IPI, PIS/COFINS-importação, ICMS grossed-up, AFRMM, Siscomex) por NCM; circuit breaker NFS-e; correções SPED e path injection; automação de release; ~44 tools MCP
+- [x] **v0.5.x** - Módulo de importação (II, IPI, PIS/COFINS-importação, ICMS grossed-up, AFRMM, Siscomex) por NCM; circuit breaker NFS-e; correções SPED e path injection; automação de release; 45 tools MCP
 - [ ] **v0.6.x** - NFC-e modelo 65 (DANFE cupom, autorizacao e cancelamento); NFS-e por provedor/municipio; validação XSD completa NF-e e SPED
 - [ ] **v0.7.x** - eSocial versionado (S-1.1); cache persistente entre sessões; LGPD audit trail
 - [ ] **v1.0.0** - Suíte fiscal com contratos de API estáveis, cobertura operacional ampliada e SLA de manutenção documentado
