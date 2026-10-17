@@ -4,7 +4,12 @@ on:
   workflow_dispatch: {}
   # Releases criadas pelo release-please usam o GITHUB_TOKEN e nao disparam
   # o evento release; por isso o release-please.yml chama este workflow.
-  workflow_call: {}
+  workflow_call:
+    inputs:
+      ref:
+        description: Tag da release a publicar (a mesma enviada ao PyPI)
+        required: true
+        type: string
   release:
     types: [published]
 
@@ -18,6 +23,9 @@ jobs:
     steps:
       - name: Checkout do codigo
         uses: actions/checkout@v6
+        with:
+          # Vazio fora do workflow_call: usa o ref do proprio evento.
+          ref: ${{ inputs.ref }}
 
       - name: Confere versao do server.json
         run: |

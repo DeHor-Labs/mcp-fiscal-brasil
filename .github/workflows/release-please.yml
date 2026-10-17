@@ -63,3 +63,5 @@ jobs:
       id-token: write
       contents: read
     uses: ./.github/workflows/publish-mcp-registry.yml
+    with:
+      ref: ${{ needs.release-please.outputs.tag_name }}
