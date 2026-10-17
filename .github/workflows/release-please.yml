@@ -55,3 +55,11 @@ jobs:
         uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
+
+  publish-mcp-registry:
+    needs: [release-please, publish]
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    permissions:
+      id-token: write
+      contents: read
+    uses: ./.github/workflows/publish-mcp-registry.yml
