@@ -217,7 +217,7 @@ footer a:hover{color:var(--fg)}
         <h1>CNPJ, NF-e e Simples Nacional <em>direto no seu assistente de IA.</em></h1>
         <p class="lead">O MCP Fiscal Brasil liga o Claude, o Cursor e outros assistentes compatíveis com MCP a 45 ferramentas fiscais brasileiras, de consulta de CNPJ e leitura de XML de NF-e a SPED, tabelas NCM/CFOP e simulação da Reforma Tributária. Gratuito, roda na sua máquina e não pede chave de API.</p>
         <div class="ctas">
-          <a class="btn btn-p" href="#instalar">Instalar em 2 minutos</a>
+          <a class="btn btn-p" href="#instalar">Ver instalação</a>
           <a class="btn btn-g" href="https://github.com/DeHor-Labs/mcp-fiscal-brasil">Ver no GitHub</a>
         </div>
         <div class="oneliner" aria-label="Comando de instalação"><span aria-hidden="true">$</span> uvx mcp-fiscal-brasil</div>
@@ -417,9 +417,12 @@ footer a:hover{color:var(--fg)}
       <div class="steps">
         <div class="step">
           <h3>1. Teste no terminal</h3>
-          <p>Se ainda não tem o uv:</p>
-<pre class="code">curl -LsSf https://astral.sh/uv/install.sh | sh
-uvx mcp-fiscal-brasil</pre>
+          <p>Se ainda não tem o uv, instale pelo comando oficial. No macOS e no Linux:</p>
+<pre class="code">curl -LsSf https://astral.sh/uv/install.sh | sh</pre>
+          <p>No Windows (PowerShell):</p>
+<pre class="code">powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"</pre>
+          <p>Depois, rode o servidor:</p>
+<pre class="code">uvx mcp-fiscal-brasil</pre>
           <p>Para sempre pegar a versão mais nova do PyPI: <code>uvx mcp-fiscal-brasil@latest</code>.</p>
         </div>
         <div class="step">
@@ -437,23 +440,24 @@ uvx mcp-fiscal-brasil</pre>
         <div class="grid g2">
           <div class="step">
             <h3>Cursor</h3>
-            <p>Crie ou edite <code>.cursor/mcp.json</code> (ou <code>.mcp.json</code> na raiz do projeto) com o mesmo bloco <code>mcpServers</code> acima.</p>
+            <p>Use o mesmo bloco <code>mcpServers</code> acima em <code>.cursor/mcp.json</code>, para valer só no projeto, ou em <code>~/.cursor/mcp.json</code>, para valer em todos.</p>
           </div>
           <div class="step">
             <h3>Claude Code</h3>
-<pre class="code">claude mcp add fiscal-brasil -- uvx mcp-fiscal-brasil</pre>
+<pre class="code">claude mcp add --transport stdio fiscal-brasil -- uvx mcp-fiscal-brasil</pre>
           </div>
           <div class="step">
             <h3>VS Code + Continue</h3>
-            <p>No <code>settings.json</code>:</p>
-<pre class="code">{
-  "continue.mcpServers": {
-    "fiscal-brasil": {
-      "command": "uvx",
-      "args": ["mcp-fiscal-brasil"]
-    }
-  }
-}</pre>
+            <p>Crie o arquivo <code>.continue/mcpServers/fiscal-brasil.yaml</code> no seu projeto (o MCP funciona no modo agente):</p>
+<pre class="code">name: Fiscal Brasil
+version: 0.0.1
+schema: v1
+mcpServers:
+  - name: fiscal-brasil
+    command: uvx
+    args:
+      - mcp-fiscal-brasil</pre>
+            <p>Ou adicione só o bloco <code>mcpServers</code> ao seu <code>~/.continue/config.yaml</code>.</p>
           </div>
           <div class="step">
             <h3>Outros clientes MCP</h3>
