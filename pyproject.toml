@@ -60,7 +60,7 @@ dependencies = [
     "aiolimiter>=1.2.1",
     "structlog>=25.5.0",
     "pydantic-settings>=2.14.2",
-    "typer>=0.25.1",
+    "typer>=0.27.3",
     "fastapi>=0.138.0",
     "uvicorn>=0.42.0",
     "brazilfiscalreport==1.2.0",
