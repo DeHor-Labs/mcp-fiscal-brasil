@@ -22,7 +22,7 @@ jobs:
 
     steps:
       - name: Checkout do codigo
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           # Vazio fora do workflow_call: usa o ref do proprio evento.
           ref: ${{ inputs.ref }}
