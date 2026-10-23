@@ -8,6 +8,9 @@ updates:
     labels:
       - "dependencies"
   - package-ecosystem: "github-actions"
+    ignore:
+      - dependency-name: "actions/ai-inference"
+        update-types: ["version-update:semver-major"]
     directory: "/"
     schedule:
       interval: "weekly"

@@ -68,7 +68,7 @@ jobs:
       # Inferencia com GitHub Models - gratis, sem secret necessario
       - name: Analisar issue com GitHub Models
         id: inference
-        uses: actions/ai-inference@v3
+        uses: actions/ai-inference@v1
         with:
           model: openai/gpt-4o-mini
           system-prompt: |

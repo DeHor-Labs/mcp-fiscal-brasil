@@ -49,7 +49,7 @@ jobs:
       # Identificar quais issues merecem comentario de re-triagem
       - name: Identificar issues candidatas a fechamento
         id: inference
-        uses: actions/ai-inference@v3
+        uses: actions/ai-inference@v1
         with:
           model: openai/gpt-4o-mini
           system-prompt: |
