@@ -257,7 +257,7 @@ Docker:
 
 GitHub Actions e publicação:
 
-- Manter `.github/workflows/ci.yml` com Python 3.10 a 3.13.
+- Manter `.github/workflows/ci.yml` com Python 3.11 a 3.13.
 - Adicionar teste de pacote instalado por wheel.
 - Manter `.github/workflows/publish.yml` para PyPI via Trusted Publishing.
 - Criar `.github/workflows/npm-publish.yml` se o wrapper npm for aprovado.

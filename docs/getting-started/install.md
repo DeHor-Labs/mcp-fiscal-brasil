@@ -2,7 +2,7 @@
 
 ## Pré-requisitos
 
-- **Python 3.10+** (verifique com `python --version`)
+- **Python 3.11+** (verifique com `python --version`)
 - Conexao com internet (para consultar APIs publicas)
 
 ## Metodos suportados

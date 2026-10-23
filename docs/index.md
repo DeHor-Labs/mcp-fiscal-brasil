@@ -3,7 +3,7 @@
 Hub fiscal brasileiro para automação com IA (CNPJ, NFe, SPED e regime tributário).
 
 [![PyPI](https://img.shields.io/pypi/v/mcp-fiscal-brasil?color=009c3b&label=PyPI)](https://pypi.org/project/mcp-fiscal-brasil/)
-[![Python](https://img.shields.io/badge/python-3.10%2B-002776?logo=python&logoColor=white)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/python-3.11%2B-002776?logo=python&logoColor=white)](https://www.python.org/)
 [![MCP](https://img.shields.io/badge/MCP-compatível-7c3aed)](https://modelcontextprotocol.io)
 [![Licença MIT](https://img.shields.io/badge/licença-MIT-FFDF00?labelColor=002776)](https://github.com/DeHor-Labs/mcp-fiscal-brasil/blob/main/LICENSE)
 

@@ -23,7 +23,7 @@ import gzip
 import re
 import xml.sax.saxutils
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Literal
 
 from lxml import etree
@@ -549,7 +549,7 @@ def _montar_xml_evento(
     ambiente_codigo: str,
 ) -> etree._Element:
     """Monta o elemento XML do evento de manifestacao (sem assinatura)."""
-    data_hora = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S-00:00")
+    data_hora = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S-00:00")
     c_orgao = "91"  # AN - Ambiente Nacional para manifestacao
 
     tipo_tag = "CNPJ" if len(cnpj_cpf) == 14 else "CPF"
