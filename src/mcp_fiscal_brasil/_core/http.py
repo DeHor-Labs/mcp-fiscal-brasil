@@ -43,6 +43,7 @@ class HTTPClient:
         max_retries: int = 3,
         cache_ttl: int = 300,
         rate_limit_per_second: int = 10,
+        limiter: AsyncLimiter | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/") + "/"
         self.timeout = timeout
@@ -58,9 +59,13 @@ class HTTPClient:
             maxsize=1024,
             ttl=self.cache_ttl,
         )
-        self._limiter = AsyncLimiter(
-            self.rate_limit_per_second,
-            self.rate_limit_per_second,
+        # Um limitador pode ser injetado para ser compartilhado entre varias
+        # instancias (ex.: o teto global da cpfcnpj.com.br). Quando ausente, cada
+        # instancia usa o proprio, derivado de rate_limit_per_second.
+        self._limiter = (
+            limiter
+            if limiter is not None
+            else AsyncLimiter(self.rate_limit_per_second, self.rate_limit_per_second)
         )
 
     async def __aenter__(self) -> HTTPClient:
@@ -139,14 +144,6 @@ class HTTPClient:
         headers: dict[str, str] | None = None,
     ) -> httpx.Response:
         try:
-            await self._limiter.acquire()
-        except ValueError as exc:
-            raise self._rate_limit_error(
-                "Limite de requisições excedido",
-                retry_after=float(self.rate_limit_per_second),
-            ) from exc
-
-        try:
             async for attempt in AsyncRetrying(
                 retry=retry_if_exception(self._is_retryable_error),
                 wait=wait_exponential(min=1, max=60),
@@ -154,6 +151,9 @@ class HTTPClient:
                 reraise=True,
             ):
                 with attempt:
+                    # Cada tentativa consome uma vaga do limitador: um retry
+                    # tambem conta para o teto de requisicoes por segundo.
+                    await self._acquire_rate_limit()
                     response = await self._client.request(
                         method,
                         path.lstrip("/"),
@@ -172,6 +172,15 @@ class HTTPClient:
             raise self._request_error(method, exc) from exc
 
         raise self._http_error(method, None)
+
+    async def _acquire_rate_limit(self) -> None:
+        try:
+            await self._limiter.acquire()
+        except ValueError as exc:
+            raise self._rate_limit_error(
+                "Limite de requisições excedido",
+                retry_after=float(self.rate_limit_per_second),
+            ) from exc
 
     def _absolute_url(self, path: str) -> str:
         return str(httpx.URL(self.base_url).join(path.lstrip("/")))

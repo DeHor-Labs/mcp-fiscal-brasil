@@ -183,3 +183,40 @@ async def test_get_raises_fiscal_error_on_timeout(
         await client.get("/slow")
 
     assert exc_info.value.status_code is None
+
+
+@pytest.mark.asyncio
+async def test_rate_limit_is_acquired_on_every_retry_attempt(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Cada tentativa (inclusive retries) passa pelo limitador compartilhado."""
+    calls = 0
+
+    def handler(_: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return httpx.Response(503, json={"erro": "instável"})
+        return httpx.Response(200, json={"ok": True})
+
+    class _CountingLimiter:
+        def __init__(self) -> None:
+            self.acquired = 0
+
+        async def acquire(self, amount: float = 1) -> None:
+            self.acquired += 1
+
+    patch_async_client(monkeypatch, handler)
+    limiter = _CountingLimiter()
+    client = HTTPClient(
+        "https://example.test",
+        max_retries=2,
+        cache_ttl=0,
+        limiter=limiter,  # type: ignore[arg-type]
+    )
+
+    payload = await client.get("/flaky")
+
+    assert payload == {"ok": True}
+    assert calls == 2
+    assert limiter.acquired == 2

@@ -83,6 +83,53 @@ async def consultar_nfe(chave_acesso: str) -> NFeResponse:
     return await _client.consultar_por_chave(chave_limpa)
 
 
+async def consultar_nfce(chave_acesso: str) -> NFeResponse:
+    """
+    Look up NFC-e (Nota Fiscal de Consumidor Eletronica, modelo 65) data by access key.
+
+    A NFC-e e a nota do varejo ao consumidor final. A cobertura completa depende do
+    provedor premium opcional cpfcnpj.com.br (pacote 102), habilitado por token.
+
+    Args:
+        chave_acesso: 44 digit NFC-e access key, accepted with or without spaces.
+
+    Returns:
+        NFeResponse with issuer, recipient and totals (layout compartilhado com a NF-e).
+
+    Raises:
+        FiscalValidationError: If the access key is invalid.
+        FiscalHTTPError: If the upstream provider fails.
+    """
+    chave_limpa = "".join(c for c in chave_acesso if c.isdigit())
+
+    if not validate_chave_nfe(chave_limpa):
+        raise NFeValidationError(
+            field="chave_acesso",
+            value=chave_acesso,
+            reason=(
+                "Chave de acesso NFC-e inválida. "
+                "Deve ter 44 dígitos com dígito verificador correto."
+            ),
+        )
+
+    # As posicoes 21-22 da chave (indice 20:22) carregam o modelo do documento.
+    # A NFC-e e o modelo 65; uma chave de modelo 55 (NF-e) passa na validacao de
+    # digito verificador, mas nao deve ser consultada aqui, senao o provedor
+    # escolheria o pacote 100 e devolveria uma NF-e onde se prometeu NFC-e.
+    modelo = chave_limpa[20:22]
+    if modelo != "65":
+        raise NFeValidationError(
+            field="chave_acesso",
+            value=chave_acesso,
+            reason=(
+                f"Chave de modelo {modelo}, esperado modelo 65 (NFC-e). "
+                "Para NF-e (modelo 55) use consultar_nfe."
+            ),
+        )
+
+    return await _client.consultar_por_chave(chave_limpa)
+
+
 async def validar_chave_nfe(chave_acesso: str) -> dict[str, object]:
     """
     Validate the format and check digit of an NFe access key.

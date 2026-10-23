@@ -2,6 +2,7 @@ from datetime import date
 
 from mcp_fiscal_brasil._core import FiscalNotFoundError, HTTPClient, get_logger, settings
 from mcp_fiscal_brasil._core.errors import FiscalHTTPError
+from mcp_fiscal_brasil.shared.validators import normalizar_cnpj
 
 from .schemas import MEIStatus
 
@@ -31,7 +32,7 @@ class MEIClient:
     async def get_mei_status(self, cnpj: str) -> MEIStatus:
         """Consulta o status MEI de um CNPJ."""
         logger.info("mei_status_started", cnpj=cnpj)
-        cnpj_clean = "".join(c for c in cnpj if c.isdigit())
+        cnpj_clean = normalizar_cnpj(cnpj)
         async with self._http_client() as client:
             try:
                 data = await client.get(f"/simples/v1/{cnpj_clean}")

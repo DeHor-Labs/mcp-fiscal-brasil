@@ -454,3 +454,68 @@ async def test_risk_score_supplier_empresa_baixada_recusa() -> None:
         resultado = await risk_score_supplier("98765432000100")
     assert resultado.recomendacao == "recusar"
     assert resultado.risco == "critico"
+
+
+# ---------------------------------------------------------------------------
+# Tools MCP: CNPJ invalido e barrado antes de qualquer consulta externa
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("cnpj_invalido", ["123", "12345678000190", "33 000 167 0001 01"])
+async def test_tool_analyze_cnpj_compliance_rejeita_sem_consultar_clientes(
+    cnpj_invalido: str,
+) -> None:
+    with (
+        patch("mcp_fiscal_brasil.agentic.compliance.CNPJClient") as mock_cnpj_class,
+        patch("mcp_fiscal_brasil.agentic.compliance.SimplesClient") as mock_simples_class,
+        patch("mcp_fiscal_brasil.agentic.compliance.MEIClient") as mock_mei_class,
+    ):
+        with pytest.raises(ValueError, match="CNPJ inválido"):
+            await mcp_server.tool_analyze_cnpj_compliance(cnpj_invalido)
+
+    mock_cnpj_class.assert_not_called()
+    mock_simples_class.assert_not_called()
+    mock_mei_class.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("cnpj_invalido", ["123", "12345678000190", "33 000 167 0001 01"])
+async def test_tool_risk_score_supplier_rejeita_sem_consultar_clientes(
+    cnpj_invalido: str,
+) -> None:
+    with (
+        patch("mcp_fiscal_brasil.agentic.compliance.CNPJClient") as mock_cnpj_class,
+        patch("mcp_fiscal_brasil.agentic.compliance.SimplesClient") as mock_simples_class,
+        patch("mcp_fiscal_brasil.agentic.compliance.MEIClient") as mock_mei_class,
+        patch("mcp_fiscal_brasil.agentic.supplier.analyze_cnpj_compliance") as mock_compliance,
+    ):
+        with pytest.raises(ValueError, match="CNPJ inválido"):
+            await mcp_server.tool_risk_score_supplier(cnpj_invalido, criterios_estritos=True)
+
+    mock_compliance.assert_not_called()
+    mock_cnpj_class.assert_not_called()
+    mock_simples_class.assert_not_called()
+    mock_mei_class.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_tool_analyze_cnpj_compliance_aceita_mascara_padrao() -> None:
+    relatorio = ComplianceReport(
+        cnpj="33000167000101",
+        razao_social="PETROLEO BRASILEIRO S A PETROBRAS",
+        situacao_cadastral="ATIVA",
+        risco_geral="baixo",
+        score=95,
+        achados=[],
+        resumo_executivo="Ok.",
+        fontes_consultadas=["BrasilAPI"],
+    )
+    with patch(
+        "mcp_fiscal_brasil.server.analyze_cnpj_compliance",
+        AsyncMock(return_value=relatorio),
+    ) as mock_tool:
+        resposta = await mcp_server.tool_analyze_cnpj_compliance("33.000.167/0001-01")
+
+    assert resposta["cnpj"] == "33000167000101"
+    mock_tool.assert_awaited_once_with("33.000.167/0001-01")

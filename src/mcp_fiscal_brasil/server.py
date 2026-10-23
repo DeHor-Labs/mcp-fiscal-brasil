@@ -44,7 +44,12 @@ from .nfe.distribuicao import (
     manifestar_nfe,
 )
 from .nfe.documento import parse_nfe_documento
-from .nfe.tools import consultar_nfe, consultar_status_sefaz, validar_chave_nfe
+from .nfe.tools import (
+    consultar_nfce,
+    consultar_nfe,
+    consultar_status_sefaz,
+    validar_chave_nfe,
+)
 from .nfse.tools import consultar_nfse
 from .shared.validators import normalizar_cnpj, validate_cnpj_qualquer
 from .simples.tools import consultar_simples_nacional
@@ -55,6 +60,19 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 logger = logging.getLogger(__name__)
 
 MAX_CNPJS_POR_LOTE = 50
+
+
+def _validar_cnpj_ou_erro(cnpj: str) -> None:
+    """Rejeita CNPJ com dígito verificador inválido antes de qualquer consulta externa.
+
+    Evita que as tools agenticas disparem consultas (Receita, Simples, MEI) para
+    um valor que nunca poderia existir.
+    """
+    if not validate_cnpj_qualquer(cnpj):
+        raise ValueError(
+            f"CNPJ inválido: {cnpj}. Verifique o formato e o dígito verificador "
+            "(numérico ou alfanumérico, com ou sem máscara)."
+        )
 
 
 def _normalizar_e_validar_cnpjs(cnpjs: list[str]) -> list[str]:
@@ -115,7 +133,8 @@ async def health(_request: Request) -> JSONResponse:
         "Consulta os dados cadastrais completos de uma empresa pelo CNPJ. "
         "Retorna razão social, endereço, atividades econômicas (CNAE), "
         "sócios (QSA), situação cadastral e porte da empresa. "
-        "Aceita CNPJ com ou sem formatação (pontos, barra, traço)."
+        "Aceita CNPJ numérico ou alfanumérico (IN RFB 2.229/2024), "
+        "com ou sem formatação (pontos, barra, traço)."
     ),
 )
 async def tool_consultar_cnpj(cnpj: str) -> dict[str, Any]:
@@ -127,7 +146,8 @@ async def tool_consultar_cnpj(cnpj: str) -> dict[str, Any]:
     Util para identificar empresas, validar fornecedores/clientes e preencher dados fiscais.
 
     Args:
-        cnpj: Numero do CNPJ com 14 digitos, com ou sem formatacao
+        cnpj: Numero do CNPJ com 14 caracteres (numerico ou alfanumerico, IN RFB 2.229/2024),
+            com ou sem formatacao
             (ex.: "11.222.333/0001-81" ou "11222333000181").
 
     Returns:
@@ -220,6 +240,31 @@ async def tool_consultar_nfe(chave_acesso: str) -> dict[str, Any]:
         dict com emitente, destinatario, itens, totais e protocolo da nota.
     """
     resultado = await consultar_nfe(chave_acesso)
+    return resultado.model_dump(mode="json", exclude_none=True)
+
+
+@app.tool(
+    name="consultar_nfce",
+    description=(
+        "Consulta os dados de uma Nota Fiscal de Consumidor Eletrônica (NFC-e, modelo 65) "
+        "pela chave de acesso de 44 dígitos. A NFC-e é a nota do varejo ao consumidor final. "
+        "A cobertura completa depende do provedor premium opcional cpfcnpj.com.br (pacote 102), "
+        "habilitado por token; sem token, use a NF-e (modelo 55) em consultar_nfe."
+    ),
+)
+async def tool_consultar_nfce(chave_acesso: str) -> dict[str, Any]:
+    """Consulta uma NFC-e (Nota Fiscal de Consumidor Eletronica, modelo 65) pela chave de acesso.
+
+    Recupera emitente, destinatario e totais no mesmo layout da NF-e. A cobertura depende do
+    provedor premium opcional cpfcnpj.com.br (pacote 102), habilitado por token.
+
+    Args:
+        chave_acesso: Chave de acesso da NFC-e com 44 digitos (aceita com ou sem espacos).
+
+    Returns:
+        dict com emitente, destinatario, totais e protocolo da nota.
+    """
+    resultado = await consultar_nfce(chave_acesso)
     return resultado.model_dump(mode="json", exclude_none=True)
 
 
@@ -614,7 +659,7 @@ async def tool_consultar_simples_nacional(cnpj: str) -> dict[str, Any]:
     Util para definir o regime tributario antes de calcular impostos ou tributar notas fiscais.
 
     Args:
-        cnpj: Numero do CNPJ com 14 digitos, com ou sem formatacao.
+        cnpj: Numero do CNPJ com 14 caracteres (numerico ou alfanumerico, IN RFB 2.229/2024), com ou sem formatacao.
 
     Returns:
         dict com a situacao no Simples Nacional e no MEI e respectivas datas.
@@ -802,11 +847,12 @@ async def tool_analyze_cnpj_compliance(cnpj: str) -> dict[str, Any]:
     um relatorio com score 0-100, classificacao de risco e achados acionaveis.
 
     Args:
-        cnpj: Numero do CNPJ com 14 digitos, com ou sem formatacao.
+        cnpj: Numero do CNPJ com 14 caracteres (numerico ou alfanumerico, IN RFB 2.229/2024), com ou sem formatacao.
 
     Returns:
         dict com score, risco, situacao, regime, cnae e lista de achados.
     """
+    _validar_cnpj_ou_erro(cnpj)
     resultado = await analyze_cnpj_compliance(cnpj)
     return resultado.model_dump(mode="json", exclude_none=True)
 
@@ -969,12 +1015,13 @@ async def tool_risk_score_supplier(cnpj: str, criterios_estritos: bool = False) 
     politicas anti-corrupcao (ex: Lei 12.846/2013).
 
     Args:
-        cnpj: Numero do CNPJ com 14 digitos, com ou sem formatacao.
+        cnpj: Numero do CNPJ com 14 caracteres (numerico ou alfanumerico, IN RFB 2.229/2024), com ou sem formatacao.
         criterios_estritos: Se True, aplica pesos mais rigorosos. Padrao: False.
 
     Returns:
         dict com score, recomendacao e justificativa da classificacao.
     """
+    _validar_cnpj_ou_erro(cnpj)
     resultado = await risk_score_supplier(cnpj, criterios_estritos)
     return resultado.model_dump(mode="json", exclude_none=True)
 

@@ -1,7 +1,7 @@
 # Smithery configuration — https://smithery.ai/docs/config#smitheryyaml
 # Deploy via Docker container with HTTP (streamable-http) transport.
 #
-# MCP Fiscal Brasil: 36 ferramentas fiscais brasileiras, zero API key.
+# MCP Fiscal Brasil: 45 ferramentas fiscais brasileiras, zero API key.
 # CNPJ, NF-e, Reforma Tributaria IBS/CBS, ICMS, Simples Nacional, NCM/CFOP,
 # indexadores BCB. Primeiro MCP com suporte a Reforma Tributaria 2026.
 

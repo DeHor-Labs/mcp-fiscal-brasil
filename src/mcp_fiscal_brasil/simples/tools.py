@@ -1,7 +1,7 @@
 """Ferramentas MCP para Simples Nacional."""
 
 from ..shared.exceptions import ValidationError
-from ..shared.validators import validate_cnpj
+from ..shared.validators import validate_cnpj_qualquer
 from .client import SimplesClient
 from .schemas import SimplesStatus
 
@@ -23,10 +23,13 @@ async def consultar_simples_nacional(cnpj: str) -> SimplesStatus:
         NotFoundError: Se o CNPJ não for encontrado.
         APIError: Em caso de falha na API.
     """
-    if not validate_cnpj(cnpj):
+    if not validate_cnpj_qualquer(cnpj):
         raise ValidationError(
             field="cnpj",
             value=cnpj,
-            reason="CNPJ inválido. Verifique os 14 dígitos e o dígito verificador.",
+            reason=(
+                "CNPJ inválido. Verifique os 14 caracteres (numérico ou alfanumérico) "
+                "e o dígito verificador."
+            ),
         )
     return await _client.get_simples_status(cnpj)

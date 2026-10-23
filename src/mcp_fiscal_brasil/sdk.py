@@ -37,7 +37,7 @@ from .cnpj.client import CNPJClient
 from .cnpj.schemas import CNPJResponse
 from .nfe.client import NFEClient
 from .nfe.schemas import NFeResponse, StatusSEFAZResponse
-from .shared.validators import validate_chave_nfe, validate_cnpj, validate_cpf
+from .shared.validators import validate_chave_nfe, validate_cnpj_qualquer, validate_cpf
 from .simples.client import SimplesClient
 from .simples.schemas import SimplesStatus
 
@@ -96,11 +96,15 @@ class FiscalBrasil:
         """
         Consulta os dados de um CNPJ na Receita Federal.
 
-        Tenta BrasilAPI primeiro; em caso de falha, usa ReceitaWS como
-        fallback automático.
+        Ordem das fontes: com ``CPFCNPJ_TOKEN`` configurado, tenta primeiro o
+        provedor premium cpfcnpj.com.br; depois a BrasilAPI e, por fim, a
+        ReceitaWS. Sem token, começa direto na BrasilAPI. A ReceitaWS só entra
+        como fallback para CNPJ numérico: para CNPJ alfanumérico a cadeia termina
+        na BrasilAPI.
 
         Args:
-            cnpj: CNPJ com ou sem máscara (ex: "33.000.167/0001-01" ou "33000167000101").
+            cnpj: CNPJ numérico ou alfanumérico (IN RFB 2.229/2024), com ou sem
+                máscara (ex: "33.000.167/0001-01", "33000167000101" ou "12ABC34501DE35").
 
         Returns:
             CNPJResponse com razão social, endereço, CNAE, QSA e mais.
@@ -113,7 +117,7 @@ class FiscalBrasil:
             empresa = await fiscal.consultar_cnpj("33.000.167/0001-01")
             print(empresa.razao_social)  # "PETROLEO BRASILEIRO S A PETROBRAS"
         """
-        if not validate_cnpj(cnpj):
+        if not validate_cnpj_qualquer(cnpj):
             raise ValueError(f"CNPJ inválido: {cnpj}")
         return await self._cnpj_client.consultar(cnpj)
 
@@ -131,7 +135,7 @@ class FiscalBrasil:
             fiscal.validar_cnpj("33.000.167/0001-01")  # True
             fiscal.validar_cnpj("11.111.111/1111-11")  # False
         """
-        return validate_cnpj(cnpj)
+        return validate_cnpj_qualquer(cnpj)
 
     # ------------------------------------------------------------------
     # CPF
@@ -275,7 +279,7 @@ class FiscalBrasil:
             print(simples.simples_nacional)  # False (Petrobras não é optante)
             print(simples.mei)      # False
         """
-        if not validate_cnpj(cnpj):
+        if not validate_cnpj_qualquer(cnpj):
             raise ValueError(f"CNPJ inválido: {cnpj}")
         return await self._simples_client.get_simples_status(cnpj)
 

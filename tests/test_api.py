@@ -309,3 +309,11 @@ def test_nfe_validate_xml_inline_excede_tamanho_maximo() -> None:
 def test_nfe_validate_sem_xml_e_sem_xml_path_retorna_400() -> None:
     response = client.post("/v1/nfe/validate", json={})
     assert response.status_code == 400
+
+
+def test_cnpj_lookup_rejeita_espacos_mesmo_com_digito_valido() -> None:
+    """O valor original e validado antes da normalizacao: espacos nao sao mascara."""
+    with patch("mcp_fiscal_brasil.api.consultar_cnpj", AsyncMock()) as consultar:
+        response = client.get("/v1/cnpj/33 000 167 0001 01")
+    assert response.status_code == 400
+    consultar.assert_not_called()

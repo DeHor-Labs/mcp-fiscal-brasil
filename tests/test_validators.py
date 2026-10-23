@@ -92,6 +92,15 @@ class TestFormatCNPJ:
         with pytest.raises(ValueError):
             format_cnpj("123")
 
+    def test_formata_alfanumerico_sem_mascara(self) -> None:
+        assert format_cnpj("12ABC34501DE35") == "12.ABC.345/01DE-35"
+
+    def test_formata_alfanumerico_com_mascara_e_minusculas(self) -> None:
+        assert format_cnpj("12.abc.345/01de-35") == "12.ABC.345/01DE-35"
+
+    def test_remove_mascara_alfanumerico(self) -> None:
+        assert format_cnpj("12.ABC.345/01DE-35", remover_mascara=True) == "12ABC34501DE35"
+
 
 class TestValidateCNPJAlfanumerico:
     """Testes para validação de CNPJ alfanumérico (IN RFB 2.229/2024, vigência jul/2026).

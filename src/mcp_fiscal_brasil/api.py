@@ -41,7 +41,7 @@ from .cpf.tools import validar_cpf_tool
 from .ibge.client import IBGEClient
 from .nfe.status_sefaz import obter_status_certificado
 from .nfe.tools import UFS_VALIDAS, consultar_status_sefaz, validar_chave_nfe
-from .shared.validators import validate_cnpj
+from .shared.validators import normalizar_cnpj, validate_cnpj_qualquer
 from .simples.client import SimplesClient
 
 logger = get_logger(__name__)
@@ -56,15 +56,14 @@ app = FastAPI(
 )
 
 
-def _only_digits(value: str) -> str:
-    return "".join(char for char in value if char.isdigit())
-
-
 def _validated_cnpj(cnpj: str) -> str:
-    digits = _only_digits(cnpj)
-    if len(digits) != 14 or not validate_cnpj(digits):
+    # Aceita CNPJ numérico ou alfanumérico (IN RFB 2.229/2024). A validação roda
+    # sobre o valor original: validate_cnpj_qualquer tolera apenas a máscara padrão
+    # (ponto, barra e traço) e rejeita espaços ou outros caracteres. Só depois de
+    # aceito o valor é normalizado (máscara removida, letras em maiúsculas).
+    if not validate_cnpj_qualquer(cnpj):
         raise HTTPException(status_code=400, detail="CNPJ inválido")
-    return digits
+    return normalizar_cnpj(cnpj)
 
 
 def _allowed_file_base_dir() -> Path:

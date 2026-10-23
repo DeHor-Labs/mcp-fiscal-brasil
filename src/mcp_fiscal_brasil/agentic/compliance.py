@@ -9,6 +9,7 @@ from mcp_fiscal_brasil._core import get_logger
 
 from ..cnpj.client import CNPJClient
 from ..mei.client import MEIClient
+from ..shared.validators import normalizar_cnpj
 from ..simples.client import SimplesClient
 from .schemas import ComplianceFinding, ComplianceReport, RiskLevel
 
@@ -71,7 +72,7 @@ async def analyze_cnpj_compliance(cnpj: str) -> ComplianceReport:
     score 0-100, risco classificado e achados acionaveis.
 
     Args:
-        cnpj: CNPJ com ou sem formatacao (so digitos são usados).
+        cnpj: CNPJ numerico ou alfanumerico (IN RFB 2.229/2024), com ou sem formatacao.
 
     Returns:
         ComplianceReport com risco_geral, score, achados e resumo executivo.
@@ -86,7 +87,10 @@ async def analyze_cnpj_compliance(cnpj: str) -> ComplianceReport:
         Esta tool NAO consulta certidoes negativas reais (somente gera URLs).
         Para validação de certidoes use as ferramentas especificas do modulo certidoes.
     """
-    cnpj_limpo = "".join(c for c in cnpj if c.isdigit())
+    # normalizar_cnpj preserva letras (CNPJ alfanumérico, IN RFB 2.229/2024) em vez
+    # de descartá-las como o antigo strip por isdigit(). A validação aqui é só de
+    # comprimento (o dígito verificador é validado nas entradas consultar_cnpj/API/SDK).
+    cnpj_limpo = normalizar_cnpj(cnpj)
     if len(cnpj_limpo) != 14:
         raise ValueError(f"CNPJ deve ter 14 digitos, recebido {len(cnpj_limpo)}: {cnpj}")
 
