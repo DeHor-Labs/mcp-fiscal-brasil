@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import os
 import tempfile
+from copy import deepcopy
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import pytest
 from cryptography import x509
@@ -413,3 +415,89 @@ class TestValidarAssinaturaNfe:
         ca_bundle_gigante = b"A" * (1024 * 1024 + 1)
         with pytest.raises(FiscalValidationError, match="1 MB"):
             validar_assinatura_nfe(b"<NFe/>", ca_bundle=ca_bundle_gigante)
+
+
+@pytest.mark.parametrize(
+    ("modo", "motivo"),
+    [
+        ("envolvido", "Esperado um único infNFe diretamente em NFe."),
+        ("outro_no", "Reference URI deve apontar para o Id do infNFe."),
+        ("id_duplicado", "Esperado um único infNFe diretamente em NFe."),
+    ],
+)
+def test_rejeita_substituicao_do_infnfe(
+    modo: str,
+    motivo: str,
+    chave_privada: rsa.RSAPrivateKey,
+    certificado_autoassinado: x509.Certificate,
+) -> None:
+    root = etree.fromstring(_xml_nfe_minimo().encode())
+    original = root[0]
+    falso = deepcopy(original)
+    falso.set("Id", _NFE_ID + "9")
+    falso.find(f"{{{_NS_NFE}}}ide/{{{_NS_NFE}}}nNF").text = "9999"
+    if modo == "outro_no":
+        original.tag = f"{{{_NS_NFE}}}outro"
+        root.insert(0, falso)
+        xml = _assinar_xml(etree.tostring(root).decode(), chave_privada, certificado_autoassinado)
+    else:
+        xml = _assinar_xml(_xml_nfe_minimo(), chave_privada, certificado_autoassinado)
+        root = etree.fromstring(xml)
+        original = root[0]
+        if modo == "envolvido":
+            root.remove(original)
+            etree.SubElement(root, f"{{{_NS_NFE}}}extra").append(original)
+        else:
+            falso.set("Id", _NFE_ID)
+        root.insert(0, falso)
+        xml = etree.tostring(root)
+    resultado = validar_assinatura_nfe(xml)
+    assert resultado.assinatura_valida is False
+    assert resultado.motivo == motivo
+
+
+@pytest.mark.parametrize("com_assinatura_protocolo", [False, True])
+def test_aceita_nfeproc(
+    chave_privada: rsa.RSAPrivateKey,
+    certificado_autoassinado: x509.Certificate,
+    com_assinatura_protocolo: bool,
+) -> None:
+    xml = _assinar_xml(_xml_nfe_minimo(), chave_privada, certificado_autoassinado)
+    root = etree.Element(f"{{{_NS_NFE}}}nfeProc", nsmap={None: _NS_NFE})
+    root.append(etree.fromstring(xml))
+    if com_assinatura_protocolo:
+        protocolo = etree.SubElement(root, f"{{{_NS_NFE}}}protNFe")
+        etree.SubElement(protocolo, "{http://www.w3.org/2000/09/xmldsig#}Signature")
+    assert validar_assinatura_nfe(etree.tostring(root)).assinatura_valida is True
+
+
+def test_ca_bundle_arquivo_acima_do_limite(tmp_path: Path) -> None:
+    from mcp_fiscal_brasil._core.errors import FiscalValidationError
+
+    path = tmp_path / "grande.pem"
+    path.write_bytes(b"A" * (1024 * 1024 + 1))
+    with pytest.raises(FiscalValidationError, match="1 MB"):
+        validar_assinatura_nfe(b"<NFe/>", ca_bundle=str(path))
+
+
+def test_ca_bundle_bytes_validos(
+    chave_privada: rsa.RSAPrivateKey,
+    certificado_autoassinado: x509.Certificate,
+    ca_pem_file: str,
+) -> None:
+    xml = _assinar_xml(_xml_nfe_minimo(), chave_privada, certificado_autoassinado)
+    assert validar_assinatura_nfe(xml, Path(ca_pem_file).read_bytes()).assinatura_valida is True
+
+
+def test_ca_bundle_ilegivel(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from mcp_fiscal_brasil._core.errors import FiscalValidationError
+
+    path = tmp_path / "ilegivel.pem"
+    path.write_bytes(b"PEM")
+
+    def negar_leitura(*args: object, **kwargs: object) -> None:
+        raise PermissionError("sem acesso")
+
+    monkeypatch.setattr("builtins.open", negar_leitura)
+    with pytest.raises(FiscalValidationError, match="ler"):
+        validar_assinatura_nfe(b"<NFe/>", str(path))
