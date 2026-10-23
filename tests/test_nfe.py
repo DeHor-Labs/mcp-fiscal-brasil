@@ -1,6 +1,6 @@
 """Testes para o modulo NFe."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -74,8 +74,8 @@ def _gerar_pfx_teste(tmp_path_factory: pytest.TempPathFactory) -> str:
         .issuer_name(subject)
         .public_key(chave.public_key())
         .serial_number(x509.random_serial_number())
-        .not_valid_before(datetime.now(timezone.utc))
-        .not_valid_after(datetime.now(timezone.utc) + timedelta(days=365))
+        .not_valid_before(datetime.now(UTC))
+        .not_valid_after(datetime.now(UTC) + timedelta(days=365))
         .sign(chave, hashes.SHA256())
     )
     pfx_bytes = pkcs12.serialize_key_and_certificates(

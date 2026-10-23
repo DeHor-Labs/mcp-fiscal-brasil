@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://pypi.org/project/mcp-fiscal-brasil/"><img src="https://img.shields.io/pypi/v/mcp-fiscal-brasil?color=009c3b&label=PyPI" alt="PyPI version"></a>
   <a href="https://pypi.org/project/mcp-fiscal-brasil/"><img src="https://img.shields.io/pypi/dm/mcp-fiscal-brasil?color=009c3b&label=downloads%2Fm%C3%AAs" alt="PyPI downloads"></a>
-  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10%2B-002776?logo=python&logoColor=white" alt="Python 3.10+"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.11%2B-002776?logo=python&logoColor=white" alt="Python 3.11+"></a>
   <a href="https://github.com/DeHor-Labs/mcp-fiscal-brasil/actions/workflows/ci.yml"><img src="https://github.com/DeHor-Labs/mcp-fiscal-brasil/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/badge/cobertura-85%25-009c3b?labelColor=002776" alt="Cobertura de testes 85%">
   <a href="LICENSE"><img src="https://img.shields.io/badge/licenca-MIT-FFDF00?labelColor=002776" alt="License MIT"></a>
