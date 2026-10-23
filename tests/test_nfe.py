@@ -1,6 +1,6 @@
 """Testes para o modulo NFe."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -13,9 +13,10 @@ from lxml import etree
 
 from mcp_fiscal_brasil._core.config import settings as nfe_settings
 from mcp_fiscal_brasil._core.errors import FiscalConfigurationError
-from mcp_fiscal_brasil.nfe.client import NFEClient, _extrair_info_chave
+from mcp_fiscal_brasil.nfe.client import NFEClient, _extrair_info_chave, _parse_valor_br
 from mcp_fiscal_brasil.nfe.status_sefaz import _obter_ssl_context
 from mcp_fiscal_brasil.nfe.tools import (
+    consultar_nfce,
     consultar_nfe,
     consultar_status_sefaz,
     validar_chave_nfe,
@@ -73,8 +74,8 @@ def _gerar_pfx_teste(tmp_path_factory: pytest.TempPathFactory) -> str:
         .issuer_name(subject)
         .public_key(chave.public_key())
         .serial_number(x509.random_serial_number())
-        .not_valid_before(datetime.now(timezone.utc))
-        .not_valid_after(datetime.now(timezone.utc) + timedelta(days=365))
+        .not_valid_before(datetime.now(UTC))
+        .not_valid_after(datetime.now(UTC) + timedelta(days=365))
         .sign(chave, hashes.SHA256())
     )
     pfx_bytes = pkcs12.serialize_key_and_certificates(
@@ -248,3 +249,50 @@ class TestNFEClientFallback:
         with pytest.raises(ValidationError) as exc_info:
             await consultar_nfe("1234567890")
         assert exc_info.value.field == "chave_acesso"
+
+
+# Chaves de acesso com digito verificador valido, geradas para os testes.
+_CHAVE_MODELO_55 = "35240112345678000195550010000000121123456782"
+_CHAVE_MODELO_65 = "35240112345678000195650010000000121123456785"
+
+
+class TestConsultarNFCeModelo:
+    async def test_chave_modelo_55_e_rejeitada(self) -> None:
+        # Chave valida de NF-e (modelo 55) nao deve ser aceita como NFC-e.
+        with pytest.raises(ValidationError) as exc_info:
+            await consultar_nfce(_CHAVE_MODELO_55)
+        assert exc_info.value.field == "chave_acesso"
+        assert "modelo 65" in exc_info.value.reason
+
+    async def test_chave_modelo_65_passa_na_validacao(self) -> None:
+        from mcp_fiscal_brasil.nfe.schemas import NFeResponse
+
+        esperado = NFeResponse(chave_acesso=_CHAVE_MODELO_65, modelo="65")
+        with patch(
+            "mcp_fiscal_brasil.nfe.tools._client.consultar_por_chave",
+            new=AsyncMock(return_value=esperado),
+        ) as mock_consulta:
+            resultado = await consultar_nfce(_CHAVE_MODELO_65)
+        assert resultado.modelo == "65"
+        mock_consulta.assert_awaited_once_with(_CHAVE_MODELO_65)
+
+
+class TestParseValorBr:
+    def test_formato_brasileiro_com_milhar_e_decimal(self) -> None:
+        assert _parse_valor_br("1.234,56") == 1234.56
+
+    def test_decimal_com_ponto(self) -> None:
+        assert _parse_valor_br("1234.56") == 1234.56
+
+    def test_decimal_com_ponto_uma_casa(self) -> None:
+        assert _parse_valor_br("1234.5") == 1234.5
+
+    def test_ponto_como_milhar_sem_virgula(self) -> None:
+        assert _parse_valor_br("1.234") == 1234.0
+
+    def test_apenas_inteiro(self) -> None:
+        assert _parse_valor_br("1234") == 1234.0
+
+    def test_vazio_retorna_none(self) -> None:
+        assert _parse_valor_br("") is None
+        assert _parse_valor_br(None) is None

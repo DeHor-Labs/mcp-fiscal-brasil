@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from cryptography import x509
@@ -41,8 +41,8 @@ def certificado(chave_privada: rsa.RSAPrivateKey) -> x509.Certificate:
         .issuer_name(subject)
         .public_key(chave_privada.public_key())
         .serial_number(x509.random_serial_number())
-        .not_valid_before(datetime.now(timezone.utc))
-        .not_valid_after(datetime.now(timezone.utc) + timedelta(days=365))
+        .not_valid_before(datetime.now(UTC))
+        .not_valid_after(datetime.now(UTC) + timedelta(days=365))
         .sign(chave_privada, hashes.SHA256())
     )
 

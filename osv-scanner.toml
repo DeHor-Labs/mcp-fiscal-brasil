@@ -1,0 +1,14 @@
+[[IgnoredVulns]]
+id = "GHSA-9xwg-3r6f-jcx2"
+ignoreUntil = 2026-11-22
+reason = "Backlog aceito na auditoria de 2026-08-22: pymdown-extensions 10.21.3, fix exige major (11.0.0), dependencia dev/docs; reavaliar ate a data"
+
+[[IgnoredVulns]]
+id = "GHSA-gm37-52c6-37mw"
+ignoreUntil = 2026-11-22
+reason = "Backlog aceito na auditoria de 2026-08-22: pymdown-extensions 10.21.3, fix exige major (11.0.1), dependencia dev/docs; reavaliar ate a data"
+
+[[IgnoredVulns]]
+id = "GHSA-h35f-9h28-mq5c"
+ignoreUntil = 2026-11-22
+reason = "Backlog aceito na auditoria de 2026-08-22: setuptools 82.0.1, dependencia transitiva via mkdocs-mermaid2-plugin, fix indisponivel sem bump direto; reavaliar ate a data"

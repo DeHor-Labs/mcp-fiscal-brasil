@@ -23,7 +23,7 @@ from __future__ import annotations
 import asyncio
 import ssl
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from functools import lru_cache
 from typing import Literal
 
@@ -327,8 +327,8 @@ def obter_status_certificado(
     valido: bool | None = None
     if validade_fim is not None:
         if validade_fim.tzinfo is None:
-            validade_fim = validade_fim.replace(tzinfo=timezone.utc)
-        valido = validade_fim > datetime.now(timezone.utc)
+            validade_fim = validade_fim.replace(tzinfo=UTC)
+        valido = validade_fim > datetime.now(UTC)
 
     return StatusCertificado(
         configurado=True,

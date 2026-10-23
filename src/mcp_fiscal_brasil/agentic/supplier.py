@@ -7,6 +7,7 @@ from typing import Literal
 
 from mcp_fiscal_brasil._core import get_logger
 
+from ..shared.validators import normalizar_cnpj
 from .compliance import analyze_cnpj_compliance
 from .schemas import (
     ComplianceReport,
@@ -17,8 +18,8 @@ from .schemas import (
 
 
 def _normaliza_cnpj(cnpj: str) -> str:
-    """Normaliza CNPJ para apenas dígitos."""
-    return "".join(d for d in cnpj if d.isdigit())
+    """Normaliza o CNPJ removendo a máscara e preservando letras (alfanumérico)."""
+    return normalizar_cnpj(cnpj)
 
 
 def _erro_consulta(cnpj: str, erro: Exception | str) -> str:

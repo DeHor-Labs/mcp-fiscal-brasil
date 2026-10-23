@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MCP Fiscal Brasil: CNPJ, NF-e, SPED e Reforma Tributária no seu assistente de IA</title>
+<meta name="description" content="Servidor MCP gratuito e open source com 45 ferramentas fiscais brasileiras: CNPJ, Simples Nacional, NF-e, SPED, eSocial, NCM/CFOP, ICMS e simulador da Reforma Tributária (IBS/CBS). Funciona no Claude Desktop, Cursor e outros clientes MCP, sem chave de API.">
+<link rel="canonical" href="https://fiscal.dehor.dev/">
+<meta name="robots" content="index, follow">
+<meta name="author" content="Nikolas de Hor">
+<meta name="theme-color" content="#0b0c0e">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+<meta property="og:type" content="website">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:site_name" content="MCP Fiscal Brasil">
+<meta property="og:title" content="MCP Fiscal Brasil: o sistema fiscal brasileiro no seu assistente de IA">
+<meta property="og:description" content="45 ferramentas para CNPJ, Simples Nacional, NF-e, SPED, eSocial, tabelas fiscais e Reforma Tributária. Gratuito, open source e sem chave de API.">
+<meta property="og:url" content="https://fiscal.dehor.dev/">
+<meta property="og:image" content="https://fiscal.dehor.dev/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="MCP Fiscal Brasil: 45 ferramentas fiscais para assistentes de IA">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="MCP Fiscal Brasil: o sistema fiscal brasileiro no seu assistente de IA">
+<meta name="twitter:description" content="45 ferramentas para CNPJ, Simples Nacional, NF-e, SPED, eSocial, tabelas fiscais e Reforma Tributária. Gratuito, open source e sem chave de API.">
+<meta name="twitter:image" content="https://fiscal.dehor.dev/og.png">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "MCP Fiscal Brasil",
+  "alternateName": "mcp-fiscal-brasil",
+  "description": "Servidor MCP open source com 45 ferramentas fiscais brasileiras: CNPJ, Simples Nacional, NF-e, SPED, eSocial, NCM/CFOP, ICMS, indicadores do Banco Central e simulador da Reforma Tributária (IBS/CBS).",
+  "url": "https://fiscal.dehor.dev/",
+  "applicationCategory": "BusinessApplication",
+  "applicationSubCategory": "Model Context Protocol server",
+  "operatingSystem": "macOS, Windows, Linux",
+  "softwareVersion": "0.5.1",
+  "inLanguage": "pt-BR",
+  "license": "https://opensource.org/licenses/MIT",
+  "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "BRL" },
+  "downloadUrl": "https://pypi.org/project/mcp-fiscal-brasil/",
+  "softwareHelp": "https://dehor-labs.github.io/mcp-fiscal-brasil/",
+  "image": "https://fiscal.dehor.dev/og.png",
+  "author": { "@type": "Person", "name": "Nikolas de Hor", "url": "https://dehor.dev" },
+  "sameAs": [
+    "https://github.com/DeHor-Labs/mcp-fiscal-brasil",
+    "https://pypi.org/project/mcp-fiscal-brasil/"
+  ]
+}
+</script>
+
+<link rel="preload" href="/fonts/geist-latin.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+@font-face{font-family:'Geist';font-style:normal;font-weight:100 900;font-display:swap;src:url(/fonts/geist-latin.woff2) format('woff2')}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400 700;font-display:swap;src:url(/fonts/jetbrains-mono-latin.woff2) format('woff2')}
+:root{
+  --bg:#0b0c0e;--fg:#ececee;--surface:#111215;--muted:#17191d;--mfg:#9a9ea6;
+  --edge:#222429;--edge2:#34373e;--accent:#2dd4bf;--amber:#f2b45a;
+  --sans:'Geist',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;scroll-padding-top:72px}
+body{margin:0;background:var(--bg);color:var(--fg);font:400 16px/1.6 var(--sans);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+a{color:inherit}
+img{max-width:100%;height:auto}
+code,pre,.mono{font-family:var(--mono)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
+.skip{position:absolute;left:-9999px;top:8px;background:var(--fg);color:var(--bg);padding:10px 14px;border-radius:6px;z-index:10}
+.skip:focus{left:16px}
+.col{width:100%;max-width:1040px;margin:0 auto;padding:0 16px}
+@media (min-width:768px){.col{padding:0 32px}}
+
+/* header */
+.top{position:sticky;top:0;z-index:5;background:rgb(11 12 14 / .82);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--edge)}
+.top .col{display:flex;align-items:center;justify-content:space-between;height:60px;gap:16px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:600;letter-spacing:-.01em}
+.brand svg{flex:none}
+.nav{display:flex;gap:4px;align-items:center}
+.nav a{text-decoration:none;color:var(--mfg);font-size:14px;padding:10px 10px;border-radius:6px;min-height:40px;display:inline-flex;align-items:center}
+.nav a:hover{color:var(--fg)}
+.nav .hide-s{display:none}
+@media (min-width:720px){.nav .hide-s{display:inline-flex}}
+
+/* hero */
+.hero{padding:56px 0 64px;position:relative;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:-20% -10% auto auto;width:640px;height:640px;background:radial-gradient(closest-side,rgb(45 212 191 / .10),transparent);pointer-events:none}
+.hero-grid{display:grid;gap:40px;position:relative}
+@media (min-width:960px){.hero{padding:96px 0 96px}.hero-grid{grid-template-columns:1.05fr .95fr;align-items:center;gap:48px}}
+.tag{display:inline-flex;gap:8px;align-items:center;font:450 12px/1 var(--mono);color:var(--mfg);border:1px solid var(--edge2);border-radius:999px;padding:7px 12px;margin:0 0 20px}
+.tag b{color:var(--accent);font-weight:500}
+h1{font-weight:600;font-size:clamp(2.2rem,1.4rem + 3.2vw,3.5rem);line-height:1.02;letter-spacing:-.04em;margin:0 0 20px}
+h1 em{font-style:normal;color:var(--accent)}
+.lead{font-size:clamp(1.05rem,1rem + .3vw,1.2rem);color:#c9ccd2;max-width:36em;margin:0 0 28px}
+.ctas{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:24px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 18px;border-radius:6px;font-weight:550;font-size:15px;text-decoration:none;transition:box-shadow .2s,border-color .2s,transform .1s}
+.btn:active{transform:scale(.97)}
+.btn-p{background:var(--fg);color:var(--bg)}
+.btn-p:hover{box-shadow:0 0 0 4px rgb(45 212 191 / .25)}
+.btn-g{border:1px solid var(--edge2);background:rgb(255 255 255 / .02)}
+.btn-g:hover{border-color:#5a5e67}
+.oneliner{display:flex;align-items:center;gap:10px;font:14px var(--mono);background:var(--surface);border:1px solid var(--edge);border-radius:8px;padding:12px 14px;max-width:100%;overflow-x:auto;white-space:nowrap}
+.oneliner span{color:var(--accent)}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px;align-items:center}
+.badges a{display:inline-flex;line-height:0}
+.badges img{height:20px;width:auto}
+
+/* console */
+.console{background:linear-gradient(#121418,#0d0e11);border:1px solid var(--edge);border-radius:12px;box-shadow:0 0 80px -20px rgb(45 212 191 / .25);overflow:hidden;font-size:14px}
+.console-h{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--edge);font:12px var(--mono);color:var(--mfg)}
+.console-h i{width:9px;height:9px;border-radius:50%;background:var(--edge2);display:inline-block}
+.console-b{padding:18px 16px;display:grid;gap:14px}
+.msg-u{justify-self:end;background:var(--muted);border:1px solid var(--edge);border-radius:10px 10px 2px 10px;padding:10px 14px;max-width:92%}
+.call{font:12.5px/1.5 var(--mono);color:var(--mfg);border-left:2px solid var(--amber);padding:2px 0 2px 12px}
+.call b{color:var(--fg);font-weight:500}
+pre.out{margin:0;font:12.5px/1.55 var(--mono);color:#cfd3d9;background:#0a0b0d;border:1px solid var(--edge);border-radius:8px;padding:12px 14px;overflow-x:auto}
+.k{color:#8ab4f8}.s{color:#a7e3c4}.n{color:var(--accent)}
+.msg-a{color:#d6d9de}
+.note{font:12px var(--mono);color:var(--mfg);margin:10px 2px 0}
+
+/* sections */
+section{padding:72px 0;border-top:1px solid var(--edge)}
+@media (min-width:768px){section{padding:104px 0}}
+h2{font-weight:600;font-size:clamp(1.75rem,1.2rem + 1.6vw,2.5rem);letter-spacing:-.03em;line-height:1.1;margin:0 0 14px}
+h3{font-weight:600;font-size:1.1rem;letter-spacing:-.01em;margin:0 0 8px}
+.sub{color:var(--mfg);max-width:40em;margin:0 0 40px;font-size:1.05rem}
+.grid{display:grid;gap:16px}
+@media (min-width:720px){.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}}
+.card{background:var(--surface);border:1px solid var(--edge);border-radius:12px;padding:22px}
+.card p{margin:0;color:#c3c6cc}
+.card .mono{font-size:12.5px;color:var(--accent)}
+
+/* qa */
+.qa{display:grid;gap:12px}
+.qa .q{font-weight:550;font-size:1.05rem;margin:0}
+.qa .q::before{content:"“";color:var(--mfg)}
+.qa .q::after{content:"”";color:var(--mfg)}
+.qa .a{margin:0;color:#c3c6cc}
+.qa .t{font:12.5px var(--mono);color:var(--accent);margin:0}
+
+/* tools */
+.tools{display:grid;gap:16px}
+@media (min-width:720px){.tools{grid-template-columns:repeat(2,1fr)}}
+@media (min-width:1000px){.tools{grid-template-columns:repeat(3,1fr)}}
+.tools h3{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.tools h3 small{font:12px var(--mono);color:var(--mfg);font-weight:400}
+.tools ul{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:6px}
+.tools li{font-size:14px;color:#c3c6cc}
+.tools li code{font-size:12.5px;color:var(--fg);word-break:break-all}
+.tools li .d{display:block}
+.lbl{display:inline-block;font:11px/1 var(--mono);color:var(--amber);border:1px solid rgb(242 180 90 / .35);border-radius:4px;padding:3px 5px;margin-left:4px;vertical-align:1px}
+
+/* install */
+.steps{display:grid;gap:20px}
+.step{background:var(--surface);border:1px solid var(--edge);border-radius:12px;padding:22px;min-width:0}
+.step p{margin:0 0 12px;color:#c3c6cc}
+.step p:last-child{margin-bottom:0}
+pre.code{margin:0 0 12px;font:13px/1.6 var(--mono);background:#0a0b0d;border:1px solid var(--edge);border-radius:8px;padding:14px;overflow-x:auto;color:#d7dae0}
+pre.code:last-child{margin-bottom:0}
+p code,li code,td code{overflow-wrap:anywhere;font-size:.88em;background:var(--muted);border:1px solid var(--edge);border-radius:4px;padding:1px 5px}
+.tools li code{background:none;border:0;padding:0}
+
+/* faq */
+.faq{display:grid;gap:10px;max-width:820px}
+details{background:var(--surface);border:1px solid var(--edge);border-radius:10px;padding:0 18px}
+details[open]{border-color:var(--edge2)}
+summary{cursor:pointer;list-style:none;padding:16px 28px 16px 0;font-weight:550;position:relative;min-height:48px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";position:absolute;right:0;top:14px;color:var(--mfg);font:18px var(--mono)}
+details[open] summary::after{content:"−"}
+details p,details ul{margin:0 0 16px;color:#c3c6cc}
+details ul{padding-left:20px}
+details li{margin-bottom:6px}
+
+/* cta */
+.cta{text-align:left}
+.cta h2{font-size:clamp(2rem,1.2rem + 3.2vw,3.4rem);letter-spacing:-.04em}
+footer{border-top:1px solid var(--edge);padding:32px 0 48px;color:var(--mfg);font-size:14px}
+footer .col{display:flex;flex-wrap:wrap;gap:12px 24px;justify-content:space-between}
+footer nav{display:flex;flex-wrap:wrap;gap:4px 18px}
+footer a{text-decoration:none}
+footer a:hover{color:var(--fg)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<a class="skip" href="#conteudo">Pular para o conteúdo</a>
+
+<header class="top">
+  <div class="col">
+    <a class="brand" href="/" aria-label="MCP Fiscal Brasil, início">
+      <svg width="26" height="26" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#111215" stroke="#34373e" stroke-width="2"/><g stroke="#2dd4bf" stroke-opacity=".7" stroke-width="3" stroke-linecap="round"><path d="M32 34 L32 13"/><path d="M32 34 L13 46"/><path d="M32 34 L51 46"/></g><circle cx="32" cy="13" r="5" fill="#0b0c0e" stroke="#2dd4bf" stroke-width="3"/><circle cx="13" cy="46" r="5" fill="#0b0c0e" stroke="#2dd4bf" stroke-width="3"/><circle cx="51" cy="46" r="5" fill="#f2b45a"/><circle cx="32" cy="34" r="8" fill="#2dd4bf"/><circle cx="32" cy="34" r="3.5" fill="#0b0c0e"/></svg>
+      MCP Fiscal Brasil
+    </a>
+    <nav class="nav" aria-label="Principal">
+      <a class="hide-s" href="#ferramentas">Ferramentas</a>
+      <a class="hide-s" href="#instalar">Instalar</a>
+      <a class="hide-s" href="#faq">FAQ</a>
+      <a href="https://dehor-labs.github.io/mcp-fiscal-brasil/">Docs</a>
+      <a href="https://github.com/DeHor-Labs/mcp-fiscal-brasil">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main id="conteudo">
+  <div class="hero">
+    <div class="col hero-grid">
+      <div>
+        <p class="tag"><b>v0.5.1</b> servidor MCP open source · licença MIT</p>
+        <h1>CNPJ, NF-e e Simples Nacional <em>direto no seu assistente de IA.</em></h1>
+        <p class="lead">O MCP Fiscal Brasil liga o Claude, o Cursor e outros assistentes compatíveis com MCP a 45 ferramentas fiscais brasileiras, de consulta de CNPJ e leitura de XML de NF-e a SPED, tabelas NCM/CFOP e simulação da Reforma Tributária. Gratuito, roda na sua máquina e não pede chave de API.</p>
+        <div class="ctas">
+          <a class="btn btn-p" href="#instalar">Ver instalação</a>
+          <a class="btn btn-g" href="https://github.com/DeHor-Labs/mcp-fiscal-brasil">Ver no GitHub</a>
+        </div>
+        <div class="oneliner" aria-label="Comando de instalação"><span aria-hidden="true">$</span> uvx mcp-fiscal-brasil</div>
+        <div class="badges">
+          <a href="https://pypi.org/project/mcp-fiscal-brasil/"><img src="https://img.shields.io/pypi/v/mcp-fiscal-brasil?color=2dd4bf&amp;labelColor=17191d&amp;label=PyPI" alt="Versão no PyPI" width="88" height="20"></a>
+          <a href="https://pypi.org/project/mcp-fiscal-brasil/"><img src="https://img.shields.io/pypi/dm/mcp-fiscal-brasil?color=2dd4bf&amp;labelColor=17191d&amp;label=downloads%2Fm%C3%AAs" alt="Downloads mensais no PyPI" width="140" height="20"></a>
+          <a href="https://github.com/DeHor-Labs/mcp-fiscal-brasil"><img src="https://img.shields.io/github/stars/DeHor-Labs/mcp-fiscal-brasil?style=flat&amp;color=2dd4bf&amp;labelColor=17191d&amp;label=stars" alt="Estrelas no GitHub" width="72" height="20"></a>
+          <a href="https://registry.modelcontextprotocol.io/?q=io.github.DeHor-Labs%2Fmcp-fiscal-brasil"><img src="https://img.shields.io/badge/MCP%20Registry-oficial-2dd4bf?labelColor=17191d" alt="Publicado no registry oficial do MCP" width="128" height="20"></a>
+        </div>
+      </div>
+
+      <figure style="margin:0">
+        <div class="console" role="group" aria-label="Exemplo de conversa com o assistente">
+          <div class="console-h"><i></i><i></i><i></i><span>Claude Desktop + fiscal-brasil</span></div>
+          <div class="console-b">
+            <div class="msg-u">Antes de cadastrar, o fornecedor <span style="white-space:nowrap">00.000.000/0001-91</span> está regular?</div>
+            <div class="call">chamando <b>risk_score_supplier</b>(cnpj="00000000000191")</div>
+<pre class="out">{
+  <span class="k">"razao_social"</span>: <span class="s">"BANCO DO BRASIL SA"</span>,
+  <span class="k">"risco"</span>: <span class="s">"baixo"</span>,
+  <span class="k">"score"</span>: <span class="n">90</span>,
+  <span class="k">"fatores"</span>: [
+    <span class="s">"Situacao cadastral regular"</span>,
+    <span class="s">"Empresa identificada: BANCO DO BRASIL SA"</span>
+  ],
+  <span class="k">"recomendacao"</span>: <span class="s">"aprovar"</span>
+}</pre>
+            <div class="msg-a">Situação cadastral regular na Receita, risco baixo (score 90 de 100). Pode seguir com o cadastro.</div>
+          </div>
+        </div>
+        <figcaption class="note">Saída real da tool na v0.5.1, consultada em 17/10/2026 com dados públicos da BrasilAPI.</figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <section id="para-quem" aria-labelledby="t-quem">
+    <div class="col">
+      <h2 id="t-quem">Feito para quem vive o fiscal brasileiro</h2>
+      <p class="sub">Em vez de abrir cinco portais para responder uma pergunta, você pergunta em português e o assistente chama a ferramenta certa.</p>
+      <div class="grid g3">
+        <div class="card">
+          <h3>Contadores</h3>
+          <p>Confira CNPJ, CNAE e opção pelo Simples de um cliente, encontre o CFOP ou o NCM certo e corrija valores pela Selic ou pelo IPCA sem sair da conversa.</p>
+        </div>
+        <div class="card">
+          <h3>Escritórios contábeis</h3>
+          <p>Faça triagem de carteiras de fornecedores em lote, leia XML de NF-e recebida, resuma arquivos SPED e simule a transição da Reforma Tributária para cada cliente.</p>
+        </div>
+        <div class="card">
+          <h3>Devs fiscais</h3>
+          <p>Use o mesmo núcleo como servidor MCP, SDK Python, CLI (<code>mcp-fiscal</code>) ou API REST (<code>mcp-fiscal-api</code>) dentro do seu ERP ou automação.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="exemplos" aria-labelledby="t-ex">
+    <div class="col">
+      <h2 id="t-ex">Perguntas reais, ferramentas reais</h2>
+      <p class="sub">Alguns pedidos que você pode fazer ao assistente e o que ele usa para responder.</p>
+      <div class="grid g2">
+        <div class="card qa">
+          <p class="q">Esse CNPJ é do Simples Nacional ou MEI? Desde quando?</p>
+          <p class="a">Retorna a situação atual e as datas de opção e exclusão do Simples e do MEI.</p>
+          <p class="t">consultar_simples_nacional · consultar_status_mei</p>
+        </div>
+        <div class="card qa">
+          <p class="q">Confira a nota em ~/Downloads/nota.xml. Está tudo certo com ela?</p>
+          <p class="a">Lê o arquivo XML local (o caminho precisa estar acessível ao processo do servidor), confere o dígito da chave de acesso e os dados do emitente e lista os problemas encontrados. Também valida a assinatura digital e gera o DANFE em PDF.</p>
+          <p class="t">validate_nfe_full · validar_assinatura_nfe · gerar_danfe</p>
+        </div>
+        <div class="card qa">
+          <p class="q">O que é o CFOP 6102 e qual a alíquota de ICMS de SP para BA?</p>
+          <p class="a">Consulta as tabelas offline de CFOP e de alíquotas interestaduais de ICMS, que já vêm no pacote.</p>
+          <p class="t">consultar_cfop · consultar_aliquota_icms</p>
+        </div>
+        <div class="card qa">
+          <p class="q">Como a carga tributária desta empresa muda entre 2026 e 2033 com IBS e CBS?</p>
+          <p class="a">Simula ano a ano a transição da LC 214/2025, comparando o regime antigo com o novo.</p>
+          <p class="t">simular_transicao_reforma_tributaria</p>
+        </div>
+        <div class="card qa">
+          <p class="q">Resuma este arquivo SPED Fiscal: período, empresa e inconsistências.</p>
+          <p class="a">Identifica o tipo (EFD-ICMS/IPI, Contribuições, ECD ou ECF), extrai período e empresa e aponta inconsistências. Tudo processado localmente.</p>
+          <p class="t">summarize_sped · listar_registros_sped</p>
+        </div>
+        <div class="card qa">
+          <p class="q">Vale mais a pena MEI, Simples, Lucro Presumido ou Lucro Real com faturamento de R$ 500 mil?</p>
+          <p class="a">Compara os quatro regimes para o cenário informado (faturamento, setor e folha).</p>
+          <p class="t">compare_tax_regimes</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="ferramentas" aria-labelledby="t-tools">
+    <div class="col">
+      <h2 id="t-tools">45 ferramentas, agrupadas por assunto</h2>
+      <p class="sub">A lista abaixo é a que o servidor registra na versão 0.5.1. As marcadas como <span class="lbl">orientação</span> devolvem o portal e o passo a passo, não o documento.</p>
+      <div class="tools">
+        <div class="card">
+          <h3>Agênticas <small>5</small></h3>
+          <p>Combinam várias fontes e devolvem uma decisão.</p>
+          <ul>
+            <li><code class="tool">analyze_cnpj_compliance</code><span class="d">Relatório de compliance de um CNPJ</span></li>
+            <li><code class="tool">risk_score_supplier</code><span class="d">Score de risco 0 a 100 de fornecedor</span></li>
+            <li><code class="tool">consultar_empresas_lote</code><span class="d">Vários CNPJs numa chamada</span></li>
+            <li><code class="tool">validate_nfe_full</code><span class="d">Validação completa de NF-e pelo XML</span></li>
+            <li><code class="tool">summarize_sped</code><span class="d">Resumo executivo de SPED</span></li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>CNPJ e cadastro <small>8</small></h3>
+          <ul>
+            <li><code class="tool">consultar_cnpj</code><span class="d">Razão social, sócios, CNAE, endereço</span></li>
+            <li><code class="tool">consultar_empresa_completa</code><span class="d">Receita + Simples em um retorno</span></li>
+            <li><code class="tool">consultar_simples_nacional</code><span class="d">Opção e exclusão do Simples</span></li>
+            <li><code class="tool">consultar_status_mei</code><span class="d">Situação de MEI</span></li>
+            <li><code class="tool">consultar_cnae</code> / <code class="tool">buscar_cnae</code><span class="d">CNAE por código ou por texto</span></li>
+            <li><code class="tool">validar_cpf</code><span class="d">Dígito verificador, offline</span></li>
+            <li><code class="tool">listar_cnpjs_por_nome</code><span class="d">Busca por nome <span class="lbl">experimental</span></span></li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>NF-e, NFC-e e CT-e <small>9</small></h3>
+          <ul>
+            <li><code class="tool">validar_chave_nfe</code><span class="d">Chave de 44 dígitos (NF-e, NFC-e e CT-e)</span></li>
+            <li><code class="tool">parse_nfe_xml</code><span class="d">XML de NF-e/NFC-e em dados estruturados</span></li>
+            <li><code class="tool">gerar_danfe</code><span class="d">DANFE em PDF (modelo 55)</span></li>
+            <li><code class="tool">validar_assinatura_nfe</code><span class="d">Assinatura XMLDSig</span></li>
+            <li><code class="tool">consultar_nfe</code> / <code class="tool">consultar_nfce</code><span class="d">Consulta pela chave</span></li>
+            <li><code class="tool">consultar_status_sefaz</code><span class="d">Status do webservice <span class="lbl">cert. A1</span></span></li>
+            <li><code class="tool">baixar_nfe_distribuicao</code><span class="d">NFeDistribuicaoDFe <span class="lbl">cert. A1</span></span></li>
+            <li><code class="tool">manifestar_nfe</code><span class="d">Manifestação do destinatário <span class="lbl">cert. A1</span></span></li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Reforma Tributária e regimes <small>2</small></h3>
+          <ul>
+            <li><code class="tool">simular_transicao_reforma_tributaria</code><span class="d">IBS/CBS ano a ano, 2026 a 2033</span></li>
+            <li><code class="tool">compare_tax_regimes</code><span class="d">MEI, Simples, Presumido e Real</span></li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>SPED e eSocial <small>4</small></h3>
+          <ul>
+            <li><code class="tool">analisar_sped</code><span class="d">EFD, ECD e ECF: período, empresa, erros</span></li>
+            <li><code class="tool">listar_registros_sped</code><span class="d">Filtra registros (C100, E110...)</span></li>
+            <li><code class="tool">listar_eventos_esocial</code><span class="d">Catálogo de eventos</span></li>
+            <li><code class="tool">validar_evento_esocial</code><span class="d">Estrutura do XML do evento</span></li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Tabelas fiscais offline <small>5</small></h3>
+          <ul>
+            <li><code class="tool">consultar_ncm</code><span class="d">NCM e TIPI</span></li>
+            <li><code class="tool">consultar_cfop</code><span class="d">Natureza da operação</span></li>
+            <li><code class="tool">validar_cst</code><span class="d">CST e CSOSN</span></li>
+            <li><code class="tool">consultar_cest</code><span class="d">Substituição tributária</span></li>
+            <li><code class="tool">consultar_aliquota_icms</code><span class="d">ICMS interestadual e DIFAL</span></li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Importação <small>2</small></h3>
+          <ul>
+            <li><code class="tool">consultar_aliquotas_importacao</code><span class="d">II, IPI e PIS/COFINS por NCM</span></li>
+            <li><code class="tool">calcular_tributos_importacao</code><span class="d">Cálculo em cascata, com ICMS e AFRMM</span></li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Banco Central <small>4</small></h3>
+          <ul>
+            <li><code class="tool">taxa_selic</code><span class="d">Selic diária por período</span></li>
+            <li><code class="tool">ipca_periodo</code><span class="d">IPCA mensal</span></li>
+            <li><code class="tool">ptax_data</code><span class="d">Cotação PTAX</span></li>
+            <li><code class="tool">calcular_correcao_monetaria</code><span class="d">Correção por IPCA ou Selic</span></li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>NFS-e, certidões e localidades <small>6</small></h3>
+          <ul>
+            <li><code class="tool">consultar_nfse</code><span class="d">Portal da prefeitura <span class="lbl">orientação</span></span></li>
+            <li><code class="tool">consultar_certidao_federal</code><span class="d">CND da Receita e PGFN <span class="lbl">orientação</span></span></li>
+            <li><code class="tool">consultar_certidao_fgts</code><span class="d">CRF da Caixa <span class="lbl">orientação</span></span></li>
+            <li><code class="tool">consultar_cep</code><span class="d">Endereço pelo CEP</span></li>
+            <li><code class="tool">consultar_municipios_ibge</code> / <code class="tool">consultar_estado_ibge</code><span class="d">Municípios e UFs</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="instalar" aria-labelledby="t-inst">
+    <div class="col">
+      <h2 id="t-inst">Instalação e primeiros passos</h2>
+      <p class="sub">Requer Python 3.11 ou superior. O jeito mais simples é o <code>uvx</code>, do <a href="https://docs.astral.sh/uv/">uv</a>, que baixa e executa o pacote do PyPI num ambiente isolado. Nenhuma chave de API é necessária.</p>
+      <div class="steps">
+        <div class="step">
+          <h3>1. Teste no terminal</h3>
+          <p>Se ainda não tem o uv, instale pelo comando oficial. No macOS e no Linux:</p>
+<pre class="code">curl -LsSf https://astral.sh/uv/install.sh | sh</pre>
+          <p>No Windows (PowerShell):</p>
+<pre class="code">powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"</pre>
+          <p>Depois, rode o servidor:</p>
+<pre class="code">uvx mcp-fiscal-brasil</pre>
+          <p>Para sempre pegar a versão mais nova do PyPI: <code>uvx mcp-fiscal-brasil@latest</code>.</p>
+        </div>
+        <div class="step">
+          <h3>2. Claude Desktop</h3>
+          <p>Edite <code>~/Library/Application Support/Claude/claude_desktop_config.json</code> (macOS) ou <code>%APPDATA%\Claude\claude_desktop_config.json</code> (Windows), salve e reinicie o app:</p>
+<pre class="code">{
+  "mcpServers": {
+    "fiscal-brasil": {
+      "command": "uvx",
+      "args": ["mcp-fiscal-brasil"]
+    }
+  }
+}</pre>
+        </div>
+        <div class="grid g2">
+          <div class="step">
+            <h3>Cursor</h3>
+            <p>Use o mesmo bloco <code>mcpServers</code> acima em <code>.cursor/mcp.json</code>, para valer só no projeto, ou em <code>~/.cursor/mcp.json</code>, para valer em todos.</p>
+          </div>
+          <div class="step">
+            <h3>Claude Code</h3>
+<pre class="code">claude mcp add --transport stdio fiscal-brasil -- uvx mcp-fiscal-brasil</pre>
+          </div>
+          <div class="step">
+            <h3>VS Code + Continue</h3>
+            <p>Crie o arquivo <code>.continue/mcpServers/fiscal-brasil.yaml</code> no seu projeto (o MCP funciona no modo agente):</p>
+<pre class="code">name: Fiscal Brasil
+version: 0.0.1
+schema: v1
+mcpServers:
+  - name: fiscal-brasil
+    command: uvx
+    args:
+      - mcp-fiscal-brasil</pre>
+            <p>Ou adicione só o bloco <code>mcpServers</code> ao seu <code>~/.continue/config.yaml</code>.</p>
+          </div>
+          <div class="step">
+            <h3>Outros clientes MCP</h3>
+            <p>Qualquer cliente com transporte stdio funciona com o comando <code>uvx</code> e o argumento <code>mcp-fiscal-brasil</code>. O servidor também está no <a href="https://registry.modelcontextprotocol.io/?q=io.github.DeHor-Labs%2Fmcp-fiscal-brasil">registry oficial do MCP</a> como <code>io.github.DeHor-Labs/mcp-fiscal-brasil</code>.</p>
+          </div>
+        </div>
+        <div class="step">
+          <h3>Instalação permanente com pip</h3>
+<pre class="code">pip install mcp-fiscal-brasil</pre>
+          <p>Depois disso, use <code>"command": "mcp-fiscal-brasil"</code> (sem <code>args</code>) na configuração. O mesmo pacote traz a CLI <code>mcp-fiscal</code> e a API REST <code>mcp-fiscal-api</code>. Guia completo na <a href="https://dehor-labs.github.io/mcp-fiscal-brasil/">documentação</a>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq" aria-labelledby="t-faq">
+    <div class="col">
+      <h2 id="t-faq">Perguntas frequentes</h2>
+      <p class="sub">Inclusive sobre o que o projeto ainda não faz.</p>
+      <div class="faq">
+        <details>
+          <summary>Quanto custa?</summary>
+          <p>Nada. O projeto é open source sob licença MIT e todas as ferramentas funcionam com fontes públicas gratuitas, sem cadastro. Existe um provedor premium opcional (cpfcnpj.com.br), desligado por padrão: só é usado se você configurar o seu próprio token, e a cobrança é feita por esse provedor.</p>
+        </details>
+        <details>
+          <summary>Preciso de chave de API ou de certificado digital?</summary>
+          <p>Chave de API, não. Certificado A1 (<code>.pfx</code>/<code>.p12</code>) só é necessário para três ferramentas que falam direto com a SEFAZ por mTLS: <code>consultar_status_sefaz</code>, <code>baixar_nfe_distribuicao</code> e <code>manifestar_nfe</code>. O certificado e a senha ficam na sua máquina e a assinatura é feita localmente.</p>
+        </details>
+        <details>
+          <summary>Para onde vão os meus dados?</summary>
+          <p>O servidor roda localmente no seu computador. Arquivos como XML de NF-e e SPED são processados ali mesmo, sem upload para servidor do projeto. Consultas de CNPJ, CEP e indicadores vão direto às fontes públicas (BrasilAPI, ReceitaWS, Banco Central, IBGE). Lembre que o assistente de IA que você usa recebe as respostas das ferramentas para montar a resposta, então vale a política de privacidade dele.</p>
+        </details>
+        <details>
+          <summary>Quais são as limitações hoje?</summary>
+          <ul>
+            <li>Não emite NF-e nem NFS-e. Lê, valida, gera DANFE, baixa documentos e manifesta o destinatário.</li>
+            <li>NFS-e e certidões (CND federal e CRF do FGTS) são ferramentas de orientação: indicam o portal e o caminho, não trazem o documento.</li>
+            <li>CT-e: só a validação da chave de acesso (modelo 57). Leitura de XML e consulta de CT-e ainda não existem.</li>
+            <li>A busca de CNPJ por nome é experimental, porque a Receita não oferece essa busca em API pública.</li>
+            <li>Consultas on-line dependem da disponibilidade das fontes públicas, que podem ficar lentas ou fora do ar. A consulta de NF-e/NFC-e pela chave sem o provedor premium pode trazer dados parciais.</li>
+            <li>Simulações (Reforma Tributária, regimes, importação) são estimativas de apoio e não substituem a análise de um contador.</li>
+            <li>O projeto está em versão beta (0.x): nomes e formatos de retorno ainda podem mudar.</li>
+          </ul>
+        </details>
+        <details>
+          <summary>Funciona com quais assistentes?</summary>
+          <p>Com qualquer cliente compatível com o Model Context Protocol via stdio, como Claude Desktop, Claude Code, Cursor e VS Code com Continue. Também dá para usar sem assistente nenhum, pela CLI, pelo SDK Python ou pela API REST.</p>
+        </details>
+        <details>
+          <summary>Qual é a licença?</summary>
+          <p>MIT. Você pode usar, modificar e distribuir, inclusive em produtos comerciais, mantendo o aviso de copyright. O código está no <a href="https://github.com/DeHor-Labs/mcp-fiscal-brasil">GitHub</a>.</p>
+        </details>
+        <details>
+          <summary>Encontrei um erro ou quero uma ferramenta nova. E agora?</summary>
+          <p>Abra uma <a href="https://github.com/DeHor-Labs/mcp-fiscal-brasil/issues">issue</a> com a versão e um exemplo sem dados reais, ou proponha nas <a href="https://github.com/DeHor-Labs/mcp-fiscal-brasil/discussions">Discussions</a>. Pull requests são bem-vindos.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta" aria-labelledby="t-cta">
+    <div class="col">
+      <h2 id="t-cta">Quer isso dentro do seu ERP ou escritório?</h2>
+      <p class="sub">O MCP Fiscal Brasil é mantido por Nikolas de Hor. Para integração, automação fiscal sob medida ou dúvidas sobre o projeto, fale com ele.</p>
+      <div class="ctas">
+        <a class="btn btn-p" href="https://dehor.dev">Falar com Nikolas em dehor.dev</a>
+        <a class="btn btn-g" href="https://dehor-labs.github.io/mcp-fiscal-brasil/">Ler a documentação</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="col">
+    <span>MCP Fiscal Brasil · licença MIT · por <a href="https://dehor.dev">Nikolas de Hor</a></span>
+    <nav aria-label="Rodapé">
+      <a href="https://github.com/DeHor-Labs/mcp-fiscal-brasil">GitHub</a>
+      <a href="https://pypi.org/project/mcp-fiscal-brasil/">PyPI</a>
+      <a href="https://registry.modelcontextprotocol.io/?q=io.github.DeHor-Labs%2Fmcp-fiscal-brasil">Registry MCP</a>
+      <a href="https://dehor-labs.github.io/mcp-fiscal-brasil/">Documentação</a>
+      <a href="https://github.com/DeHor-Labs/mcp-fiscal-brasil/blob/main/CHANGELOG.md">Changelog</a>
+    </nav>
+  </div>
+</footer>
+</body>
+</html>

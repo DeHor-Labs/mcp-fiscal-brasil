@@ -1,6 +1,6 @@
 """Testes para nfse/schemas.py (NFSeResponse)."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from pydantic import ValidationError
@@ -21,7 +21,7 @@ def test_instancia_com_campos_obrigatorios():
 
 
 def test_instancia_com_todos_os_campos():
-    ts = datetime(2024, 3, 15, 10, 30, 0, tzinfo=timezone.utc)
+    ts = datetime(2024, 3, 15, 10, 30, 0, tzinfo=UTC)
     nfse = NFSeResponse(
         numero="00123",
         municipio="Goiânia",
@@ -157,7 +157,7 @@ def test_model_dump_inclui_none_por_padrao():
 def test_model_dump_json_serializavel():
     import json
 
-    ts = datetime(2024, 6, 1, 12, 0, 0, tzinfo=timezone.utc)
+    ts = datetime(2024, 6, 1, 12, 0, 0, tzinfo=UTC)
     nfse = NFSeResponse(
         numero="013",
         municipio="Porto Alegre",
@@ -192,7 +192,7 @@ def test_aliquota_iss_aceita_float():
 
 
 def test_data_emissao_aceita_datetime():
-    ts = datetime(2025, 1, 10, 8, 0, tzinfo=timezone.utc)
+    ts = datetime(2025, 1, 10, 8, 0, tzinfo=UTC)
     nfse = NFSeResponse(numero="023", municipio="Belém", uf="PA", data_emissao=ts)
     assert nfse.data_emissao == ts
 
@@ -213,14 +213,14 @@ def test_data_emissao_aceita_string_iso():
 
 
 def test_instancias_iguais_com_mesmos_dados():
-    ts = datetime(2024, 1, 1, tzinfo=timezone.utc)
+    ts = datetime(2024, 1, 1, tzinfo=UTC)
     nfse1 = NFSeResponse(numero="030", municipio="Vitória", uf="ES", consultado_em=ts)
     nfse2 = NFSeResponse(numero="030", municipio="Vitória", uf="ES", consultado_em=ts)
     assert nfse1 == nfse2
 
 
 def test_instancias_diferentes_com_dados_diferentes():
-    ts = datetime(2024, 1, 1, tzinfo=timezone.utc)
+    ts = datetime(2024, 1, 1, tzinfo=UTC)
     nfse1 = NFSeResponse(numero="031", municipio="Florianópolis", uf="SC", consultado_em=ts)
     nfse2 = NFSeResponse(numero="032", municipio="Florianópolis", uf="SC", consultado_em=ts)
     assert nfse1 != nfse2

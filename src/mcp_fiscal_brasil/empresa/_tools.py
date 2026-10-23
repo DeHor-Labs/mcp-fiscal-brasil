@@ -31,7 +31,8 @@ def register(app: Any) -> None:
         cadastro de fornecedores e analise de regime tributario.
 
         Args:
-            cnpj: Numero do CNPJ com 14 digitos, com ou sem formatacao
+            cnpj: Numero do CNPJ com 14 caracteres (numerico ou alfanumerico,
+                IN RFB 2.229/2024), com ou sem formatacao
                 (ex: '11.222.333/0001-81' ou '11222333000181').
 
         Returns:

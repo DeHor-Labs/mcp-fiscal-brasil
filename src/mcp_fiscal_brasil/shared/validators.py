@@ -286,18 +286,26 @@ def format_cpf(cpf: str, remover_mascara: bool = False) -> str:
 
 def format_cnpj(cnpj: str, remover_mascara: bool = False) -> str:
     """
-    Formata um CNPJ com ou sem mascara.
+    Formata um CNPJ (numérico ou alfanumérico) com ou sem máscara.
 
-    Se remover_mascara=True, retorna apenas os 14 digitos numericos.
-    Caso contrario, retorna no formato XX.XXX.XXX/XXXX-XX.
+    Aceita o CNPJ alfanumérico da IN RFB 2.229/2024 (vigência jul/2026): as 12
+    primeiras posições podem conter letras maiúsculas (A-Z) ou dígitos e as 2
+    últimas são dígitos verificadores. A entrada é normalizada (máscara removida,
+    letras em maiúsculas) antes de formatar.
+
+    Se remover_mascara=True, retorna apenas os 14 caracteres sem máscara.
+    Caso contrário, retorna no formato XX.XXX.XXX/XXXX-XX
+    (ex.: '11.222.333/0001-81' ou '12.ABC.345/01DE-35').
     """
-    números = _somente_digitos(cnpj)
-    if len(números) != 14:
-        raise ValueError(f"CNPJ deve ter 14 digitos, recebeu {len(números)}")
+    caracteres = normalizar_cnpj(cnpj)
+    if len(caracteres) != 14:
+        raise ValueError(f"CNPJ deve ter 14 caracteres, recebeu {len(caracteres)}")
 
     if remover_mascara:
-        return números
-    return f"{números[:2]}.{números[2:5]}.{números[5:8]}/{números[8:12]}-{números[12:]}"
+        return caracteres
+    return (
+        f"{caracteres[:2]}.{caracteres[2:5]}.{caracteres[5:8]}/{caracteres[8:12]}-{caracteres[12:]}"
+    )
 
 
 def format_chave_nfe(chave: str) -> str:

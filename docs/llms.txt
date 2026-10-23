@@ -1,0 +1,34 @@
+# MCP Fiscal Brasil
+
+> Servidor MCP, CLI, SDK Python e REST API para integrar dados e validações fiscais brasileiras a automações e assistentes de IA.
+
+Documentação oficial: https://dehor-labs.github.io/mcp-fiscal-brasil/
+Repositório: https://github.com/DeHor-Labs/mcp-fiscal-brasil
+Pacote Python: https://pypi.org/project/mcp-fiscal-brasil/
+
+## Comece aqui
+
+- [Instalação](https://dehor-labs.github.io/mcp-fiscal-brasil/getting-started/install/)
+- [Primeiro uso](https://dehor-labs.github.io/mcp-fiscal-brasil/getting-started/quickstart/)
+- [Configuração](https://dehor-labs.github.io/mcp-fiscal-brasil/getting-started/config/)
+- [Perguntas frequentes](https://dehor-labs.github.io/mcp-fiscal-brasil/faq/)
+
+## Interfaces
+
+- [Servidor MCP](https://dehor-labs.github.io/mcp-fiscal-brasil/interfaces/mcp/)
+- [CLI](https://dehor-labs.github.io/mcp-fiscal-brasil/interfaces/cli/)
+- [REST API](https://dehor-labs.github.io/mcp-fiscal-brasil/interfaces/rest-api/)
+- [SDK e referência Python](https://dehor-labs.github.io/mcp-fiscal-brasil/reference/)
+
+## Casos de uso documentados
+
+- [Due diligence de fornecedores](https://dehor-labs.github.io/mcp-fiscal-brasil/use-cases/due-diligence/)
+- [Validação de fornecedor](https://dehor-labs.github.io/mcp-fiscal-brasil/use-cases/supplier-validation/)
+- [Planejamento tributário preliminar](https://dehor-labs.github.io/mcp-fiscal-brasil/use-cases/tax-planning/)
+- [Relatório de compliance](https://dehor-labs.github.io/mcp-fiscal-brasil/use-cases/compliance-report/)
+
+## Limites importantes
+
+- As respostas apoiam decisões, mas não substituem parecer contábil ou jurídico.
+- Atualidade, disponibilidade e cobertura dependem de cada fonte pública.
+- Certificado A1 e integrações mTLS são opcionais e exigem configuração segura.
