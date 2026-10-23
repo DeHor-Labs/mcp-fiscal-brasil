@@ -5,16 +5,17 @@ from __future__ import annotations
 import base64
 import os
 import re
+import tempfile
 from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING
 
 from lxml import etree
-from signxml import XMLVerifier  # type: ignore[attr-defined, unused-ignore]
+from signxml import SignatureConfiguration, XMLVerifier  # type: ignore[attr-defined, unused-ignore]
 
 from .._core.errors import FiscalValidationError
 from .._core.logging import get_logger
-from ..shared.xml_utils import parse_xml
+from ..shared.xml_utils import NS_NFE, parse_xml
 
 logger_assinatura = get_logger(__name__)
 
@@ -42,7 +43,7 @@ class AssinaturaResult:
     """CN (Common Name) do certificado assinante, normalmente razão social + CNPJ."""
 
     cnpj_cpf: str | None = None
-    """CNPJ ou CPF extraído do CN do certificado, se presente."""
+    """CNPJ de 14 dígitos numéricos extraído do CN, se presente; não extrai CPF."""
 
     validade_inicio: datetime | None = None
     """Início da validade do certificado."""
@@ -147,7 +148,7 @@ def validar_assinatura_nfe(
     Valida a assinatura digital XMLDSig de uma NF-e.
 
     Verifica a integridade do Reference/DigestValue e a assinatura criptográfica
-    do elemento Signature presente em infNFe. Extrai dados do certificado assinante.
+    do infNFe referenciado pela Signature, filha de NFe. Extrai dados do certificado assinante.
 
     Args:
         xml_content: Conteúdo XML da NF-e (str ou bytes). Todo XML externo
@@ -166,45 +167,64 @@ def validar_assinatura_nfe(
         NUNCA reporta assinatura inválida como válida.
 
     Raises:
-        FiscalValidationError: Se ``ca_bundle`` for ``str`` e o caminho não existir,
+        FiscalValidationError: Se o arquivo ``ca_bundle`` não existir ou não puder ser lido,
             ou se o conteúdo exceder 1 MB.
         XMLParseError: Se o XML for malformado (propagado de parse_xml).
     """
-    # Valida ca_bundle str (caminho de arquivo) antes de qualquer processamento
+    bundle_bytes: bytes | None = None
     if isinstance(ca_bundle, str):
         if not os.path.isfile(ca_bundle):
             raise FiscalValidationError(
-                message=(
-                    f"Arquivo ca_bundle não encontrado: '{ca_bundle}'. "
-                    "Informe o caminho absoluto de um arquivo PEM válido da cadeia ICP-Brasil."
-                ),
+                message=f"Arquivo ca_bundle não encontrado: '{ca_bundle}'.",
                 field="ca_bundle",
                 value=ca_bundle,
             )
-
-    # Valida tamanho do ca_bundle antes de qualquer processamento (DoS guard)
-    if ca_bundle is not None:
-        bundle_bytes = ca_bundle if isinstance(ca_bundle, bytes) else ca_bundle.encode()
-        if len(bundle_bytes) > _CA_BUNDLE_MAX_BYTES:
+        try:
+            with open(ca_bundle, "rb") as pem:
+                bundle_bytes = pem.read(_CA_BUNDLE_MAX_BYTES + 1)
+        except OSError as exc:
             raise FiscalValidationError(
-                message="O ca_bundle excede o limite de 1 MB. Forneça apenas a cadeia ICP-Brasil necessária.",
+                message="Não foi possível ler o arquivo ca_bundle.",
                 field="ca_bundle",
-                value=f"{len(bundle_bytes)} bytes",
-            )
+                value=ca_bundle,
+            ) from exc
+
+    else:
+        bundle_bytes = ca_bundle
+
+    if bundle_bytes is not None and len(bundle_bytes) > _CA_BUNDLE_MAX_BYTES:
+        raise FiscalValidationError(
+            message="O ca_bundle excede o limite de 1 MB. Forneça apenas a cadeia ICP-Brasil necessária.",
+            field="ca_bundle",
+            value=f"{len(bundle_bytes)} bytes",
+        )
 
     # Parseia via parse_xml (resolve_entities=False, no_network=True) - anti-XXE
     root = parse_xml(xml_content)
 
-    # Localiza o elemento Signature (pode estar dentro de NFe ou diretamente na raiz)
-    ns_ds = {"ds": "http://www.w3.org/2000/09/xmldsig#"}
-    signature_nodes = root.xpath(".//ds:Signature", namespaces=ns_ds)
-    if not signature_nodes:
-        return AssinaturaResult(
-            assinatura_valida=False,
-            motivo="Elemento Signature não encontrado no XML.",
-        )
-
-    # Dados do certificado (extraídos antes da verificação para retornar mesmo em falha)
+    nfe_tag = f"{{{NS_NFE['nfe']}}}NFe"
+    if root.tag == nfe_tag:
+        nfe_nodes = [root]
+        signature_location = "./"
+    elif root.tag == f"{{{NS_NFE['nfe']}}}nfeProc":
+        nfe_nodes = root.findall(nfe_tag)
+        signature_location = f"./{nfe_tag}/"
+    else:
+        nfe_nodes = []
+        signature_location = "./"
+    if len(nfe_nodes) != 1:
+        return AssinaturaResult(False, "Esperado um único elemento NFe na raiz ou em nfeProc.")
+    nfe = nfe_nodes[0]
+    inf_nodes = root.xpath(".//nfe:infNFe", namespaces=NS_NFE)
+    if len(inf_nodes) != 1 or inf_nodes[0].getparent() is not nfe:
+        return AssinaturaResult(False, "Esperado um único infNFe diretamente em NFe.")
+    inf_nfe = inf_nodes[0]
+    inf_id = inf_nfe.get("Id")
+    if not inf_id or len(root.xpath("//*[@*[local-name()='Id']=$id]", id=inf_id)) != 1:
+        return AssinaturaResult(False, "Id do infNFe ausente ou duplicado.")
+    signature_nodes = root.xpath(".//ds:Signature", namespaces=NS_NFE)
+    if len(signature_nodes) != 1 or signature_nodes[0].getparent() is not nfe:
+        return AssinaturaResult(False, "Esperada uma única Signature diretamente em NFe.")
     signature_el = signature_nodes[0]
     cert_obj = _extrair_cert_x509(signature_el)
     titular: str | None = None
@@ -218,29 +238,52 @@ def validar_assinatura_nfe(
             cert_obj
         )
 
+    if cert_obj is None and bundle_bytes is None:
+        # Sem certificado embutido e sem ca_bundle: impossível validar a
+        # confiança do assinante. Retorna inválido para evitar falsa validação
+        # contra a CA store do sistema (que aceitaria qualquer cert SSL).
+        return AssinaturaResult(
+            assinatura_valida=False,
+            motivo=(
+                "XML não contém certificado embutido e nenhum ca_bundle foi fornecido; "
+                "impossível validar a confiança do assinante."
+            ),
+        )
+
     try:
         verifier = XMLVerifier()
+        references = signature_el.xpath("./ds:SignedInfo/ds:Reference", namespaces=NS_NFE)
+        if len(references) != 1 or references[0].get("URI") != f"#{inf_id}":
+            return AssinaturaResult(False, "Reference URI deve apontar para o Id do infNFe.")
         xml_bytes = etree.tostring(root)
+        config = SignatureConfiguration(location=signature_location, expect_references=1)
 
-        if ca_bundle is not None:
-            # Validação completa: verifica assinatura + cadeia de confiança ICP-Brasil.
-            # ca_bundle pode ser bytes PEM ou str com caminho para arquivo PEM.
-            verifier.verify(data=xml_bytes, ca_pem_file=ca_bundle)
-        elif cert_obj is not None:
-            # Validação sem cadeia: verifica integridade (DigestValue) e assinatura
-            # criptográfica usando o certificado embutido no próprio XML.
-            # Não valida se o certificado é confiável (sem CA bundle).
-            verifier.verify(data=xml_bytes, x509_cert=cert_obj)
+        if bundle_bytes is not None:
+            # SignXML exige caminho; usa exatamente os bytes já lidos e limitados.
+            with tempfile.TemporaryDirectory() as directory:
+                pem_path = os.path.join(directory, "ca.pem")
+                with open(pem_path, "wb") as pem:
+                    pem.write(bundle_bytes)
+                verified = verifier.verify(
+                    data=xml_bytes, ca_pem_file=pem_path, id_attribute="Id", expect_config=config
+                )
         else:
-            # Sem certificado embutido e sem ca_bundle: impossível validar a
-            # confiança do assinante. Retorna inválido para evitar falsa validação
-            # contra a CA store do sistema (que aceitaria qualquer cert SSL).
+            verified = verifier.verify(
+                data=xml_bytes, x509_cert=cert_obj, id_attribute="Id", expect_config=config
+            )
+
+        if isinstance(verified, list):
+            return AssinaturaResult(False, "Esperada uma única referência verificada ao infNFe.")
+        signed = verified.signed_xml
+        if (
+            signed is None
+            or signed.tag != inf_nfe.tag
+            or signed.get("Id") != inf_id
+            or etree.tostring(signed, method="c14n", exclusive=True, with_comments=False)
+            != etree.tostring(inf_nfe, method="c14n", exclusive=True, with_comments=False)
+        ):
             return AssinaturaResult(
-                assinatura_valida=False,
-                motivo=(
-                    "XML não contém certificado embutido e nenhum ca_bundle foi fornecido; "
-                    "impossível validar a confiança do assinante."
-                ),
+                False, "Conteúdo verificado não corresponde ao infNFe esperado."
             )
 
         return AssinaturaResult(

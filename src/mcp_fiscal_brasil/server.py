@@ -399,7 +399,7 @@ async def tool_gerar_danfe(xml_content: str) -> dict[str, Any]:
     description=(
         "Valida a assinatura digital XMLDSig de uma NF-e. "
         "Verifica a integridade do DigestValue e a assinatura criptografica do certificado. "
-        "Extrai dados do certificado assinante: titular, CNPJ/CPF, validade e autoridade certificadora. "
+        "Extrai dados do certificado assinante: titular, CNPJ, validade e autoridade certificadora. "
         "Opcional: informe um CA bundle PEM para validar a cadeia de confianca ICP-Brasil."
     ),
 )
@@ -410,7 +410,7 @@ async def tool_validar_assinatura_nfe(
     """Valida a assinatura digital XMLDSig de uma NF-e.
 
     Verifica a integridade (DigestValue) e a assinatura criptografica do
-    elemento Signature presente em infNFe. Extrai dados do certificado assinante.
+    infNFe referenciado pela Signature, filha de NFe. Extrai dados do certificado assinante.
 
     Sem ca_bundle: valida apenas a assinatura criptografica e integridade do digest
     usando o certificado embutido no proprio XML. Nao verifica se o certificado

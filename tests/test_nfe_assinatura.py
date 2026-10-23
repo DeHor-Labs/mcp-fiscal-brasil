@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import os
 import tempfile
+from copy import deepcopy
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import pytest
 from cryptography import x509
@@ -413,3 +415,63 @@ class TestValidarAssinaturaNfe:
         ca_bundle_gigante = b"A" * (1024 * 1024 + 1)
         with pytest.raises(FiscalValidationError, match="1 MB"):
             validar_assinatura_nfe(b"<NFe/>", ca_bundle=ca_bundle_gigante)
+
+
+@pytest.mark.parametrize("modo", ["envolvido", "outro_no", "id_duplicado"])
+def test_rejeita_substituicao_do_infnfe(modo, chave_privada, certificado_autoassinado):
+    root = etree.fromstring(_xml_nfe_minimo().encode())
+    original = root[0]
+    falso = deepcopy(original)
+    falso.set("Id", _NFE_ID + "9")
+    falso.find(f"{{{_NS_NFE}}}ide/{{{_NS_NFE}}}nNF").text = "9999"
+    if modo == "outro_no":
+        original.tag = f"{{{_NS_NFE}}}outro"
+        root.insert(0, falso)
+        xml = _assinar_xml(etree.tostring(root).decode(), chave_privada, certificado_autoassinado)
+    else:
+        xml = _assinar_xml(_xml_nfe_minimo(), chave_privada, certificado_autoassinado)
+        root = etree.fromstring(xml)
+        original = root[0]
+        if modo == "envolvido":
+            root.remove(original)
+            etree.SubElement(root, f"{{{_NS_NFE}}}extra").append(original)
+        else:
+            falso.set("Id", _NFE_ID)
+        root.insert(0, falso)
+        xml = etree.tostring(root)
+    assert validar_assinatura_nfe(xml).assinatura_valida is False
+
+
+def test_aceita_nfeproc(chave_privada, certificado_autoassinado):
+    xml = _assinar_xml(_xml_nfe_minimo(), chave_privada, certificado_autoassinado)
+    root = etree.Element(f"{{{_NS_NFE}}}nfeProc", nsmap={None: _NS_NFE})
+    root.append(etree.fromstring(xml))
+    assert validar_assinatura_nfe(etree.tostring(root)).assinatura_valida is True
+
+
+def test_ca_bundle_arquivo_acima_do_limite(tmp_path):
+    from mcp_fiscal_brasil._core.errors import FiscalValidationError
+
+    path = tmp_path / "grande.pem"
+    path.write_bytes(b"A" * (1024 * 1024 + 1))
+    with pytest.raises(FiscalValidationError, match="1 MB"):
+        validar_assinatura_nfe(b"<NFe/>", ca_bundle=str(path))
+
+
+def test_ca_bundle_bytes_validos(chave_privada, certificado_autoassinado, ca_pem_file):
+    xml = _assinar_xml(_xml_nfe_minimo(), chave_privada, certificado_autoassinado)
+    assert validar_assinatura_nfe(xml, Path(ca_pem_file).read_bytes()).assinatura_valida is True
+
+
+def test_ca_bundle_ilegivel(tmp_path, monkeypatch):
+    from mcp_fiscal_brasil._core.errors import FiscalValidationError
+
+    path = tmp_path / "ilegivel.pem"
+    path.write_bytes(b"PEM")
+
+    def negar_leitura(*args, **kwargs):
+        raise PermissionError("sem acesso")
+
+    monkeypatch.setattr("builtins.open", negar_leitura)
+    with pytest.raises(FiscalValidationError, match="ler"):
+        validar_assinatura_nfe(b"<NFe/>", str(path))
