@@ -10,7 +10,12 @@ from typing import Any, cast
 import httpx
 from aiolimiter import AsyncLimiter
 from cachetools import TTLCache
-from tenacity import AsyncRetrying, retry_if_exception, stop_after_attempt, wait_exponential
+from tenacity import (
+    AsyncRetrying,
+    retry_if_exception,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 __all__ = ["HTTPClient"]
 
@@ -38,6 +43,7 @@ class HTTPClient:
         max_retries: int = 3,
         cache_ttl: int = 300,
         rate_limit_per_second: int = 10,
+        limiter: AsyncLimiter | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/") + "/"
         self.timeout = timeout
@@ -53,9 +59,13 @@ class HTTPClient:
             maxsize=1024,
             ttl=self.cache_ttl,
         )
-        self._limiter = AsyncLimiter(
-            self.rate_limit_per_second,
-            self.rate_limit_per_second,
+        # Um limitador pode ser injetado para ser compartilhado entre varias
+        # instancias (ex.: o teto global da cpfcnpj.com.br). Quando ausente, cada
+        # instancia usa o proprio, derivado de rate_limit_per_second.
+        self._limiter = (
+            limiter
+            if limiter is not None
+            else AsyncLimiter(self.rate_limit_per_second, self.rate_limit_per_second)
         )
 
     async def __aenter__(self) -> HTTPClient:
@@ -134,14 +144,6 @@ class HTTPClient:
         headers: dict[str, str] | None = None,
     ) -> httpx.Response:
         try:
-            await self._limiter.acquire()
-        except ValueError as exc:
-            raise self._rate_limit_error(
-                "Limite de requisições excedido",
-                retry_after=float(self.rate_limit_per_second),
-            ) from exc
-
-        try:
             async for attempt in AsyncRetrying(
                 retry=retry_if_exception(self._is_retryable_error),
                 wait=wait_exponential(min=1, max=60),
@@ -149,6 +151,9 @@ class HTTPClient:
                 reraise=True,
             ):
                 with attempt:
+                    # Cada tentativa consome uma vaga do limitador: um retry
+                    # tambem conta para o teto de requisicoes por segundo.
+                    await self._acquire_rate_limit()
                     response = await self._client.request(
                         method,
                         path.lstrip("/"),
@@ -167,6 +172,15 @@ class HTTPClient:
             raise self._request_error(method, exc) from exc
 
         raise self._http_error(method, None)
+
+    async def _acquire_rate_limit(self) -> None:
+        try:
+            await self._limiter.acquire()
+        except ValueError as exc:
+            raise self._rate_limit_error(
+                "Limite de requisições excedido",
+                retry_after=float(self.rate_limit_per_second),
+            ) from exc
 
     def _absolute_url(self, path: str) -> str:
         return str(httpx.URL(self.base_url).join(path.lstrip("/")))
@@ -196,8 +210,18 @@ class HTTPClient:
             return tuple(sorted(self._freeze(item) for item in value))
         return value
 
+    def _parse_json(self, response: httpx.Response) -> Any:
+        try:
+            return response.json()
+        except ValueError as exc:
+            raise self._http_error(
+                response.request.method,
+                response,
+                "A resposta não é um JSON válido.",
+            ) from exc
+
     def _json_object(self, response: httpx.Response) -> dict[str, Any]:
-        data = response.json()
+        data = self._parse_json(response)
         if isinstance(data, dict):
             return cast(dict[str, Any], data)
         raise self._http_error(
@@ -207,7 +231,7 @@ class HTTPClient:
         )
 
     def _json_list(self, response: httpx.Response) -> list[Any]:
-        data = response.json()
+        data = self._parse_json(response)
         if isinstance(data, list):
             return data
         raise self._http_error(

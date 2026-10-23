@@ -2,6 +2,14 @@ name: Publica no Registry Oficial MCP
 
 on:
   workflow_dispatch: {}
+  # Releases criadas pelo release-please usam o GITHUB_TOKEN e nao disparam
+  # o evento release; por isso o release-please.yml chama este workflow.
+  workflow_call:
+    inputs:
+      ref:
+        description: Tag da release a publicar (a mesma enviada ao PyPI)
+        required: true
+        type: string
   release:
     types: [published]
 
@@ -15,6 +23,21 @@ jobs:
     steps:
       - name: Checkout do codigo
         uses: actions/checkout@v6
+        with:
+          # Vazio fora do workflow_call: usa o ref do proprio evento.
+          ref: ${{ inputs.ref }}
+
+      - name: Confere versao do server.json
+        run: |
+          python3 - <<'PY'
+          import json, re, sys
+          pyproject = re.search(r'^version = "([^"]+)"', open("pyproject.toml").read(), re.M).group(1)
+          server = json.load(open("server.json"))
+          versoes = {server["version"]} | {p["version"] for p in server["packages"]}
+          if versoes != {pyproject}:
+              sys.exit(f"server.json {sorted(versoes)} difere do pyproject.toml {pyproject}")
+          print(f"server.json alinhado com o pyproject.toml ({pyproject})")
+          PY
 
       - name: Instala mcp-publisher
         run: |

@@ -1,0 +1,28 @@
+name: Supply chain audit
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  osv-scanner:
+    name: Vulnerabilidades em dependências (osv-scanner)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan de lockfiles (falha em vulnerabilidade conhecida não listada em osv-scanner.toml)
+        uses: google/osv-scanner-action/osv-scanner-action@v2.5.1
+        with:
+          scan-args: |
+            --recursive
+            --allow-no-lockfiles
+            --format=table
+            ./

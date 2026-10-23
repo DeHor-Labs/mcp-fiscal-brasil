@@ -30,17 +30,13 @@ def register(app: Any) -> None:
         datas de opcao e exclusao quando disponiveis.
 
         Args:
-            cnpj: Numero do CNPJ com 14 digitos, com ou sem formatacao
-                (ex: '11.222.333/0001-81' ou '11222333000181').
+            cnpj: Numero do CNPJ com 14 caracteres (numerico ou alfanumerico,
+                IN RFB 2.229/2024), com ou sem formatacao
+                (ex: '11.222.333/0001-81', '11222333000181' ou '12ABC34501DE35').
 
         Returns:
             dict com 'cnpj', 'mei' (bool), 'simples_nacional' (bool),
             'data_opcao_mei' e 'data_exclusao_mei' (quando disponiveis).
         """
-        cnpj_digits = "".join(c for c in cnpj if c.isdigit())
-        if len(cnpj_digits) != 14:
-            raise ValueError(
-                f"CNPJ inválido: '{cnpj}'. Informe 14 dígitos numéricos (ex: '11.222.333/0001-81' ou '11222333000181')."
-            )
-        result = await consultar_status_mei(cnpj_digits)
+        result = await consultar_status_mei(cnpj)
         return result.model_dump(mode="json", exclude_none=True)
