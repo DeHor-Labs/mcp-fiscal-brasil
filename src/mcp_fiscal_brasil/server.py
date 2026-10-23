@@ -4,6 +4,7 @@ Servidor MCP Fiscal Brasil.
 Registra todas as ferramentas fiscais e expõe via protocolo MCP (Model Context Protocol).
 """
 
+import asyncio
 import logging
 import unicodedata
 from typing import Any, Literal
@@ -428,7 +429,8 @@ async def tool_validar_assinatura_nfe(
         dict com assinatura_valida (bool), motivo (se invalida), titular (CN),
         cnpj_cpf, validade_inicio, validade_fim e ac_emissora.
     """
-    resultado: AssinaturaResult = validar_assinatura_nfe(
+    resultado: AssinaturaResult = await asyncio.to_thread(
+        validar_assinatura_nfe,
         xml_content,
         ca_bundle=ca_bundle.encode() if ca_bundle else None,
     )

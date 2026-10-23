@@ -417,8 +417,20 @@ class TestValidarAssinaturaNfe:
             validar_assinatura_nfe(b"<NFe/>", ca_bundle=ca_bundle_gigante)
 
 
-@pytest.mark.parametrize("modo", ["envolvido", "outro_no", "id_duplicado"])
-def test_rejeita_substituicao_do_infnfe(modo, chave_privada, certificado_autoassinado):
+@pytest.mark.parametrize(
+    ("modo", "motivo"),
+    [
+        ("envolvido", "Esperado um único infNFe diretamente em NFe."),
+        ("outro_no", "Reference URI deve apontar para o Id do infNFe."),
+        ("id_duplicado", "Esperado um único infNFe diretamente em NFe."),
+    ],
+)
+def test_rejeita_substituicao_do_infnfe(
+    modo: str,
+    motivo: str,
+    chave_privada: rsa.RSAPrivateKey,
+    certificado_autoassinado: x509.Certificate,
+) -> None:
     root = etree.fromstring(_xml_nfe_minimo().encode())
     original = root[0]
     falso = deepcopy(original)
@@ -439,17 +451,27 @@ def test_rejeita_substituicao_do_infnfe(modo, chave_privada, certificado_autoass
             falso.set("Id", _NFE_ID)
         root.insert(0, falso)
         xml = etree.tostring(root)
-    assert validar_assinatura_nfe(xml).assinatura_valida is False
+    resultado = validar_assinatura_nfe(xml)
+    assert resultado.assinatura_valida is False
+    assert resultado.motivo == motivo
 
 
-def test_aceita_nfeproc(chave_privada, certificado_autoassinado):
+@pytest.mark.parametrize("com_assinatura_protocolo", [False, True])
+def test_aceita_nfeproc(
+    chave_privada: rsa.RSAPrivateKey,
+    certificado_autoassinado: x509.Certificate,
+    com_assinatura_protocolo: bool,
+) -> None:
     xml = _assinar_xml(_xml_nfe_minimo(), chave_privada, certificado_autoassinado)
     root = etree.Element(f"{{{_NS_NFE}}}nfeProc", nsmap={None: _NS_NFE})
     root.append(etree.fromstring(xml))
+    if com_assinatura_protocolo:
+        protocolo = etree.SubElement(root, f"{{{_NS_NFE}}}protNFe")
+        etree.SubElement(protocolo, "{http://www.w3.org/2000/09/xmldsig#}Signature")
     assert validar_assinatura_nfe(etree.tostring(root)).assinatura_valida is True
 
 
-def test_ca_bundle_arquivo_acima_do_limite(tmp_path):
+def test_ca_bundle_arquivo_acima_do_limite(tmp_path: Path) -> None:
     from mcp_fiscal_brasil._core.errors import FiscalValidationError
 
     path = tmp_path / "grande.pem"
@@ -458,18 +480,22 @@ def test_ca_bundle_arquivo_acima_do_limite(tmp_path):
         validar_assinatura_nfe(b"<NFe/>", ca_bundle=str(path))
 
 
-def test_ca_bundle_bytes_validos(chave_privada, certificado_autoassinado, ca_pem_file):
+def test_ca_bundle_bytes_validos(
+    chave_privada: rsa.RSAPrivateKey,
+    certificado_autoassinado: x509.Certificate,
+    ca_pem_file: str,
+) -> None:
     xml = _assinar_xml(_xml_nfe_minimo(), chave_privada, certificado_autoassinado)
     assert validar_assinatura_nfe(xml, Path(ca_pem_file).read_bytes()).assinatura_valida is True
 
 
-def test_ca_bundle_ilegivel(tmp_path, monkeypatch):
+def test_ca_bundle_ilegivel(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     from mcp_fiscal_brasil._core.errors import FiscalValidationError
 
     path = tmp_path / "ilegivel.pem"
     path.write_bytes(b"PEM")
 
-    def negar_leitura(*args, **kwargs):
+    def negar_leitura(*args: object, **kwargs: object) -> None:
         raise PermissionError("sem acesso")
 
     monkeypatch.setattr("builtins.open", negar_leitura)

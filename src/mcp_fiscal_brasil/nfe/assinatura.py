@@ -222,8 +222,8 @@ def validar_assinatura_nfe(
     inf_id = inf_nfe.get("Id")
     if not inf_id or len(root.xpath("//*[@*[local-name()='Id']=$id]", id=inf_id)) != 1:
         return AssinaturaResult(False, "Id do infNFe ausente ou duplicado.")
-    signature_nodes = root.xpath(".//ds:Signature", namespaces=NS_NFE)
-    if len(signature_nodes) != 1 or signature_nodes[0].getparent() is not nfe:
+    signature_nodes = nfe.xpath("./ds:Signature", namespaces=NS_NFE)
+    if len(signature_nodes) != 1:
         return AssinaturaResult(False, "Esperada uma única Signature diretamente em NFe.")
     signature_el = signature_nodes[0]
     cert_obj = _extrair_cert_x509(signature_el)
