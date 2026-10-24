@@ -12,9 +12,11 @@ dos campos ``erro`` e ``erroCodigo``.
 
 from __future__ import annotations
 
+import asyncio
+import threading
+import time
+from collections import deque
 from typing import Any
-
-from aiolimiter import AsyncLimiter
 
 from mcp_fiscal_brasil._core import (
     FiscalHTTPError,
@@ -28,26 +30,93 @@ logger = get_logger(__name__)
 # Pacotes de consulta na cpfcnpj.com.br.
 PACOTE_NFE = 100
 PACOTE_NFCE = 102
+# Pacote padrao de CPF: 26 (CPF D Simplificado), o mais barato que traz situacao
+# cadastral. O pacote efetivo vem de settings.cpfcnpj_cpf_packet.
+PACOTE_CPF = 26
 
 # Teto de requisicoes por segundo da cpfcnpj.com.br. Cada consulta abre um
-# HTTPClient novo, entao o limitador precisa ser compartilhado por todas as
-# instancias/chamadas: sem isso, consultas concorrentes (CNPJ pacotes 5/6 e
-# NF-e/NFC-e pacotes 100/102) somariam limitadores independentes e poderiam
-# ultrapassar o teto, recebendo o erro 1007 (HTTP 429).
+# HTTPClient novo, entao o limitador precisa coordenar o teto por todo o processo,
+# entre event loops distintos: os metodos sincronos do SDK (consultar_cpf_sync/
+# consultar_cnpj_sync) chamam asyncio.run, abrindo um loop novo a cada chamada. Sem
+# isso, chamadas sincronas sucessivas somariam orcamentos independentes e poderiam
+# ultrapassar o teto, recebendo o erro 1007 (HTTP 429). A maioria dos pacotes
+# (CPF/CNPJ/IE) segue 20 req/s. Os pacotes de NF-e/NFC-e por chave (100/102) tem teto
+# proprio de 2 req/s por conta na documentacao do provedor; ultrapassar devolve
+# HTTP 429 + erroCodigo 1007 (sem cobrar credito).
 CPFCNPJ_MAX_REQUISICOES_POR_SEGUNDO = 20
+CPFCNPJ_NFE_MAX_REQUISICOES_POR_SEGUNDO = 2
 
-_limiter: AsyncLimiter | None = None
+# Pacotes com teto reduzido de requisicoes por segundo.
+PACOTES_LIMITE_REDUZIDO = frozenset({PACOTE_NFE, PACOTE_NFCE})
 
 
-def _get_limiter() -> AsyncLimiter:
-    """Retorna o limitador unico (singleton de modulo) compartilhado pela API."""
-    global _limiter
-    if _limiter is None:
-        _limiter = AsyncLimiter(
-            CPFCNPJ_MAX_REQUISICOES_POR_SEGUNDO,
-            CPFCNPJ_MAX_REQUISICOES_POR_SEGUNDO,
-        )
-    return _limiter
+class _LimitadorDeProcesso:
+    """Limitador de requisicoes por segundo compartilhado por todo o processo.
+
+    Independe do event loop: nao guarda referencia a loop algum. Ao adquirir, calcula
+    sob o lock o instante em que a proxima requisicao pode partir, reserva a vaga e
+    dorme no loop corrente ate ela (asyncio.sleep). Assim varios ``asyncio.run``
+    consecutivos (como os dos metodos sincronos do SDK) dividem o mesmo orcamento e
+    nada acumula por loop. O agendamento e protegido por um ``threading.Lock``, entao
+    tambem e seguro entre threads.
+
+    Usa uma janela deslizante de ``janela`` segundos: ate ``taxa`` requisicoes cabem
+    na janela sem espera; a seguinte so parte quando a mais antiga sai da janela.
+    """
+
+    def __init__(self, taxa: int, janela: float = 1.0) -> None:
+        self.taxa = taxa
+        self.janela = janela
+        self._lock = threading.Lock()
+        self._agendadas: deque[float] = deque()
+
+    async def acquire(self, amount: float = 1) -> None:
+        # A vaga so e registrada quando existe de fato: depois de dormir, a janela
+        # e reavaliada sob o lock, porque outra tarefa (ou thread) pode ter ocupado
+        # o espaco enquanto esta esperava. Assim nenhuma requisicao parte com a
+        # janela cheia, mesmo se o sleep retomar atrasado.
+        while True:
+            with self._lock:
+                agora = time.monotonic()
+                limite = agora - self.janela
+                while self._agendadas and self._agendadas[0] <= limite:
+                    self._agendadas.popleft()
+                if len(self._agendadas) < self.taxa:
+                    self._agendadas.append(agora)
+                    return
+                espera = self._agendadas[0] + self.janela - agora
+            await asyncio.sleep(max(0.0, espera))
+
+
+def _rate_limit_para(pacote: int) -> int:
+    """Teto de req/s do pacote: 2 para NF-e/NFC-e (100/102), 20 para os demais."""
+    if pacote in PACOTES_LIMITE_REDUZIDO:
+        return CPFCNPJ_NFE_MAX_REQUISICOES_POR_SEGUNDO
+    return CPFCNPJ_MAX_REQUISICOES_POR_SEGUNDO
+
+
+# Um limitador por grupo de req/s (20 padrao, 2 para NF-e/NFC-e), singleton de
+# modulo compartilhado entre todos os event loops e threads do processo.
+_limitadores_por_grupo: dict[int, _LimitadorDeProcesso] = {}
+_limitadores_lock = threading.Lock()
+
+
+def _get_limiter(pacote: int) -> _LimitadorDeProcesso:
+    """Retorna o limitador de processo do grupo do pacote (singleton por grupo).
+
+    Pacotes 100/102 compartilham um limitador de 2 req/s; os demais, um de 20 req/s.
+    O mesmo objeto e devolvido em qualquer event loop ou thread, entao o teto vale
+    por processo e nao acumula estado por loop.
+    """
+    grupo = _rate_limit_para(pacote)
+    limitador = _limitadores_por_grupo.get(grupo)
+    if limitador is None:
+        with _limitadores_lock:
+            limitador = _limitadores_por_grupo.get(grupo)
+            if limitador is None:
+                limitador = _LimitadorDeProcesso(grupo)
+                _limitadores_por_grupo[grupo] = limitador
+    return limitador
 
 
 def provedor_configurado() -> bool:
@@ -55,14 +124,20 @@ def provedor_configurado() -> bool:
     return bool(settings.cpfcnpj_token.strip())
 
 
-def _http_client() -> HTTPClient:
+def _http_client(pacote: int) -> HTTPClient:
     return HTTPClient(
         settings.cpfcnpj_base_url,
-        timeout=settings.mcp_fiscal_http_timeout,
+        timeout=settings.cpfcnpj_timeout,
         max_retries=settings.mcp_fiscal_max_retries,
         cache_ttl=settings.mcp_fiscal_cache_ttl,
-        rate_limit_per_second=CPFCNPJ_MAX_REQUISICOES_POR_SEGUNDO,
-        limiter=_get_limiter(),
+        rate_limit_per_second=_rate_limit_para(pacote),
+        limiter=_get_limiter(pacote),
+        # O token viaja no primeiro segmento do path: mascarar nos erros. Passar
+        # o token como segredo literal cobre tambem bases com prefixo de path
+        # (ex.: CPFCNPJ_BASE_URL=https://proxy/cpfcnpj), removendo-o de qualquer
+        # url/mensagem/details mesmo fora do formato esperado.
+        mask_first_path_segment=True,
+        mask_secret=settings.cpfcnpj_token.strip() or None,
     )
 
 
@@ -90,7 +165,7 @@ async def consultar(pacote: int, documento: str) -> dict[str, Any]:
         )
 
     path = f"/{token}/{pacote}/{documento}"
-    async with _http_client() as client:
+    async with _http_client(pacote) as client:
         data = await client.get(path)
 
     if data.get("status") != 1:
@@ -99,7 +174,10 @@ async def consultar(pacote: int, documento: str) -> dict[str, Any]:
         raise FiscalHTTPError(
             f"cpfcnpj.com.br retornou erro: {mensagem}",
             status_code=int(codigo) if isinstance(codigo, int) else 0,
-            url=f"{settings.cpfcnpj_base_url}/***/{pacote}/{documento}",
+            # Mascara o token (1o segmento) e tambem o documento (ultimo segmento):
+            # a url viaja para access log/trace/proxy e nao pode expor o CPF/CNPJ/chave
+            # consultado. A url real da requisicao (path acima) nao e alterada.
+            url=f"{settings.cpfcnpj_base_url}/***/{pacote}/***",
             detail={"erro": mensagem, "erroCodigo": codigo},
         )
 
@@ -107,6 +185,7 @@ async def consultar(pacote: int, documento: str) -> dict[str, Any]:
 
 
 __all__ = [
+    "PACOTE_CPF",
     "PACOTE_NFCE",
     "PACOTE_NFE",
     "consultar",
