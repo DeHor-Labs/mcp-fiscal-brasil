@@ -95,7 +95,9 @@ def test_cpfcnpj_base_url_https_customizada_e_aceita(monkeypatch: pytest.MonkeyP
     assert settings.cpfcnpj_base_url == "https://proxy.interno.example/cpfcnpj"
 
 
-def test_notaas_base_url_padrao_e_https() -> None:
+def test_notaas_base_url_padrao_e_https(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("NOTAAS_BASE_URL", raising=False)
+    monkeypatch.delenv("NOTAAS_API_KEY", raising=False)
     settings = Settings(_env_file=None)
     assert settings.notaas_base_url == "https://platform.notaas.com.br"
     assert settings.notaas_api_key == ""

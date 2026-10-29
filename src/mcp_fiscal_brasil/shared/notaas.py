@@ -13,6 +13,7 @@ Comportamento opt-in:
 
 from __future__ import annotations
 
+import re
 from typing import Any
 from urllib.parse import quote
 
@@ -29,6 +30,8 @@ logger = get_logger(__name__)
 
 # Teto compartilhado de requisicoes por segundo para a API da Notaas.
 NOTAAS_MAX_REQUISICOES_POR_SEGUNDO = 10
+
+_INVOICE_ID_RE = re.compile(r"[A-Za-z0-9_-]{1,128}")
 
 _limiter: AsyncLimiter | None = None
 
@@ -49,11 +52,15 @@ def provedor_configurado() -> bool:
     return bool(settings.notaas_api_key.strip())
 
 
-def _http_client(*, cache_ttl: int | None = None) -> HTTPClient:
+def _http_client(
+    *,
+    cache_ttl: int | None = None,
+    max_retries: int | None = None,
+) -> HTTPClient:
     return HTTPClient(
         settings.notaas_base_url,
         timeout=settings.mcp_fiscal_http_timeout,
-        max_retries=settings.mcp_fiscal_max_retries,
+        max_retries=(settings.mcp_fiscal_max_retries if max_retries is None else max_retries),
         cache_ttl=settings.mcp_fiscal_cache_ttl if cache_ttl is None else cache_ttl,
         rate_limit_per_second=NOTAAS_MAX_REQUISICOES_POR_SEGUNDO,
         limiter=_get_limiter(),
@@ -110,6 +117,8 @@ async def consultar_status_nfse(invoice_id: str) -> dict[str, Any]:
     id_limpo = invoice_id.strip()
     if not id_limpo:
         raise ValueError("invoice_id é obrigatório")
+    if not _INVOICE_ID_RE.fullmatch(id_limpo):
+        raise ValueError("invoice_id inválido: use apenas letras, números, '_' e '-'")
 
     segmento = quote(id_limpo, safe="")
     async with _http_client(cache_ttl=0) as client:
@@ -122,7 +131,7 @@ async def emitir_nfse(payload: dict[str, Any]) -> dict[str, Any]:
     Requer ``NOTAAS_API_KEY`` configurado.
     """
     headers = _auth_headers()
-    async with _http_client(cache_ttl=0) as client:
+    async with _http_client(cache_ttl=0, max_retries=1) as client:
         return await client.post("/api/v1/emitir", json=payload, headers=headers)
 
 
@@ -139,6 +148,8 @@ async def cancelar_nfse(
     id_limpo = invoice_id.strip()
     if not id_limpo:
         raise ValueError("invoice_id é obrigatório")
+    if not _INVOICE_ID_RE.fullmatch(id_limpo):
+        raise ValueError("invoice_id inválido: use apenas letras, números, '_' e '-'")
 
     body: dict[str, Any] = {"invoiceId": id_limpo}
     if motivo and motivo.strip():
@@ -146,7 +157,7 @@ async def cancelar_nfse(
     if codigo_cancelamento and codigo_cancelamento.strip():
         body["codigoCancelamento"] = codigo_cancelamento.strip()
 
-    async with _http_client(cache_ttl=0) as client:
+    async with _http_client(cache_ttl=0, max_retries=1) as client:
         return await client.post("/api/v1/cancelar", json=body, headers=headers)
 
 

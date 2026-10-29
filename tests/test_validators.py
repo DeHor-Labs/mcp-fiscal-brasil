@@ -88,6 +88,10 @@ class TestValidateChaveNFSe:
         assert validate_chave_nfse("12345") is False
         assert validate_chave_nfse("35240112345678000195550010000001231000000011") is False
 
+    def test_chave_nfse_digito_unicode_invalida(self) -> None:
+        # Dígitos não-ASCII (ex.: Arabic-Indic ٣) devem ser rejeitados
+        assert validate_chave_nfse("٣" + self.CHAVE_REAL[1:]) is False
+
     def test_chave_nfse_com_cnpj_alfanumerico_valida(self) -> None:
         # Base de 49 posições com CNPJ alfanumérico (AB123CD0000108) nas posições 9..23
         base49 = "355030822AB123CD000010800000000000012607123456789"

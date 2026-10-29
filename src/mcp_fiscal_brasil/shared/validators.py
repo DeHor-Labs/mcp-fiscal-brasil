@@ -340,7 +340,7 @@ def validate_chave_nfse(chave: str) -> bool:
     if len(chave_limpa) != 50:
         return False
 
-    if not re.match(r"^\d{9}[A-Z0-9]{12}\d{29}$", chave_limpa):
+    if not re.fullmatch(r"[0-9]{9}[A-Z0-9]{12}[0-9]{29}", chave_limpa):
         return False
 
     if len(set(chave_limpa)) == 1:
@@ -359,6 +359,6 @@ def validate_chave_nfse(chave: str) -> bool:
 def format_chave_nfse(chave: str) -> str:
     """Formata uma chave de NFS-e Nacional (50 posições) em grupos de 5 caracteres."""
     chave_limpa = normalizar_chave_nfse(chave)
-    if len(chave_limpa) != 50 or not re.match(r"^\d{9}[A-Z0-9]{12}\d{29}$", chave_limpa):
+    if len(chave_limpa) != 50 or not re.fullmatch(r"[0-9]{9}[A-Z0-9]{12}[0-9]{29}", chave_limpa):
         raise ValueError(f"Chave NFS-e deve ter 50 posições válidas, recebeu {len(chave_limpa)}")
     return " ".join(chave_limpa[i : i + 5] for i in range(0, 50, 5))

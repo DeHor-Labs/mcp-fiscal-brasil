@@ -111,3 +111,22 @@ async def test_consultar_cobertura_nfse_fallback_local() -> None:
     assert resultado["fonte"] == "fallback_catalogo_local"
     assert resultado["total"] == 1
     assert resultado["municipios"][0]["sistema_nfse"] == "ABRASF"
+
+
+@pytest.mark.asyncio
+async def test_consultar_cobertura_nfse_fallback_local_municipio_ausente() -> None:
+    from mcp_fiscal_brasil._core import FiscalHTTPError
+
+    with patch(
+        "mcp_fiscal_brasil.nfse.tools.notaas_provider.consultar_cobertura_cidades",
+        new_callable=AsyncMock,
+        side_effect=FiscalHTTPError(
+            "offline", status_code=503, url="https://platform.notaas.com.br"
+        ),
+    ):
+        resultado = await consultar_cobertura_nfse(municipio="Cidade Inexistente XYZ", uf="SP")
+
+    assert resultado["fonte"] == "fallback_catalogo_local"
+    assert resultado["total"] == 0
+    assert resultado["municipios"] == []
+    assert "motivo" in resultado

@@ -234,3 +234,14 @@ async def test_emitir_e_cancelar_nfse_via_provedor(
         "invoiceId": "inv_123",
         "motivo": "Erro de preenchimento",
     }
+
+
+@pytest.mark.asyncio
+async def test_rejeita_invoice_id_invalido_ou_traversal(
+    provedor_habilitado: None,
+) -> None:
+    for invalido in ("..", "../status", "inv/123", "inv com espaco", "a" * 129):
+        with pytest.raises(ValueError, match="invoice_id inválido"):
+            await notaas_provider.consultar_status_nfse(invalido)
+        with pytest.raises(ValueError, match="invoice_id inválido"):
+            await notaas_provider.cancelar_nfse(invalido)
