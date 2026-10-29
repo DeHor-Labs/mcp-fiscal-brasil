@@ -314,3 +314,51 @@ def format_chave_nfe(chave: str) -> str:
     if len(números) != 44:
         raise ValueError(f"Chave NFe deve ter 44 digitos, recebeu {len(números)}")
     return " ".join(números[i : i + 4] for i in range(0, 44, 4))
+
+
+def normalizar_chave_nfse(chave: str) -> str:
+    """Remove espaços, pontos e hífens de uma chave de acesso de NFS-e Nacional (50 posições) e normaliza letras."""
+    return re.sub(r"[\s.\-]+", "", chave).upper()
+
+
+def validate_chave_nfse(chave: str) -> bool:
+    """
+    Valida uma chave de acesso da NFS-e Nacional (ADN / SNNFSE) de 50 posições.
+
+    Composição oficial (Guia do Emissor Público Nacional / NT-009):
+    cMun(7) + AmbGer(1) + tpInsc(1) + Inscrição Federal(14) + nNFSe(13)
+    + AAMM(4) + cNum(9) + DV(1) = 50 posições.
+
+    Suporta inscrição federal numérica ou CNPJ alfanumérico (IN RFB 2.229/2024)
+    nas posições 10 a 21 (índice 9:21), calculando o dígito verificador pelo
+    módulo 11 (pesos 2 a 9 da direita para a esquerda, conversão ASCII - 48).
+    """
+    if not chave:
+        return False
+
+    chave_limpa = normalizar_chave_nfse(chave)
+    if len(chave_limpa) != 50:
+        return False
+
+    if not re.match(r"^\d{9}[A-Z0-9]{12}\d{29}$", chave_limpa):
+        return False
+
+    if len(set(chave_limpa)) == 1:
+        return False
+
+    pesos_ciclo = list(range(2, 10))  # [2, 3, 4, 5, 6, 7, 8, 9]
+    soma = 0
+    for i, char in enumerate(reversed(chave_limpa[:49])):
+        soma += _valor_char_cnpj(char) * pesos_ciclo[i % len(pesos_ciclo)]
+
+    resto = soma % 11
+    dv_esperado = 0 if resto in (0, 1) else 11 - resto
+    return dv_esperado == int(chave_limpa[49])
+
+
+def format_chave_nfse(chave: str) -> str:
+    """Formata uma chave de NFS-e Nacional (50 posições) em grupos de 5 caracteres."""
+    chave_limpa = normalizar_chave_nfse(chave)
+    if len(chave_limpa) != 50 or not re.match(r"^\d{9}[A-Z0-9]{12}\d{29}$", chave_limpa):
+        raise ValueError(f"Chave NFS-e deve ter 50 posições válidas, recebeu {len(chave_limpa)}")
+    return " ".join(chave_limpa[i : i + 5] for i in range(0, 50, 5))

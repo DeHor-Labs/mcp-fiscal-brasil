@@ -223,6 +223,8 @@ Funcionam 100% sem chaves de API. Instale e use imediatamente.
 | NFe | `baixar_nfe_distribuicao` | Baixa documentos via NFeDistribuicaoDFe (requer cert A1 local) | SEFAZ (mTLS) |
 | NFe | `manifestar_nfe` | Manifesta destinatario em NF-e via NFeRecepcaoEvento (requer cert A1) | SEFAZ (mTLS) |
 | CPF | `validar_cpf` | Validação de dígito verificador | Offline |
+| NFSe | `validar_chave_nfse` | Valida dígito verificador (módulo 11) + decompõe chave NFS-e Nacional de 50 posições | Offline |
+| NFSe | `consultar_cobertura_nfse` | Cobertura NFS-e de 5.570 municípios: motor municipal, adesão SNNFSE, Reforma Tributária (IBS/CBS) e requisitos | Notaas API pública (grátis, sem chave) + fallback offline |
 | SPED | `analisar_sped` | Analisa arquivo EFD/ECD/ECF: período, empresa, erros | Offline |
 | SPED | `listar_registros_sped` | Filtra registros por tipo (C100, E110, etc.) | Offline |
 | eSocial | `listar_eventos_esocial` | Catálogo de eventos filtrável por grupo | Offline |
@@ -236,7 +238,7 @@ Retornam URLs e instruções - exigem ação manual nos portais governamentais.
 
 | Módulo | Ferramenta | O que retorna |
 |--------|-----------|--------------|
-| NFSe | `consultar_nfse` | URL do portal NFSe do município + sistema utilizado |
+| NFSe | `consultar_nfse` | Consulta automática via API Nacional (chave de 50 dígitos) ou provedor opt-in Notaas (`NOTAAS_API_KEY`), com fallback para URL do portal municipal + sistema utilizado |
 | Certidões | `consultar_certidao_federal` | URL do e-CAC para emissão de CND federal |
 | Certidões | `consultar_certidao_fgts` | URL do portal Caixa para consulta do CRF |
 
@@ -331,6 +333,32 @@ Gerais (MG); as demais UFs exigem habilitação sob demanda e podem retornar o e
 
 Trate o token como segredo: use o gestor de segredos do seu provedor de deploy,
 nunca um `.env` versionado em produção.
+
+---
+
+### 🏛️ Provedor NFS-e opcional: Notaas (opt-in)
+
+No Brasil, a NFS-e é fragmentada entre o Sistema Nacional (SNNFSE/ADN) e dezenas
+de webservices municipais próprios (Paulistana SP, Barueri, Brasília, GINFES,
+Betha, ABRASF, ISSNet, WebISS, etc.).
+
+- **Gratuito e sem chave por padrão:** as ferramentas `validar_chave_nfse` (50
+  posições, módulo 11) e `consultar_cobertura_nfse` (cobertura de **5.570
+  municípios** via API pública da [Notaas](https://www.notaas.com.br) com
+  fallback offline) funcionam sem nenhuma variável configurada.
+- **Opt-in com `NOTAAS_API_KEY`:** ao definir `NOTAAS_API_KEY`, `consultar_nfse`
+  consulta automaticamente o status, número, código de verificação e links de
+  XML/PDF da NFS-e pela API da Notaas, mantendo a API Nacional (para chaves de
+  50 dígitos) e o catálogo de portais municipais como fallback automático.
+- Para emissão, cancelamento e gestão completa de NFS-e via MCP, a Notaas também
+  disponibiliza servidor MCP dedicado (`@notaas/mcp` /
+  `https://platform.notaas.com.br/mcp`), com plano gratuito de 20 notas/mês em
+  produção e até 5 CNPJs grátis em homologação.
+
+| Variável | Descrição | Padrão |
+|----------|-----------|--------|
+| `NOTAAS_API_KEY` | Chave da API Notaas (`ntaas_live_...` ou `ntaas_test_...`). **Vazio = provedor desligado.** | (vazio) |
+| `NOTAAS_BASE_URL` | URL base da API Notaas (exige `https://`) | `https://platform.notaas.com.br` |
 
 ---
 

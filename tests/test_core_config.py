@@ -93,3 +93,21 @@ def test_cpfcnpj_base_url_https_customizada_e_aceita(monkeypatch: pytest.MonkeyP
     monkeypatch.setenv("CPFCNPJ_BASE_URL", "https://proxy.interno.example/cpfcnpj")
     settings = Settings(_env_file=None)
     assert settings.cpfcnpj_base_url == "https://proxy.interno.example/cpfcnpj"
+
+
+def test_notaas_base_url_padrao_e_https() -> None:
+    settings = Settings(_env_file=None)
+    assert settings.notaas_base_url == "https://platform.notaas.com.br"
+    assert settings.notaas_api_key == ""
+
+
+def test_notaas_base_url_http_e_rejeitada(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("NOTAAS_BASE_URL", "http://platform.notaas.com.br")
+    with pytest.raises(ValueError):
+        Settings(_env_file=None)
+
+
+def test_notaas_base_url_https_customizada_e_aceita(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("NOTAAS_BASE_URL", "https://sandbox.notaas.com.br")
+    settings = Settings(_env_file=None)
+    assert settings.notaas_base_url == "https://sandbox.notaas.com.br"
