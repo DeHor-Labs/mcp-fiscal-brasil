@@ -368,6 +368,7 @@ async def consultar_nfse(
     uf_upper = _validar_uf_nfse(uf)
     cnpj_prestador = _validar_cnpj_prestador(cnpj_prestador)
 
+    invoice_id_limpo = invoice_id.strip() if invoice_id and invoice_id.strip() else None
     chave_efetiva: str | None = None
     if chave_acesso is not None and chave_acesso.strip():
         if not validate_chave_nfse(chave_acesso):
@@ -376,8 +377,8 @@ async def consultar_nfse(
             )
         chave_efetiva = normalizar_chave_nfse(chave_acesso)
         numero = _validar_numero_nfse(numero) if numero.strip() else chave_efetiva[23:36]
-    elif invoice_id is not None and invoice_id.strip() and not numero.strip():
-        numero = invoice_id.strip()
+    elif invoice_id_limpo is not None and not numero.strip():
+        numero = ""
     else:
         if validate_chave_nfse(numero):
             chave_efetiva = normalizar_chave_nfse(numero)
@@ -386,11 +387,12 @@ async def consultar_nfse(
             numero = _validar_numero_nfse(numero)
 
     # 1. Tenta o provedor opcional Notaas quando NOTAAS_API_KEY está configurado e invoice_id informado.
-    if invoice_id is not None and invoice_id.strip() and notaas_provider.provedor_configurado():
+    if invoice_id_limpo is not None and notaas_provider.provedor_configurado():
         try:
-            dados_notaas = await notaas_provider.consultar_status_nfse(invoice_id)
+            dados_notaas = await notaas_provider.consultar_status_nfse(invoice_id_limpo)
             return {
                 "numero": str(dados_notaas.get("numeroNfse") or numero),
+                "invoice_id": invoice_id_limpo,
                 "municipio": municipio,
                 "uf": uf_upper,
                 "fonte": "notaas.com.br",
@@ -400,7 +402,7 @@ async def consultar_nfse(
         except Exception as exc:
             logger.warning(
                 "Provedor Notaas falhou ao consultar invoice %s: %s - seguindo para fallback",
-                invoice_id,
+                invoice_id_limpo,
                 exc,
             )
 
@@ -455,6 +457,7 @@ async def consultar_nfse(
 
     return {
         "numero": numero,
+        **({"invoice_id": invoice_id_limpo} if invoice_id_limpo else {}),
         "municipio": municipio,
         "uf": uf_upper,
         **({"cnpj_prestador": cnpj_prestador} if cnpj_prestador else {}),

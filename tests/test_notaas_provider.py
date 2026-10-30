@@ -203,7 +203,6 @@ async def test_consultar_nfse_faz_fallback_quando_notaas_falha(
     _FakeHTTPClient.should_fail = True
 
     resultado = await consultar_nfse(
-        numero="142",
         municipio="São Paulo",
         uf="SP",
         invoice_id="b1f29d18-7c4d-4c88-90d2-123456789abc",
@@ -211,6 +210,8 @@ async def test_consultar_nfse_faz_fallback_quando_notaas_falha(
 
     assert resultado["fonte"] == "fallback_portal_municipal"
     assert resultado["status"] == "consulta_manual_necessaria"
+    assert resultado["numero"] == ""
+    assert resultado["invoice_id"] == "b1f29d18-7c4d-4c88-90d2-123456789abc"
     assert (
         resultado["portal_municipio"]
         == "https://nfe.prefeitura.sp.gov.br/contribuinte/notasfiscais.aspx"
