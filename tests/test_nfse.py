@@ -155,7 +155,7 @@ async def test_consultar_cobertura_nfse_fallback_local_nao_finge_validar_ibge() 
 
 @pytest.mark.asyncio
 async def test_consultar_nfse_aceita_chave_formatada_com_espacos_em_numero() -> None:
-    chave_com_espacos = "35497 06224 14035 05000 18400 00000 00001 42260 73345 63937 8"
+    chave_com_espacos = "35497 06224 14035 05000 18400 00000 00014 22607 33456 39378"
     with patch("mcp_fiscal_brasil.nfse.tools.NFSeNacionalClient") as mock_client_class:
         mock_instance = MagicMock()
         mock_instance.consultar_por_chave = AsyncMock(return_value=None)
