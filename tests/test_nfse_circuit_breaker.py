@@ -336,6 +336,7 @@ class TestCircuitBreakerPersistenciaSingleton:
 
         # Circuit breaker isolado para este teste (evita contaminação do singleton global)
         cb_isolado = CircuitBreaker(failure_threshold=5, window_seconds=60, cooldown_seconds=120)
+        chave_valida_50 = "35497062241403505000184000000000014226073345639378"
 
         with patch.object(_client_module, "_circuit_breaker", cb_isolado):
             # Simula 5 chamadas com a ADN retornando 503
@@ -348,7 +349,7 @@ class TestCircuitBreakerPersistenciaSingleton:
                 for _ in range(5):
                     # Cada chamada instancia NFSeNacionalClient() internamente em tools.py
                     resultado = await consultar_nfse(
-                        numero="CHAVE-TESTE",
+                        numero=chave_valida_50,
                         municipio="São Paulo",
                         uf="SP",
                     )
@@ -365,7 +366,7 @@ class TestCircuitBreakerPersistenciaSingleton:
             # 6ª chamada: httpx NÃO deve ser chamado (curto-circuito)
             with patch("httpx.AsyncClient") as mock_http_cls_6:
                 resultado_6 = await consultar_nfse(
-                    numero="CHAVE-TESTE",
+                    numero=chave_valida_50,
                     municipio="São Paulo",
                     uf="SP",
                 )

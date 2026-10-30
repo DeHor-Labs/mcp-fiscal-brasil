@@ -6,7 +6,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from mcp_fiscal_brasil.nfse.tools import consultar_nfse
+from mcp_fiscal_brasil.nfse.tools import (
+    consultar_cobertura_nfse,
+    consultar_nfse,
+    validar_chave_nfse,
+)
 
 
 @pytest.mark.asyncio
@@ -22,6 +26,18 @@ async def test_consultar_nfse_normaliza_entrada() -> None:
     assert resultado["municipio"] == "São Paulo"
     assert resultado["uf"] == "SP"
     assert resultado["status"] == "consulta_manual_necessaria"
+    assert "Notaas" in resultado["alternativa"]
+
+
+@pytest.mark.asyncio
+async def test_consultar_nfse_aceita_cnpj_alfanumerico() -> None:
+    resultado = await consultar_nfse(
+        numero="123",
+        municipio="São Paulo",
+        uf="SP",
+        cnpj_prestador="AB.123.CD0/0001-08",
+    )
+    assert resultado["cnpj_prestador"] == "AB123CD0000108"
 
 
 @pytest.mark.asyncio
@@ -52,3 +68,106 @@ async def test_consultar_nfse_rejeita_entrada_invalida() -> None:
             uf="SP",
             cnpj_prestador="12.345.678/0001-90",
         )
+
+
+@pytest.mark.asyncio
+async def test_validar_chave_nfse_valida_e_decompoe() -> None:
+    chave = "35497062241403505000184000000000014226073345639378"
+    resultado = await validar_chave_nfse(chave)
+
+    assert resultado["válido"] is True
+    assert resultado["codigo_municipio"] == "3549706"
+    assert resultado["uf"] == "SP"
+    assert resultado["tipo_inscricao"] == "2"
+    assert resultado["inscricao_federal"] == "41403505000184"
+    assert resultado["cnpj_prestador"] == "41403505000184"
+    assert resultado["número"] == "0000000000142"
+    assert resultado["ano_mes_emissao"] == "07/26"
+    assert resultado["digito_verificador"] == "8"
+
+
+@pytest.mark.asyncio
+async def test_validar_chave_nfse_invalida_retorna_falso() -> None:
+    chave_dv_errado = "35497062241403505000184000000000014226073345639370"
+    resultado = await validar_chave_nfse(chave_dv_errado)
+
+    assert resultado["válido"] is False
+    assert resultado["chave_formatada"] is None
+
+
+@pytest.mark.asyncio
+async def test_consultar_cobertura_nfse_fallback_local() -> None:
+    from mcp_fiscal_brasil._core import FiscalHTTPError
+
+    with patch(
+        "mcp_fiscal_brasil.nfse.tools.notaas_provider.consultar_cobertura_cidades",
+        new_callable=AsyncMock,
+        side_effect=FiscalHTTPError(
+            "offline", status_code=503, url="https://platform.notaas.com.br"
+        ),
+    ):
+        resultado = await consultar_cobertura_nfse(municipio="São Paulo", uf="SP")
+
+    assert resultado["fonte"] == "fallback_catalogo_local"
+    assert resultado["total"] == 1
+    assert resultado["municipios"][0]["sistema_nfse"] == "ABRASF"
+
+
+@pytest.mark.asyncio
+async def test_consultar_cobertura_nfse_fallback_local_municipio_ausente() -> None:
+    from mcp_fiscal_brasil._core import FiscalHTTPError
+
+    with patch(
+        "mcp_fiscal_brasil.nfse.tools.notaas_provider.consultar_cobertura_cidades",
+        new_callable=AsyncMock,
+        side_effect=FiscalHTTPError(
+            "offline", status_code=503, url="https://platform.notaas.com.br"
+        ),
+    ):
+        resultado = await consultar_cobertura_nfse(municipio="Cidade Inexistente XYZ", uf="SP")
+
+    assert resultado["fonte"] == "fallback_catalogo_local"
+    assert resultado["total"] == 0
+    assert resultado["municipios"] == []
+    assert "motivo" in resultado
+
+
+@pytest.mark.asyncio
+async def test_consultar_cobertura_nfse_fallback_local_nao_finge_validar_ibge() -> None:
+    from mcp_fiscal_brasil._core import FiscalHTTPError
+
+    with patch(
+        "mcp_fiscal_brasil.nfse.tools.notaas_provider.consultar_cobertura_cidades",
+        new_callable=AsyncMock,
+        side_effect=FiscalHTTPError(
+            "offline", status_code=503, url="https://platform.notaas.com.br"
+        ),
+    ):
+        resultado = await consultar_cobertura_nfse(
+            municipio="São Paulo", uf="SP", codigo_ibge="3509502"
+        )
+
+    assert resultado["fonte"] == "fallback_catalogo_local"
+    assert resultado["total"] == 0
+    assert resultado["municipios"] == []
+    assert "codigo_ibge" in resultado["motivo"]
+
+
+@pytest.mark.asyncio
+async def test_consultar_nfse_aceita_chave_formatada_com_espacos_em_numero() -> None:
+    chave_com_espacos = "35497 06224 14035 05000 18400 00000 00014 22607 33456 39378"
+    with patch("mcp_fiscal_brasil.nfse.tools.NFSeNacionalClient") as mock_client_class:
+        mock_instance = MagicMock()
+        mock_instance.consultar_por_chave = AsyncMock(return_value=None)
+        mock_client_class.return_value = mock_instance
+
+        resultado = await consultar_nfse(
+            numero=chave_com_espacos,
+            municipio="São Paulo",
+            uf="SP",
+        )
+
+    mock_instance.consultar_por_chave.assert_called_once_with(
+        "35497062241403505000184000000000014226073345639378"
+    )
+    assert resultado["numero"] == "0000000000142"
