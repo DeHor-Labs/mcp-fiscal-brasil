@@ -368,7 +368,11 @@ async def consultar_nfse(
     uf_upper = _validar_uf_nfse(uf)
     cnpj_prestador = _validar_cnpj_prestador(cnpj_prestador)
 
-    invoice_id_limpo = invoice_id.strip() if invoice_id and invoice_id.strip() else None
+    invoice_id_limpo = (
+        notaas_provider.validar_invoice_id(invoice_id)
+        if invoice_id is not None and invoice_id.strip()
+        else None
+    )
     chave_efetiva: str | None = None
     if chave_acesso is not None and chave_acesso.strip():
         if not validate_chave_nfse(chave_acesso):

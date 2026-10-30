@@ -107,6 +107,16 @@ async def consultar_cobertura_cidades(
         return await client.get("/api/v1/cobertura/cidades", params=params, headers=headers)
 
 
+def validar_invoice_id(invoice_id: str) -> str:
+    """Valida e normaliza um identificador de invoice (apenas letras, dígitos, '_' e '-')."""
+    id_limpo = invoice_id.strip()
+    if not id_limpo:
+        raise ValueError("invoice_id é obrigatório")
+    if not _INVOICE_ID_RE.fullmatch(id_limpo):
+        raise ValueError("invoice_id inválido: use apenas letras, números, '_' e '-'")
+    return id_limpo
+
+
 async def consultar_status_nfse(invoice_id: str) -> dict[str, Any]:
     """Consulta o status e dados de uma NFS-e na Notaas pelo ID da invoice.
 
@@ -114,11 +124,7 @@ async def consultar_status_nfse(invoice_id: str) -> dict[str, Any]:
     header ``x-api-key``, nunca na URL nem em mensagens de erro.
     """
     headers = _auth_headers()
-    id_limpo = invoice_id.strip()
-    if not id_limpo:
-        raise ValueError("invoice_id é obrigatório")
-    if not _INVOICE_ID_RE.fullmatch(id_limpo):
-        raise ValueError("invoice_id inválido: use apenas letras, números, '_' e '-'")
+    id_limpo = validar_invoice_id(invoice_id)
 
     segmento = quote(id_limpo, safe="")
     async with _http_client(cache_ttl=0) as client:
@@ -145,11 +151,7 @@ async def cancelar_nfse(
     Requer ``NOTAAS_API_KEY`` configurado.
     """
     headers = _auth_headers()
-    id_limpo = invoice_id.strip()
-    if not id_limpo:
-        raise ValueError("invoice_id é obrigatório")
-    if not _INVOICE_ID_RE.fullmatch(id_limpo):
-        raise ValueError("invoice_id inválido: use apenas letras, números, '_' e '-'")
+    id_limpo = validar_invoice_id(invoice_id)
 
     body: dict[str, Any] = {"invoiceId": id_limpo}
     if motivo and motivo.strip():
@@ -168,4 +170,5 @@ __all__ = [
     "consultar_status_nfse",
     "emitir_nfse",
     "provedor_configurado",
+    "validar_invoice_id",
 ]
