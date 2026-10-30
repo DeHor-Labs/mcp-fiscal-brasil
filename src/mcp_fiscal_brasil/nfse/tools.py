@@ -293,6 +293,16 @@ async def consultar_cobertura_nfse(
             "Catálogo público Notaas indisponível (%s) - usando fallback offline",
             exc,
         )
+        if ibge_limpo:
+            return {
+                "fonte": "fallback_catalogo_local",
+                "municipios": [],
+                "total": 0,
+                "motivo": (
+                    f"Catálogo remoto indisponível: {exc}. "
+                    "O catálogo local não permite validar o codigo_ibge informado."
+                ),
+            }
         portal_info = (
             PORTAIS_CONHECIDOS.get(f"{_normalizar_chave_municipio(q)}/{uf_limpa}")
             if q and uf_limpa
@@ -369,10 +379,11 @@ async def consultar_nfse(
     elif invoice_id is not None and invoice_id.strip() and not numero.strip():
         numero = invoice_id.strip()
     else:
-        numero = _validar_numero_nfse(numero)
         if validate_chave_nfse(numero):
             chave_efetiva = normalizar_chave_nfse(numero)
             numero = chave_efetiva[23:36]
+        else:
+            numero = _validar_numero_nfse(numero)
 
     # 1. Tenta o provedor opcional Notaas quando NOTAAS_API_KEY está configurado e invoice_id informado.
     if invoice_id is not None and invoice_id.strip() and notaas_provider.provedor_configurado():

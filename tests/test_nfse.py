@@ -130,3 +130,44 @@ async def test_consultar_cobertura_nfse_fallback_local_municipio_ausente() -> No
     assert resultado["total"] == 0
     assert resultado["municipios"] == []
     assert "motivo" in resultado
+
+
+@pytest.mark.asyncio
+async def test_consultar_cobertura_nfse_fallback_local_nao_finge_validar_ibge() -> None:
+    from mcp_fiscal_brasil._core import FiscalHTTPError
+
+    with patch(
+        "mcp_fiscal_brasil.nfse.tools.notaas_provider.consultar_cobertura_cidades",
+        new_callable=AsyncMock,
+        side_effect=FiscalHTTPError(
+            "offline", status_code=503, url="https://platform.notaas.com.br"
+        ),
+    ):
+        resultado = await consultar_cobertura_nfse(
+            municipio="São Paulo", uf="SP", codigo_ibge="3509502"
+        )
+
+    assert resultado["fonte"] == "fallback_catalogo_local"
+    assert resultado["total"] == 0
+    assert resultado["municipios"] == []
+    assert "codigo_ibge" in resultado["motivo"]
+
+
+@pytest.mark.asyncio
+async def test_consultar_nfse_aceita_chave_formatada_com_espacos_em_numero() -> None:
+    chave_com_espacos = "35497 06224 14035 05000 18400 00000 00001 42260 73345 63937 8"
+    with patch("mcp_fiscal_brasil.nfse.tools.NFSeNacionalClient") as mock_client_class:
+        mock_instance = MagicMock()
+        mock_instance.consultar_por_chave = AsyncMock(return_value=None)
+        mock_client_class.return_value = mock_instance
+
+        resultado = await consultar_nfse(
+            numero=chave_com_espacos,
+            municipio="São Paulo",
+            uf="SP",
+        )
+
+    mock_instance.consultar_por_chave.assert_called_once_with(
+        "35497062241403505000184000000000014226073345639378"
+    )
+    assert resultado["numero"] == "0000000000142"
