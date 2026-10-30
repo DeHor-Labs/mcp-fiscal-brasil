@@ -150,6 +150,7 @@ PORTAIS_CONHECIDOS: dict[str, dict[str, str]] = {
 
 
 def _validar_numero_nfse(numero: str) -> str:
+    """Valida e limpa o número ou identificador da NFS-e informado pelo chamador."""
     numero_limpo = numero.strip()
     if not numero_limpo:
         raise ValueError("numero é obrigatório")
@@ -159,6 +160,7 @@ def _validar_numero_nfse(numero: str) -> str:
 
 
 def _validar_municipio_nfse(municipio: str) -> str:
+    """Valida e limpa o nome do município da NFS-e."""
     municipio_limpo = municipio.strip()
     if not municipio_limpo:
         raise ValueError("municipio é obrigatório")
@@ -168,6 +170,7 @@ def _validar_municipio_nfse(municipio: str) -> str:
 
 
 def _validar_uf_nfse(uf: str) -> str:
+    """Valida e normaliza a sigla da UF com 2 letras em maiúsculas."""
     uf_limpa = uf.strip().upper()
     if len(uf_limpa) != 2 or not uf_limpa.isalpha():
         raise ValueError("uf deve ser uma sigla com 2 letras")
@@ -175,6 +178,7 @@ def _validar_uf_nfse(uf: str) -> str:
 
 
 def _normalizar_chave_municipio(municipio: str) -> str:
+    """Remove acentos e normaliza espaços do nome do município para busca em PORTAIS_CONHECIDOS."""
     sem_acentos = "".join(
         char for char in unicodedata.normalize("NFKD", municipio) if not unicodedata.combining(char)
     )
@@ -182,6 +186,7 @@ def _normalizar_chave_municipio(municipio: str) -> str:
 
 
 def _validar_cnpj_prestador(cnpj_prestador: str | None) -> str | None:
+    """Valida e normaliza o CNPJ do prestador (numérico ou alfanumérico) quando informado."""
     if cnpj_prestador is None:
         return None
     if not validate_cnpj_qualquer(cnpj_prestador):
@@ -190,6 +195,7 @@ def _validar_cnpj_prestador(cnpj_prestador: str | None) -> str | None:
 
 
 def _resolver_portal_conhecido(municipio: str, uf_upper: str) -> dict[str, str]:
+    """Busca o portal e o sistema municipal de NFS-e no catálogo local PORTAIS_CONHECIDOS."""
     municipio_upper = _normalizar_chave_municipio(municipio)
     chave = f"{municipio_upper}/{uf_upper}"
     portal_info = PORTAIS_CONHECIDOS.get(chave)

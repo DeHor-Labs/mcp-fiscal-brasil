@@ -57,6 +57,7 @@ def _http_client(
     cache_ttl: int | None = None,
     max_retries: int | None = None,
 ) -> HTTPClient:
+    """Instancia o cliente HTTP configurado para a API da Notaas com limitador compartilhado."""
     return HTTPClient(
         settings.notaas_base_url,
         timeout=settings.mcp_fiscal_http_timeout,
@@ -68,6 +69,7 @@ def _http_client(
 
 
 def _auth_headers() -> dict[str, str]:
+    """Monta o cabeçalho de autenticação x-api-key ou levanta FiscalHTTPError se ausente."""
     token = settings.notaas_api_key.strip()
     if not token:
         raise FiscalHTTPError(
