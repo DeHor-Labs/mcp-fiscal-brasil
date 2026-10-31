@@ -4,6 +4,7 @@ import pytest
 
 from mcp_fiscal_brasil._core.errors import FiscalHTTPError, FiscalNotFoundError
 from mcp_fiscal_brasil.cnae.client import CNAEClient
+from mcp_fiscal_brasil.cnae.schemas import CNAEActivity
 
 
 @pytest.fixture
@@ -38,6 +39,38 @@ async def test_get_activities_filtra_busca_localmente(client: CNAEClient) -> Non
         result = await client.get_activities(search="software")
         assert [item.código for item in result] == ["1830003"]
         assert all(item.descrição for item in result)
+
+
+@pytest.mark.asyncio
+async def test_get_activities_sem_busca_nao_corta_em_50(client: CNAEClient) -> None:
+    payload = [
+        {"id": f"{i:07d}", "descricao": f"Atividade {i}"} for i in range(60)
+    ]
+    with patch("mcp_fiscal_brasil._core.http.HTTPClient.get_list") as mock_get:
+        mock_get.return_value = payload
+        result = await client.get_activities()
+        assert len(result) == 60
+
+
+def test_cnae_activity_roundtrip_model_dump_validate() -> None:
+    activity = CNAEActivity(código="6201501", descrição="Software")
+    restored = CNAEActivity.model_validate(activity.model_dump())
+    assert restored.código == "6201501"
+    assert restored.descrição == "Software"
+
+
+@pytest.mark.asyncio
+async def test_get_activity_lista_invalida_vira_not_found(client: CNAEClient) -> None:
+    with patch("mcp_fiscal_brasil._core.http.HTTPClient.get") as mock_get:
+        mock_get.side_effect = FiscalHTTPError(
+            "A resposta não é um objeto JSON válido.", 200, "http://test"
+        )
+        with patch("mcp_fiscal_brasil._core.http.HTTPClient.get_list") as mock_list:
+            mock_list.side_effect = FiscalHTTPError(
+                "A resposta não é uma lista JSON válida.", 200, "http://test"
+            )
+            with pytest.raises(FiscalNotFoundError):
+                await client.get_activity("6201501")
 
 
 @pytest.mark.asyncio

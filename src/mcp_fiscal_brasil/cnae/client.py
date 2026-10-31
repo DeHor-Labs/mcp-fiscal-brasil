@@ -80,7 +80,16 @@ class CNAEClient:
                 msg = str(exc).lower()
                 if "objeto json" not in msg and "lista json" not in msg:
                     raise
-                data = await client.get_list(f"/subclasses/{code_clean}")
+                try:
+                    data = await client.get_list(f"/subclasses/{code_clean}")
+                except FiscalHTTPError as list_exc:
+                    if list_exc.status_code == 200:
+                        raise FiscalNotFoundError(
+                            f"CNAE activity {code_clean} not found",
+                            "Recurso",
+                            code_clean,
+                        ) from list_exc
+                    raise
                 return _as_dict_payload(data)
 
     async def get_activities(self, search: str | None = None) -> list[CNAEActivity]:
@@ -100,9 +109,10 @@ class CNAEClient:
                 raise
 
         activities = [_cnae_activity_from_item(item) for item in data if isinstance(item, dict)]
-        if search:
-            activities = [item for item in activities if _match_busca(item, search)]
-        return activities[:_MAX_BUSCA_RESULTADOS]
+        if search is None:
+            return activities
+        filtrados = [item for item in activities if _match_busca(item, search)]
+        return filtrados[:_MAX_BUSCA_RESULTADOS]
 
     async def get_activity(self, code: str) -> CNAEActivity:
         logger.info("cnae_get_activity_started", code=code)
@@ -132,14 +142,15 @@ class CNAEClient:
                 raise
 
         classes = [_cnae_class_from_item(item) for item in data if isinstance(item, dict)]
-        if search:
-            termo = search.casefold()
-            classes = [
-                item
-                for item in classes
-                if termo in f"{item.código} {item.descrição}".casefold()
-            ]
-        return classes[:_MAX_BUSCA_RESULTADOS]
+        if search is None:
+            return classes
+        termo = search.casefold()
+        filtrados = [
+            item
+            for item in classes
+            if termo in f"{item.código} {item.descrição}".casefold()
+        ]
+        return filtrados[:_MAX_BUSCA_RESULTADOS]
 
     async def get_class(self, code: str) -> CNAEClass:
         logger.info("cnae_get_class_started", code=code)
