@@ -54,8 +54,8 @@ async def test_get_simples_status_404_ambos_endpoints_nao_confirmado(
     with patch("mcp_fiscal_brasil._core.http.HTTPClient.get") as mock_get:
         mock_get.side_effect = FiscalHTTPError("Recurso não encontrado", 404, "http://test")
         result = await client.get_simples_status(cnpj_digits)
-        assert result.simples_nacional is False
-        assert result.mei is False
+        assert result.simples_nacional is None
+        assert result.mei is None
         assert result.cnpj == cnpj_digits
         assert result.fonte_confirmada is False
         assert mock_get.call_count == 2
@@ -91,8 +91,8 @@ async def test_get_simples_status_cnpj_opcao_null_nao_confirmado(
             {"opcao_pelo_simples": None, "opcao_pelo_mei": None},
         ]
         result = await client.get_simples_status(cnpj_digits)
-        assert result.simples_nacional is False
-        assert result.mei is False
+        assert result.simples_nacional is None
+        assert result.mei is None
         assert result.fonte_confirmada is False
 
 

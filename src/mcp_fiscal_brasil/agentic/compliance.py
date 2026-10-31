@@ -141,7 +141,7 @@ async def analyze_cnpj_compliance(cnpj: str) -> ComplianceReport:
     if simples_data is not None:
         if getattr(simples_data, "fonte_confirmada", True):
             fontes_ok.append("Simples Nacional")
-            if not simples_data.simples_nacional:
+            if simples_data.simples_nacional is False:
                 achados.append(
                     ComplianceFinding(
                         categoria="regime_tributario",
