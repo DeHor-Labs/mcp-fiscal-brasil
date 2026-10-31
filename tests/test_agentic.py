@@ -405,11 +405,18 @@ async def test_compliance_inapta_com_simei_confirmado_cita_dasn_pgmei() -> None:
         report = await analyze_cnpj_compliance("27.496.821/0001-17")
 
     situacao = next(a for a in report.achados if a.categoria == "situacao_cadastral")
-    texto = " ".join([situacao.recomendacao or "", *(situacao.proximos_passos or [])]).lower()
+    passos = situacao.proximos_passos or []
+    texto = " ".join([situacao.recomendacao or "", *passos]).lower()
     assert "dasn" in texto
     assert "pgmei" in texto
     assert "multa" in texto
     assert "r$ 50" in texto or "50,00" in texto
+    assert "cnpjreva" in texto
+    assert "não é condição" in texto or "nao e condicao" in texto.replace("é", "e")
+    idx_dasn = next(i for i, p in enumerate(passos) if "dasn" in p.casefold())
+    idx_pgmei = next(i for i, p in enumerate(passos) if "pgmei" in p.casefold())
+    assert idx_dasn < idx_pgmei
+    assert "omissão" not in situacao.detalhe.casefold() or "não afirme" in situacao.detalhe.casefold()
 
 
 # ---------------------------------------------------------------------------
