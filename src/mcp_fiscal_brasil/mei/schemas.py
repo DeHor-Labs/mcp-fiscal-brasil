@@ -9,3 +9,4 @@ class MEIStatus(BaseModel):
     data_opcao_mei: date | None = None
     data_exclusao_mei: date | None = None
     simples_nacional: bool
+    fonte_confirmada: bool = True

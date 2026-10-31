@@ -2,7 +2,7 @@ from datetime import date
 
 from mcp_fiscal_brasil._core import FiscalNotFoundError, HTTPClient, get_logger, settings
 from mcp_fiscal_brasil._core.errors import FiscalHTTPError
-from mcp_fiscal_brasil.shared.validators import normalizar_cnpj
+from mcp_fiscal_brasil.shared.validators import normalizar_cnpj, validate_cnpj_qualquer
 
 from .schemas import MEIStatus
 
@@ -31,32 +31,42 @@ class MEIClient:
 
     async def get_mei_status(self, cnpj: str) -> MEIStatus:
         """Consulta o status MEI de um CNPJ."""
-        logger.info("mei_status_started", cnpj=cnpj)
         cnpj_clean = normalizar_cnpj(cnpj)
+        if not validate_cnpj_qualquer(cnpj_clean):
+            raise FiscalNotFoundError("CNPJ inválido", "CNPJ", cnpj_clean)
+
+        logger.info("mei_status_started", cnpj=cnpj_clean)
         async with self._http_client() as client:
             try:
                 data = await client.get(f"/simples/v1/{cnpj_clean}")
-
-                simples = data.get("simples") if isinstance(data.get("simples"), dict) else data
-                simei = data.get("simei") if isinstance(data.get("simei"), dict) else data
-
-                if not isinstance(simples, dict):
-                    simples = {}
-                if not isinstance(simei, dict):
-                    simei = {}
-
-                return MEIStatus(
-                    cnpj=cnpj_clean,
-                    mei=simei.get("optante", data.get("mei", False)),
-                    data_opcao_mei=self._parse_date(
-                        simei.get("data_opcao", data.get("data_opcao_simei"))
-                    ),
-                    data_exclusao_mei=self._parse_date(
-                        simei.get("data_exclusao", data.get("data_exclusao_simei"))
-                    ),
-                    simples_nacional=simples.get("optante", data.get("simples_nacional", False)),
-                )
             except FiscalHTTPError as exc:
                 if exc.status_code == 404:
-                    raise FiscalNotFoundError("CNPJ não encontrado", "CNPJ", cnpj_clean) from exc
+                    logger.warning("mei_status_nao_confirmado", cnpj=cnpj_clean)
+                    return MEIStatus(
+                        cnpj=cnpj_clean,
+                        mei=False,
+                        simples_nacional=False,
+                        fonte_confirmada=False,
+                    )
                 raise
+
+        simples = data.get("simples") if isinstance(data.get("simples"), dict) else data
+        simei = data.get("simei") if isinstance(data.get("simei"), dict) else data
+
+        if not isinstance(simples, dict):
+            simples = {}
+        if not isinstance(simei, dict):
+            simei = {}
+
+        return MEIStatus(
+            cnpj=cnpj_clean,
+            mei=simei.get("optante", data.get("mei", False)),
+            data_opcao_mei=self._parse_date(
+                simei.get("data_opcao", data.get("data_opcao_simei"))
+            ),
+            data_exclusao_mei=self._parse_date(
+                simei.get("data_exclusao", data.get("data_exclusao_simei"))
+            ),
+            simples_nacional=simples.get("optante", data.get("simples_nacional", False)),
+            fonte_confirmada=True,
+        )

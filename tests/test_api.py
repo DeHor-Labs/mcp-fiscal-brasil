@@ -13,10 +13,11 @@ from fastapi.testclient import TestClient
 from mcp_fiscal_brasil import __version__
 from mcp_fiscal_brasil import api as api_module
 from mcp_fiscal_brasil._core.config import settings as api_settings
-from mcp_fiscal_brasil._core.errors import FiscalHTTPError
+from mcp_fiscal_brasil._core.errors import FiscalHTTPError, FiscalNotFoundError
 from mcp_fiscal_brasil.agentic.schemas import ComplianceReport
 from mcp_fiscal_brasil.api import app
 from mcp_fiscal_brasil.nfe.schemas import StatusSEFAZResponse
+from mcp_fiscal_brasil.simples.schemas import SimplesStatus
 
 client = TestClient(app)
 
@@ -317,3 +318,45 @@ def test_cnpj_lookup_rejeita_espacos_mesmo_com_digito_valido() -> None:
         response = client.get("/v1/cnpj/33 000 167 0001 01")
     assert response.status_code == 400
     consultar.assert_not_called()
+
+
+def test_simples_lookup_nao_optante_retorna_200() -> None:
+    status = SimplesStatus(
+        cnpj="33000167000101",
+        simples_nacional=False,
+        mei=False,
+        fonte_confirmada=False,
+    )
+    with patch.object(
+        api_module.SimplesClient,
+        "get_simples_status",
+        AsyncMock(return_value=status),
+    ):
+        response = client.get("/v1/simples/33000167000101")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["simples_nacional"] is False
+    assert data["mei"] is False
+    assert data["fonte_confirmada"] is False
+
+
+def test_simples_lookup_not_found_retorna_404() -> None:
+    with patch.object(
+        api_module.SimplesClient,
+        "get_simples_status",
+        AsyncMock(side_effect=FiscalNotFoundError("CNPJ inválido", "CNPJ", "x")),
+    ):
+        response = client.get("/v1/simples/33000167000101")
+    assert response.status_code == 404
+    assert "CNPJ" in response.json()["detail"]
+
+
+def test_simples_lookup_erro_upstream_nao_vira_500_generico() -> None:
+    with patch.object(
+        api_module.SimplesClient,
+        "get_simples_status",
+        AsyncMock(side_effect=FiscalHTTPError("indisponivel", 503, "http://test")),
+    ):
+        response = client.get("/v1/simples/33000167000101")
+    assert response.status_code == 503
+    assert "indisponivel" in response.json()["detail"]

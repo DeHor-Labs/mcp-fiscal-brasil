@@ -26,7 +26,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
 from . import __version__
-from ._core import FiscalHTTPError, get_logger
+from ._core import FiscalHTTPError, FiscalNotFoundError, get_logger
 from ._core.config import settings
 from .agentic import (
     analyze_cnpj_compliance,
@@ -168,7 +168,13 @@ async def cep_lookup(cep: str) -> dict[str, Any]:
 async def simples_lookup(cnpj: str) -> dict[str, Any]:
     """Consulta situacao da empresa no Simples Nacional."""
     client = SimplesClient()
-    resultado = await client.get_simples_status(_validated_cnpj(cnpj))
+    try:
+        resultado = await client.get_simples_status(_validated_cnpj(cnpj))
+    except FiscalNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except FiscalHTTPError as exc:
+        status = exc.status_code if isinstance(exc.status_code, int) else 502
+        raise HTTPException(status_code=status, detail=str(exc)) from exc
     return resultado.model_dump(mode="json", exclude_none=True)
 
 
