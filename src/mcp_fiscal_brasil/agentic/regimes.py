@@ -14,6 +14,66 @@ _LIMITE_MEI = 81_000.0
 _LIMITE_SIMPLES = 4_800_000.0
 _LIMITE_LUCRO_PRESUMIDO = 78_000_000.0
 
+_AnexoFaixa = tuple[float, float, float]
+
+_ANEXO_I: list[_AnexoFaixa] = [
+    (180_000.0, 4.00, 0.0),
+    (360_000.0, 7.30, 5_940.0),
+    (720_000.0, 9.50, 13_860.0),
+    (1_800_000.0, 10.70, 22_500.0),
+    (3_600_000.0, 14.30, 87_300.0),
+    (4_800_000.0, 19.00, 378_000.0),
+]
+
+_ANEXO_II: list[_AnexoFaixa] = [
+    (180_000.0, 4.50, 0.0),
+    (360_000.0, 7.80, 5_940.0),
+    (720_000.0, 10.00, 13_860.0),
+    (1_800_000.0, 11.20, 22_500.0),
+    (3_600_000.0, 14.70, 85_500.0),
+    (4_800_000.0, 30.00, 720_000.0),
+]
+
+_ANEXO_III: list[_AnexoFaixa] = [
+    (180_000.0, 6.00, 0.0),
+    (360_000.0, 11.20, 9_360.0),
+    (720_000.0, 13.50, 17_640.0),
+    (1_800_000.0, 16.00, 35_640.0),
+    (3_600_000.0, 21.00, 125_640.0),
+    (4_800_000.0, 33.00, 648_000.0),
+]
+
+_ANEXO_V: list[_AnexoFaixa] = [
+    (180_000.0, 15.50, 0.0),
+    (360_000.0, 18.00, 4_500.0),
+    (720_000.0, 19.50, 9_900.0),
+    (1_800_000.0, 20.50, 17_100.0),
+    (3_600_000.0, 23.00, 62_100.0),
+    (4_800_000.0, 30.50, 540_000.0),
+]
+
+
+def _aliquota_efetiva_simples(rbt12: float, tabela: list[_AnexoFaixa]) -> float:
+    for limite, nominal, parcela_deduzir in tabela:
+        if rbt12 <= limite:
+            return (rbt12 * nominal / 100.0 - parcela_deduzir) / rbt12 * 100.0
+    raise ValueError("faturamento acima do limite do Simples Nacional")
+
+
+def _tabela_simples(
+    setor: Literal["comércio", "serviços", "indústria"],
+    folha: float | None,
+    faturamento: float,
+) -> list[_AnexoFaixa]:
+    if setor == "comércio":
+        return _ANEXO_I
+    if setor == "indústria":
+        return _ANEXO_II
+    fator_r = (folha or 0) / faturamento if faturamento > 0 else 0
+    if fator_r >= 0.28:
+        return _ANEXO_III
+    return _ANEXO_V
+
 
 def _calc_simples(
     faturamento: float,
@@ -28,69 +88,10 @@ def _calc_simples(
             "Faturamento excede o limite anual do Simples Nacional (R$ 4,8 milhoes).",
         )
 
-    # Aliquotas efetivas simplificadas por anexo (médias por faixa)
-    if setor == "comércio":
-        # Anexo I - alíquota efetiva média
-        if faturamento <= 180_000:
-            alíquota = 4.0
-        elif faturamento <= 360_000:
-            alíquota = 7.3
-        elif faturamento <= 720_000:
-            alíquota = 9.5
-        elif faturamento <= 1_800_000:
-            alíquota = 10.7
-        elif faturamento <= 3_600_000:
-            alíquota = 14.3
-        else:
-            alíquota = 19.0
-    elif setor == "indústria":
-        # Anexo II - 0.5pp acima do comércio em geral
-        if faturamento <= 180_000:
-            alíquota = 4.5
-        elif faturamento <= 360_000:
-            alíquota = 7.8
-        elif faturamento <= 720_000:
-            alíquota = 10.0
-        elif faturamento <= 1_800_000:
-            alíquota = 11.2
-        elif faturamento <= 3_600_000:
-            alíquota = 14.7
-        else:
-            alíquota = 30.0
-    else:  # serviços
-        # Anexo III ou V conforme Fator R (folha / faturamento >= 0.28)
-        fator_r = (folha or 0) / faturamento if faturamento > 0 else 0
-        if fator_r >= 0.28:
-            # Anexo III
-            if faturamento <= 180_000:
-                alíquota = 6.0
-            elif faturamento <= 360_000:
-                alíquota = 11.2
-            elif faturamento <= 720_000:
-                alíquota = 13.5
-            elif faturamento <= 1_800_000:
-                alíquota = 16.0
-            elif faturamento <= 3_600_000:
-                alíquota = 21.0
-            else:
-                alíquota = 33.0
-        else:
-            # Anexo V (serviços sem folha relevante)
-            if faturamento <= 180_000:
-                alíquota = 15.5
-            elif faturamento <= 360_000:
-                alíquota = 18.0
-            elif faturamento <= 720_000:
-                alíquota = 19.5
-            elif faturamento <= 1_800_000:
-                alíquota = 20.5
-            elif faturamento <= 3_600_000:
-                alíquota = 23.0
-            else:
-                alíquota = 30.5
-
-    imposto = faturamento * alíquota / 100
-    return True, alíquota, imposto, None
+    tabela = _tabela_simples(setor, folha, faturamento)
+    aliquota = _aliquota_efetiva_simples(faturamento, tabela)
+    imposto = faturamento * aliquota / 100
+    return True, aliquota, imposto, None
 
 
 def _calc_lucro_presumido(
@@ -103,7 +104,6 @@ def _calc_lucro_presumido(
             None,
             "Faturamento excede o limite anual do Lucro Presumido (R$ 78 milhoes).",
         )
-    # Presuncao de lucro
     if setor == "serviços":
         presuncao = 0.32
     else:
@@ -111,13 +111,11 @@ def _calc_lucro_presumido(
     base_irpj = faturamento * presuncao
     irpj = base_irpj * 0.15
     csll = base_irpj * 0.09
-    # PIS+COFINS regime cumulativo
     pis_cofins = faturamento * 0.0365
-    # ISS estimado (serviços) ou ICMS estimado (comércio/indústria)
     if setor == "serviços":
-        outros = faturamento * 0.05  # ISS medio
+        outros = faturamento * 0.05
     else:
-        outros = faturamento * 0.12  # ICMS medio com beneficios
+        outros = faturamento * 0.12
     total = irpj + csll + pis_cofins + outros
     aliquota_efetiva = total / faturamento * 100
     return True, aliquota_efetiva, total, None
@@ -126,13 +124,12 @@ def _calc_lucro_presumido(
 def _calc_lucro_real_simplificado(
     faturamento: float, setor: Literal["comércio", "serviços", "indústria"]
 ) -> tuple[bool, float | None, float | None, str | None]:
-    # Estimativa muito grosseira: margem operacional 15% (lucro liquido)
     margem = 0.15
     lucro = faturamento * margem
     irpj = lucro * 0.15
     adicional = max(0.0, lucro - 240_000) * 0.10
     csll = lucro * 0.09
-    pis_cofins = faturamento * 0.0925  # não-cumulativo
+    pis_cofins = faturamento * 0.0925
     if setor == "serviços":
         outros = faturamento * 0.05
     else:
@@ -147,7 +144,6 @@ def _calc_mei(
 ) -> tuple[bool, float | None, float | None, str | None]:
     if faturamento > _LIMITE_MEI:
         return False, None, None, "Faturamento excede o limite anual do MEI (R$ 81 mil)."
-    # Valor mensal MEI 2025 ~ R$ 75 comércio/indústria, R$ 80 serviços
     mensal = 80 if setor == "serviços" else 75
     total = mensal * 12
     aliquota_efetiva = total / faturamento * 100 if faturamento else 0
@@ -240,8 +236,10 @@ def compare_tax_regimes(
 
     obs = (
         "Estimativa simplificada usando tabelas publicas vigentes em 2025. "
-        "Considera presuncoes médias de ICMS/ISS. Não inclui beneficios estaduais nem "
-        "regimes especiais. Consulte contador para decisão final."
+        "Simples Nacional usa alíquota efetiva da LC 123/2006 art. 18 §1º-A "
+        "(nominal com parcela a deduzir). Considera presuncoes médias de ICMS/ISS. "
+        "Não inclui Anexo IV, beneficios estaduais nem regimes especiais. "
+        "Consulte contador para decisão final."
     )
 
     return TaxRegimeComparison(
