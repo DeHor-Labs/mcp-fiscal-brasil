@@ -1,6 +1,8 @@
 from datetime import date
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+_ANO_MIN_DASN = 2007
 
 
 class MEIStatus(BaseModel):
@@ -34,6 +36,21 @@ class RegularizacaoMeiRequest(BaseModel):
         default=True,
         description="Se True, orienta declaração com receita 0,00 (MEI sem movimento).",
     )
+
+    @field_validator("anos_omitidos")
+    @classmethod
+    def validar_anos_omitidos(cls, value: list[int] | None) -> list[int] | None:
+        if value is None:
+            return None
+        ano_max = date.today().year - 1
+        normalizados = sorted({int(a) for a in value})
+        invalidos = [a for a in normalizados if a < _ANO_MIN_DASN or a > ano_max]
+        if invalidos:
+            raise ValueError(
+                f"anos_omitidos fora do intervalo declarável "
+                f"({_ANO_MIN_DASN}–{ano_max}): {invalidos}"
+            )
+        return normalizados
 
 
 class RegularizacaoMeiResponse(BaseModel):
