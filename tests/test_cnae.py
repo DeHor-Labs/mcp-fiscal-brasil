@@ -19,7 +19,9 @@ async def test_get_activities_success(client: CNAEClient) -> None:
         assert len(result) == 1
         assert result[0].código == "0111301"
         assert result[0].descrição == "Cultivo de arroz"
-        assert result[0].model_dump(by_alias=True)["descricao"] == "Cultivo de arroz"
+        dumped = result[0].model_dump()
+        assert "descricao" in dumped and "descrição" not in dumped
+        assert dumped["descricao"] == "Cultivo de arroz"
 
 
 @pytest.mark.asyncio
