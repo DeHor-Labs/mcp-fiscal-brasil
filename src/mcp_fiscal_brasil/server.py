@@ -865,21 +865,31 @@ async def tool_analyze_cnpj_compliance(cnpj: str) -> dict[str, Any]:
         "Compara regimes tributarios brasileiros (MEI, Simples Nacional, Lucro Presumido, "
         "Lucro Real) para um cenário de faturamento e setor. Retorna estimativa de alíquota "
         "efetiva, imposto anual e melhor opção. Util para planejamento tributário rápido. "
-        "Setor: comércio, serviços ou indústria. Folha opcional impacta Fator R no Simples."
+        "Setor: comércio, serviços ou indústria. Folha opcional impacta Fator R no Simples. "
+        "exportacao_servicos reduz ISS/PIS/Cofins (LP/Real) e o DAS (Simples). "
+        "aliquota_iss e margem_lucro_real ajustam premissas; estimar_custo_fator_r inclui "
+        "INSS/IRPF da folha no ranking do Simples."
     ),
 )
 async def tool_compare_tax_regimes(
     faturamento_anual: float,
     setor: str,
     folha_pagamento_anual: float | None = None,
+    exportacao_servicos: bool = False,
+    aliquota_iss: float = 5.0,
+    margem_lucro_real: float = 0.15,
+    estimar_custo_fator_r: bool = True,
 ) -> dict[str, Any]:
-    """Compara regimes tributarios para um cenário."""
     if setor not in ("comércio", "serviços", "indústria"):
         raise ValueError("setor deve ser: comércio, serviços ou indústria")
     resultado = compare_tax_regimes(
         faturamento_anual=faturamento_anual,
         setor=setor,  # type: ignore[arg-type]
         folha_pagamento_anual=folha_pagamento_anual,
+        exportacao_servicos=exportacao_servicos,
+        aliquota_iss=aliquota_iss,
+        margem_lucro_real=margem_lucro_real,
+        estimar_custo_fator_r=estimar_custo_fator_r,
     )
     return resultado.model_dump(mode="json", exclude_none=True)
 

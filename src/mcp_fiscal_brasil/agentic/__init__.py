@@ -15,6 +15,7 @@ from .nfe import validate_nfe_full
 from .reforma import SimulacaoReformaResult, simular_transicao_reforma_tributaria
 from .regimes import compare_tax_regimes
 from .schemas import (
+    CompareTaxRegimesRequest,
     ComplianceReport,
     NFeValidationReport,
     SPEDSummary,
@@ -34,6 +35,7 @@ __all__ = [
     "SupplierRiskBatchItem",
     "SupplierRiskBatchResult",
     "SupplierRiskScore",
+    "CompareTaxRegimesRequest",
     "TaxRegimeComparison",
     "analyze_cnpj_compliance",
     "compare_tax_regimes",

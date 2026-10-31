@@ -61,6 +61,44 @@ class ComplianceReport(BaseModel):
     )
 
 
+class CompareTaxRegimesRequest(BaseModel):
+    faturamento_anual: float = Field(gt=0, description="Receita bruta anual em reais.")
+    setor: Literal["comércio", "serviços", "indústria"] = Field(
+        description="Setor da empresa (impacta anexo do Simples e prescuncao do LP)."
+    )
+    folha_pagamento_anual: float | None = Field(
+        default=None,
+        ge=0,
+        description="Folha anual em reais para Fator R no Simples (servicos).",
+    )
+    exportacao_servicos: bool = Field(
+        default=False,
+        description=(
+            "Se True e setor=servicos, aplica nao-incidencia/reducao de ISS, PIS e Cofins "
+            "(exportacao de servicos)."
+        ),
+    )
+    aliquota_iss: float = Field(
+        default=5.0,
+        ge=0,
+        le=5,
+        description="Aliquota municipal de ISS (%) quando nao ha exportacao. Default 5.",
+    )
+    margem_lucro_real: float = Field(
+        default=0.15,
+        gt=0,
+        le=1,
+        description="Margem de lucro liquido (0-1) usada na estimativa de Lucro Real.",
+    )
+    estimar_custo_fator_r: bool = Field(
+        default=True,
+        description=(
+            "Se True, estima INSS+IRPF da folha usada no Fator R e inclui no ranking "
+            "do Simples quando folha/faturamento >= 28%."
+        ),
+    )
+
+
 class TaxRegimeOption(BaseModel):
     """Comparativo de um regime tributário para um cenário especifico."""
 
@@ -77,6 +115,14 @@ class TaxRegimeOption(BaseModel):
     imposto_anual_estimado: float | None = Field(
         default=None, description="Imposto anual estimado em reais para o cenário fornecido."
     )
+    custo_pessoal_fator_r_estimado: float | None = Field(
+        default=None,
+        description="Estimativa de INSS+IRPF da folha usada para Fator R (somente Simples).",
+    )
+    custo_total_estimado: float | None = Field(
+        default=None,
+        description="imposto_anual_estimado + custo_pessoal_fator_r_estimado (quando houver).",
+    )
     pros: list[str] = Field(default_factory=list, description="Vantagens do regime.")
     contras: list[str] = Field(default_factory=list, description="Desvantagens do regime.")
 
@@ -92,6 +138,13 @@ class TaxRegimeComparison(BaseModel):
     )
     folha_pagamento_anual: float | None = Field(
         default=None, description="Folha de pagamento anual usada no Fator R (opcional)."
+    )
+    exportacao_servicos: bool = Field(
+        default=False, description="Se o cenarios assumiu exportacao de servicos."
+    )
+    aliquota_iss: float = Field(default=5.0, description="Aliquota ISS (%) usada no cenario.")
+    margem_lucro_real: float = Field(
+        default=0.15, description="Margem de Lucro Real usada no cenario."
     )
     opcoes: list[TaxRegimeOption] = Field(
         description="Opcoes avaliadas, do mais ao menos vantajoso."
