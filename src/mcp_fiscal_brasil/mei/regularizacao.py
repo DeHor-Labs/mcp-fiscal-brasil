@@ -58,16 +58,18 @@ def orientar_regularizacao_mei(
             titulo="Abrir o e-CAC",
             detalhe=(
                 "Acesse o e-CAC com conta Gov.br e confira pendências / "
-                "declarações não entregues (DASN-SIMEI)."
+                "declarações não entregues (DASN-SIMEI). Use só se o CNPJ "
+                "for/foi optante pelo Simei (MEI)."
             ),
             url=_URL_ECAC,
         ),
         RegularizacaoMeiPasso(
             ordem=2,
-            titulo="Gerar DAS no PGMEI se a DASN bloquear",
+            titulo="Gerar e pagar DAS no PGMEI se a DASN bloquear",
             detalhe=(
                 "Se aparecer aviso pedindo DAS do período, abra o PGMEI, "
-                f"identifique o CNPJ e emita o DAS de {anos_txt} antes de declarar."
+                f"emita e pague o DAS de {anos_txt} (INSS mensal do MEI "
+                "é devido mesmo sem receita). Só gerar o DAS não quita o débito."
             ),
             url=_URL_PGMEI,
         ),
@@ -76,7 +78,8 @@ def orientar_regularizacao_mei(
             titulo="Entregar DASN-SIMEI",
             detalhe=(
                 f"Transmita a DASN-SIMEI de {anos_txt}. {receita_txt} "
-                "Guarde o número do recibo de cada ano."
+                "Prazo normal: até o último dia de maio do ano seguinte ao "
+                "ano-calendário. Guarde o recibo de cada ano."
             ),
             url=_URL_DASN,
         ),
@@ -84,8 +87,9 @@ def orientar_regularizacao_mei(
             ordem=4,
             titulo="Repetir por ano omitido",
             detalhe=(
-                "Conclua PGMEI (se necessário) + DASN para todos os anos listados "
-                "nas pendências do e-CAC, do mais antigo ao mais recente."
+                "Conclua PGMEI (gerar+pagar, se necessário) + DASN para todos "
+                "os anos listados no e-CAC, do mais antigo ao mais recente. "
+                "Inatividade não dispensa a DASN-SIMEI."
             ),
             url=None,
         ),
@@ -93,8 +97,10 @@ def orientar_regularizacao_mei(
             ordem=5,
             titulo="Reemitir comprovante CNPJ",
             detalhe=(
-                "Emita novo comprovante de inscrição e situação cadastral e "
-                "confirme a saída de INAPTA para ATIVA (pode haver atraso vs e-CAC)."
+                "Após sanar todas as omissões, emita o comprovante de inscrição "
+                "e situação cadastral. A RFB processa a reversão de INAPTA "
+                "diariamente; APIs públicas podem atrasar vs e-CAC. INAPTA "
+                "prolongada pode levar a baixa de ofício."
             ),
             url=_URL_COMPROVANTE,
         ),
@@ -102,7 +108,15 @@ def orientar_regularizacao_mei(
 
     avisos = [
         "Não há API pública para login Gov.br; esta tool só orienta com URLs oficiais.",
-        "Remissão/parcelamento de INSS (ex.: programas de regularização) não dispensa a DASN-SIMEI.",
+        (
+            "Atraso ou omissão da DASN-SIMEI sujeita a multa "
+            "(mínimo R$ 50,00 — LC 123/2006 art. 38-A)."
+        ),
+        "Remissão/parcelamento de INSS não dispensa a entrega da DASN-SIMEI.",
+        (
+            "Use receita_zero=false se houve faturamento; o default true serve "
+            "apenas a CNPJ abandonado sem movimento."
+        ),
         "Consultas públicas (BrasilAPI etc.) podem atrasar em relação ao e-CAC.",
     ]
 

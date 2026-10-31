@@ -24,7 +24,11 @@ def test_orientar_regularizacao_mei_passos_e_links() -> None:
     assert "pgmei" in response.links_oficiais["pgmei"].lower()
     assert "dasnsimei" in response.links_oficiais["dasn_simei"].lower()
     assert any("DASN" in a or "Gov.br" in a for a in response.avisos)
+    assert any("multa" in a.lower() and "50" in a for a in response.avisos)
     assert "0,00" in response.passos[2].detalhe
+    assert "maio" in response.passos[2].detalhe.casefold()
+    assert "pague" in response.passos[1].detalhe.casefold() or "pagar" in response.passos[1].titulo.casefold()
+    assert "baixa de ofício" in response.passos[4].detalhe.casefold()
 
 
 def test_orientar_regularizacao_mei_cnpj_invalido() -> None:
