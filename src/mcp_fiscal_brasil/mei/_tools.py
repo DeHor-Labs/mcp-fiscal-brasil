@@ -6,13 +6,13 @@ from typing import Any
 
 from mcp_fiscal_brasil._core import get_logger
 
-from .tools import consultar_status_mei
+from .tools import consultar_status_mei, orientar_regularizacao_mei
 
 logger = get_logger(__name__)
 
 
 def register(app: Any) -> None:
-    """Registra as ferramentas MEI no servidor FastMCP."""
+    """Registra as ferramentas MEI no servidor MCP."""
 
     @app.tool(
         name="consultar_status_mei",
@@ -23,20 +23,26 @@ def register(app: Any) -> None:
         ),
     )
     async def tool_consultar_status_mei(cnpj: str) -> dict[str, Any]:
-        """Consulta o status MEI e Simples Nacional de um CNPJ.
-
-        Verifica junto ao Simples Nacional se o CNPJ informado e optante pelo MEI
-        (Microempreendedor Individual) e/ou pelo Simples Nacional, retornando as
-        datas de opcao e exclusao quando disponiveis.
-
-        Args:
-            cnpj: Numero do CNPJ com 14 caracteres (numerico ou alfanumerico,
-                IN RFB 2.229/2024), com ou sem formatacao
-                (ex: '11.222.333/0001-81', '11222333000181' ou '12ABC34501DE35').
-
-        Returns:
-            dict com 'cnpj', 'mei' (bool), 'simples_nacional' (bool),
-            'data_opcao_mei' e 'data_exclusao_mei' (quando disponiveis).
-        """
         result = await consultar_status_mei(cnpj)
+        return result.model_dump(mode="json", exclude_none=True)
+
+    @app.tool(
+        name="orientar_regularizacao_mei",
+        description=(
+            "Orienta o fluxo manual de regularização de MEI/Simei abandonado "
+            "(e-CAC → PGMEI → DASN-SIMEI → comprovante CNPJ). Não faz login Gov.br; "
+            "retorna passos estruturados e URLs oficiais. Use quando o CNPJ estiver "
+            "INAPTA por omissão de DASN-SIMEI ou o usuário pedir como regularizar MEI."
+        ),
+    )
+    async def tool_orientar_regularizacao_mei(
+        cnpj: str | None = None,
+        anos_omitidos: list[int] | None = None,
+        receita_zero: bool = True,
+    ) -> dict[str, Any]:
+        result = await orientar_regularizacao_mei(
+            cnpj=cnpj,
+            anos_omitidos=anos_omitidos,
+            receita_zero=receita_zero,
+        )
         return result.model_dump(mode="json", exclude_none=True)
