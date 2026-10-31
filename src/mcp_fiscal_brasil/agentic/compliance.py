@@ -118,7 +118,7 @@ def _achado_situacao(
                     f"(INSS mensal mesmo sem receita) e voltar à declaração: {_URL_PGMEI}"
                 ),
                 (
-                    "Atraso na DASN sujeita a multa (mínimo R$ 50,00 — LC 123/2006 art. 38-A)."
+                    "Atraso na DASN sujeita a multa (mínimo R$ 50,00 — LC 123/2006 art. 38)."
                 ),
             ]
         )
