@@ -87,6 +87,7 @@ def _cnpj_inapto_ei() -> CNPJResponse:
         razao_social="MARCO ANTONIO LUCIO CARVALHO",
         nome_fantasia=None,
         situacao_cadastral="INAPTA",
+        motivo_situacao_cadastral=None,
         natureza_juridica="213-5 - Empresário (Individual)",
         porte="ME",
         capital_social=None,
@@ -370,9 +371,12 @@ async def test_compliance_inapta_ei_sem_simei_nao_cita_dasn() -> None:
     situacao = next(a for a in report.achados if a.categoria == "situacao_cadastral")
     assert situacao.severidade == "alto"
     assert situacao.proximos_passos is not None
-    texto = " ".join([situacao.recomendacao or "", *situacao.proximos_passos]).lower()
+    texto = " ".join(
+        [situacao.detalhe, situacao.recomendacao or "", *situacao.proximos_passos]
+    ).lower()
     assert "e-cac" in texto or "ecac" in texto.replace("-", "")
     assert "213-5" in texto
+    assert "não afirme omissão" in situacao.detalhe.casefold()
     assert "dasn-simei dos anos" not in texto
     assert "pgmei" not in texto
 
