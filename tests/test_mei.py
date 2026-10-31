@@ -73,6 +73,21 @@ async def test_get_mei_status_404_simples_usa_cnpj_opcao_pelo_mei(
 
 
 @pytest.mark.asyncio
+async def test_get_mei_status_cnpj_opcao_null_nao_confirmado(
+    client: MEIClient, cnpj_digits: str
+) -> None:
+    with patch("mcp_fiscal_brasil._core.http.HTTPClient.get") as mock_get:
+        mock_get.side_effect = [
+            FiscalHTTPError("Not found", 404, "http://test/simples"),
+            {"opcao_pelo_mei": None, "opcao_pelo_simples": None},
+        ]
+        result = await client.get_mei_status(cnpj_digits)
+        assert result.mei is False
+        assert result.simples_nacional is False
+        assert result.fonte_confirmada is False
+
+
+@pytest.mark.asyncio
 async def test_get_mei_status_cnpj_invalido_nao_bate_na_api(
     client: MEIClient, cnpj_invalido: str
 ) -> None:

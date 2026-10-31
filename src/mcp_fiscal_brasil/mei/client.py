@@ -64,13 +64,16 @@ class MEIClient:
                         fonte_confirmada=False,
                     )
                 raise
+        opcao_mei = data.get("opcao_pelo_mei")
+        opcao_simples = data.get("opcao_pelo_simples")
+        indicadores_ok = opcao_mei is not None and opcao_simples is not None
         return MEIStatus(
             cnpj=cnpj_clean,
-            mei=bool(data.get("opcao_pelo_mei")),
+            mei=bool(opcao_mei) if opcao_mei is not None else False,
             data_opcao_mei=self._parse_date(data.get("data_opcao_pelo_mei")),
             data_exclusao_mei=self._parse_date(data.get("data_exclusao_do_mei")),
-            simples_nacional=bool(data.get("opcao_pelo_simples")),
-            fonte_confirmada=True,
+            simples_nacional=bool(opcao_simples) if opcao_simples is not None else False,
+            fonte_confirmada=indicadores_ok,
         )
 
     async def get_mei_status(self, cnpj: str) -> MEIStatus:
