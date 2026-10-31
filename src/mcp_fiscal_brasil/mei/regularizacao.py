@@ -110,7 +110,7 @@ def orientar_regularizacao_mei(
         "Não há API pública para login Gov.br; esta tool só orienta com URLs oficiais.",
         (
             "Atraso ou omissão da DASN-SIMEI sujeita a multa "
-            "(mínimo R$ 50,00 — LC 123/2006 art. 38-A)."
+            "(mínimo R$ 50,00 — LC 123/2006 art. 38)."
         ),
         "Remissão/parcelamento de INSS não dispensa a entrega da DASN-SIMEI.",
         (
