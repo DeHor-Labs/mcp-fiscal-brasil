@@ -28,6 +28,7 @@ from mcp_fiscal_brasil.agentic.schemas import (
     TaxRegimeComparison,
 )
 from mcp_fiscal_brasil.cnpj.schemas import AtividadeCNAE, CNPJResponse
+from mcp_fiscal_brasil.mei.schemas import MEIStatus
 from mcp_fiscal_brasil.shared.schemas import Endereco
 from mcp_fiscal_brasil.simples.schemas import SimplesStatus
 
@@ -346,7 +347,7 @@ async def test_compliance_cnpj_invalido_levanta() -> None:
 
 
 @pytest.mark.asyncio
-async def test_compliance_inapta_ei_cita_dasn_pgmei_ecac() -> None:
+async def test_compliance_inapta_ei_sem_simei_nao_cita_dasn() -> None:
     with (
         patch("mcp_fiscal_brasil.agentic.compliance.CNPJClient") as mock_cnpj_class,
         patch("mcp_fiscal_brasil.agentic.compliance.SimplesClient") as mock_simples_class,
@@ -371,8 +372,44 @@ async def test_compliance_inapta_ei_cita_dasn_pgmei_ecac() -> None:
     assert situacao.proximos_passos is not None
     texto = " ".join([situacao.recomendacao or "", *situacao.proximos_passos]).lower()
     assert "e-cac" in texto or "ecac" in texto.replace("-", "")
+    assert "213-5" in texto
+    assert "dasn-simei dos anos" not in texto
+    assert "pgmei" not in texto
+
+
+@pytest.mark.asyncio
+async def test_compliance_inapta_com_simei_confirmado_cita_dasn_pgmei() -> None:
+    with (
+        patch("mcp_fiscal_brasil.agentic.compliance.CNPJClient") as mock_cnpj_class,
+        patch("mcp_fiscal_brasil.agentic.compliance.SimplesClient") as mock_simples_class,
+        patch("mcp_fiscal_brasil.agentic.compliance.MEIClient") as mock_mei_class,
+    ):
+        cnpj_inst = MagicMock()
+        cnpj_inst.consultar = AsyncMock(return_value=_cnpj_inapto_ei())
+        mock_cnpj_class.return_value = cnpj_inst
+
+        simples_inst = MagicMock()
+        simples_inst.get_simples_status = AsyncMock(side_effect=Exception("offline"))
+        mock_simples_class.return_value = simples_inst
+
+        mei_inst = MagicMock()
+        mei_inst.get_mei_status = AsyncMock(
+            return_value=MEIStatus(
+                cnpj="27496821000117",
+                mei=True,
+                simples_nacional=True,
+            )
+        )
+        mock_mei_class.return_value = mei_inst
+
+        report = await analyze_cnpj_compliance("27.496.821/0001-17")
+
+    situacao = next(a for a in report.achados if a.categoria == "situacao_cadastral")
+    texto = " ".join([situacao.recomendacao or "", *(situacao.proximos_passos or [])]).lower()
     assert "dasn" in texto
     assert "pgmei" in texto
+    assert "multa" in texto
+    assert "r$ 50" in texto or "50,00" in texto
 
 
 # ---------------------------------------------------------------------------

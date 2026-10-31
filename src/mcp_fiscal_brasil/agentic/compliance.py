@@ -68,34 +68,26 @@ _URL_PGMEI = "https://www8.receita.fazenda.gov.br/SimplesNacional/Aplicacoes/ATS
 _URL_DASN = "https://www8.receita.fazenda.gov.br/SimplesNacional/Aplicacoes/ATSPO/dasnsimei.app/Identificacao"
 
 
-def _parece_mei_ou_simei(
-    cnpj_data: Any,
-    simples_data: Any | None,
-    mei_data: Any | None,
-) -> bool:
-    if mei_data is not None and getattr(mei_data, "mei", False):
-        return True
-    if simples_data is not None and getattr(simples_data, "mei", False):
-        return True
-    natureza = (getattr(cnpj_data, "natureza_juridica", None) or "").casefold()
-    porte = (getattr(cnpj_data, "porte", None) or "").casefold()
-    if "empresário individual" in natureza or "empresario individual" in natureza:
-        return True
-    if porte in {"mei", "microempreendedor individual"}:
-        return True
-    return "213-5" in natureza
+def _fonte_confirma_mei(status: Any | None) -> bool:
+    if status is None or not getattr(status, "mei", False):
+        return False
+    return bool(getattr(status, "fonte_confirmada", True))
+
+
+def _simei_confirmado(simples_data: Any | None, mei_data: Any | None) -> bool:
+    return _fonte_confirma_mei(mei_data) or _fonte_confirma_mei(simples_data)
 
 
 def _achado_situacao(
     risco_sit: RiskLevel,
     situacao_str: str,
-    cnpj_data: Any,
     simples_data: Any | None,
     mei_data: Any | None,
 ) -> ComplianceFinding:
     situacao_l = situacao_str.casefold()
-    is_inapta = "inapta" in situacao_l or "omissão" in situacao_l or "omissao" in situacao_l
-    if not is_inapta or risco_sit not in ("alto", "critico"):
+    is_inapta = "inapta" in situacao_l
+    is_omissao = "omissão" in situacao_l or "omissao" in situacao_l
+    if (not is_inapta and not is_omissao) or risco_sit not in ("alto", "critico"):
         recomendacao = (
             "Confirmar regularizacao antes de contratar"
             if risco_sit in ("alto", "critico")
@@ -109,42 +101,52 @@ def _achado_situacao(
             recomendacao=recomendacao,
         )
 
-    mei_like = _parece_mei_ou_simei(cnpj_data, simples_data, mei_data)
+    simei = _simei_confirmado(simples_data, mei_data)
     passos = [
         f"Abrir o e-CAC e conferir pendências/declarações omitidas: {_URL_ECAC}",
     ]
-    if mei_like:
+    if simei:
         passos.extend(
             [
                 (
-                    "Para MEI/Simei: entregar DASN-SIMEI dos anos omitidos "
-                    f"(receita 0,00 se sem movimento): {_URL_DASN}"
+                    "Com Simei/MEI confirmado: entregar DASN-SIMEI dos anos omitidos "
+                    f"(receita 0,00 se sem movimento; prazo normal até maio do ano seguinte): "
+                    f"{_URL_DASN}"
                 ),
                 (
-                    "Se a DASN bloquear pedindo DAS do período, gerar no PGMEI "
-                    f"e voltar à declaração: {_URL_PGMEI}"
+                    "Se a DASN bloquear pedindo DAS, gerar e pagar no PGMEI "
+                    f"(INSS mensal mesmo sem receita) e voltar à declaração: {_URL_PGMEI}"
+                ),
+                (
+                    "Atraso na DASN sujeita a multa (mínimo R$ 50,00 — LC 123/2006 art. 38-A)."
                 ),
             ]
         )
     else:
         passos.append(
-            "Identificar no e-CAC quais declarações estão omitidas "
-            "(DCTF, ECF, EFD etc.) e transmitir cada uma."
+            "Identificar no e-CAC a declaração omitida (DASN-SIMEI só se for/foi Simei; "
+            "senão DEFIS, PGDAS-D, DCTF, ECF, EFD etc.) e transmitir cada uma. "
+            "Natureza 213-5 (EI) sozinha não prova MEI."
         )
     passos.append(
-        "Reemitir o comprovante de inscrição e situação cadastral e confirmar "
-        "saída de INAPTA para ATIVA."
+        "Após sanar todas as omissões, reemitir o comprovante CNPJ e confirmar "
+        "saída de INAPTA para ATIVA (reversão processada diariamente pela RFB; "
+        "INAPTA prolongada pode levar a baixa de ofício)."
+    )
+    causa = (
+        "Omissão de declarações é causa frequente de INAPTA (IN RFB 2.119/2022); "
+        if is_inapta
+        else ""
     )
     detalhe = (
         f"Empresa classificada como '{situacao_str}' na Receita Federal. "
-        "INAPTA por omissão de declarações exige regularização declaratória "
-        "antes de contratar ou emitir documentos fiscais."
+        f"{causa}"
+        "Confirme no e-CAC quais obrigações faltam antes de contratar ou emitir documentos fiscais."
     )
     recomendacao = (
-        "Regularizar via e-CAC → DASN-SIMEI/PGMEI (MEI) ou declarações omitidas "
-        "apontadas no e-CAC; não basta 'regularizar' genérico."
-        if mei_like
-        else "Consultar e-CAC, identificar declarações omitidas e transmitir antes de contratar."
+        "Regularizar via e-CAC → DASN-SIMEI/PGMEI (Simei confirmado) e quitar DAS/multas."
+        if simei
+        else "Consultar e-CAC, identificar a declaração omitida e transmitir antes de contratar."
     )
     return ComplianceFinding(
         categoria="situacao_cadastral",
@@ -215,7 +217,7 @@ async def analyze_cnpj_compliance(cnpj: str) -> ComplianceReport:
     risco_sit, situacao_str = _risco_situacao(cnpj_data.situacao_cadastral)
     if risco_sit != "baixo":
         achados.append(
-            _achado_situacao(risco_sit, situacao_str, cnpj_data, simples_data, mei_data)
+            _achado_situacao(risco_sit, situacao_str, simples_data, mei_data)
         )
     fontes_ok.append(getattr(cnpj_data, "origem", "Receita"))
 
