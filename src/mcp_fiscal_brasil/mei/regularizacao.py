@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import date
+
 from mcp_fiscal_brasil.shared.validators import normalizar_cnpj, validate_cnpj_qualquer
 
 from .schemas import (
@@ -20,13 +22,20 @@ _URL_DASN = (
 _URL_COMPROVANTE = (
     "https://solucoes.receita.fazenda.gov.br/Servicos/cnpjreva/Cnpjreva_Solicitacao.asp"
 )
+_URL_REMISSAO = (
+    "https://www.gov.br/pgfn/pt-br/servicos/perguntas-frequentes/"
+    "perguntas-frequentes-perdao-do-mei"
+)
 
 _LINKS = {
     "e_cac": _URL_ECAC,
     "pgmei": _URL_PGMEI,
     "dasn_simei": _URL_DASN,
     "comprovante_cnpj": _URL_COMPROVANTE,
+    "remissao_mei": _URL_REMISSAO,
 }
+
+_ANO_MIN_DASN = 2007
 
 
 def _anos_texto(anos: list[int]) -> str:
@@ -35,16 +44,35 @@ def _anos_texto(anos: list[int]) -> str:
     return ", ".join(str(ano) for ano in anos)
 
 
+def _validar_anos_omitidos(anos: list[int] | None) -> list[int]:
+    if not anos:
+        return []
+    ano_max = date.today().year - 1
+    normalizados = sorted({int(a) for a in anos})
+    invalidos = [a for a in normalizados if a < _ANO_MIN_DASN or a > ano_max]
+    if invalidos:
+        raise ValueError(
+            f"anos_omitidos fora do intervalo declarável "
+            f"({_ANO_MIN_DASN}–{ano_max}): {invalidos}"
+        )
+    return normalizados
+
+
+def _normalizar_cnpj_opcional(cnpj: str | None) -> str | None:
+    if cnpj is None:
+        return None
+    if not cnpj.strip():
+        raise ValueError("CNPJ inválido: string vazia")
+    if not validate_cnpj_qualquer(cnpj):
+        raise ValueError(f"CNPJ inválido: '{cnpj}'")
+    return normalizar_cnpj(cnpj)
+
+
 def orientar_regularizacao_mei(
     request: RegularizacaoMeiRequest,
 ) -> RegularizacaoMeiResponse:
-    cnpj_norm: str | None = None
-    if request.cnpj:
-        if not validate_cnpj_qualquer(request.cnpj):
-            raise ValueError(f"CNPJ inválido: '{request.cnpj}'")
-        cnpj_norm = normalizar_cnpj(request.cnpj)
-
-    anos = sorted({int(a) for a in (request.anos_omitidos or []) if int(a) > 2000})
+    cnpj_norm = _normalizar_cnpj_opcional(request.cnpj)
+    anos = _validar_anos_omitidos(request.anos_omitidos)
     receita_txt = (
         "Informe receita bruta anual 0,00 se não houve movimento."
         if request.receita_zero
@@ -65,33 +93,38 @@ def orientar_regularizacao_mei(
         ),
         RegularizacaoMeiPasso(
             ordem=2,
-            titulo="Gerar e pagar DAS no PGMEI se a DASN bloquear",
+            titulo="Regularizar ano a ano (antigo → recente)",
             detalhe=(
-                "Se aparecer aviso pedindo DAS do período, abra o PGMEI, "
-                f"emita e pague o DAS de {anos_txt} (INSS mensal do MEI "
-                "é devido mesmo sem receita). Só gerar o DAS não quita o débito."
-            ),
-            url=_URL_PGMEI,
-        ),
-        RegularizacaoMeiPasso(
-            ordem=3,
-            titulo="Entregar DASN-SIMEI",
-            detalhe=(
-                f"Transmita a DASN-SIMEI de {anos_txt}. {receita_txt} "
-                "Prazo normal: até o último dia de maio do ano seguinte ao "
-                "ano-calendário. Guarde o recibo de cada ano."
+                f"Para cada ano omitido ({anos_txt}), do mais antigo ao mais recente: "
+                "(a) apure no PGMEI os períodos mensais daquele ano e pague o DAS "
+                "somente se exigido para aquele ano; "
+                "(b) transmita a DASN-SIMEI daquele ano; "
+                "(c) só então avance ao próximo ano. "
+                f"{receita_txt} Prazo normal da DASN: até o último dia de maio "
+                "do ano seguinte ao ano-calendário. Guarde o recibo de cada ano."
             ),
             url=_URL_DASN,
         ),
         RegularizacaoMeiPasso(
-            ordem=4,
-            titulo="Repetir por ano omitido",
+            ordem=3,
+            titulo="Conferir remissão antes de pagar DAS antigos",
             detalhe=(
-                "Conclua PGMEI (gerar+pagar, se necessário) + DASN para todos "
-                "os anos listados no e-CAC, do mais antigo ao mais recente. "
-                "Inatividade não dispensa a DASN-SIMEI."
+                "Antes de quitar integralmente DAS antigos, verifique elegibilidade "
+                "à remissão da parcela previdenciária (LC 238/2026; efeitos a partir "
+                "de 01/01/2027). Até lá os débitos seguem exigíveis; valores já pagos "
+                "não são restituídos; ICMS/ISS não entram na remissão."
             ),
-            url=None,
+            url=_URL_REMISSAO,
+        ),
+        RegularizacaoMeiPasso(
+            ordem=4,
+            titulo="Pagar DAS devidos no PGMEI",
+            detalhe=(
+                "No PGMEI, emita e pague os DAS mensais devidos dos anos listados. "
+                "INSS do MEI é devido mesmo sem receita. Só gerar o DAS não quita "
+                "o débito. O pagamento do DAS não é condição para transmitir a DASN."
+            ),
+            url=_URL_PGMEI,
         ),
         RegularizacaoMeiPasso(
             ordem=5,
@@ -110,7 +143,9 @@ def orientar_regularizacao_mei(
         "Não há API pública para login Gov.br; esta tool só orienta com URLs oficiais.",
         (
             "Atraso ou omissão da DASN-SIMEI sujeita a multa "
-            "(mínimo R$ 50,00 — LC 123/2006 art. 38)."
+            "(mínimo R$ 50,00 — LC 123/2006 art. 38). Após a transmissão, "
+            "verifique e pague o DARF da multa no prazo; o pagamento no prazo "
+            "pode reduzir a multa mínima de R$ 50,00 para R$ 25,00."
         ),
         "Remissão/parcelamento de INSS não dispensa a entrega da DASN-SIMEI.",
         (

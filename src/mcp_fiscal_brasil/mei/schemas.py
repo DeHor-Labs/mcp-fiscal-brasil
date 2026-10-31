@@ -25,7 +25,10 @@ class RegularizacaoMeiRequest(BaseModel):
     )
     anos_omitidos: list[int] | None = Field(
         default=None,
-        description="Anos-calendário de DASN-SIMEI omitidos, se conhecidos.",
+        description=(
+            "Anos-calendário de DASN-SIMEI omitidos (2007 até o ano-calendário "
+            "anterior ao corrente). Anos inválidos geram erro."
+        ),
     )
     receita_zero: bool = Field(
         default=True,
