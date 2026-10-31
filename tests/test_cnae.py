@@ -52,6 +52,18 @@ async def test_get_activities_sem_busca_nao_corta_em_50(client: CNAEClient) -> N
         assert len(result) == 60
 
 
+@pytest.mark.asyncio
+async def test_get_activities_search_vazio_nao_corta_em_50(client: CNAEClient) -> None:
+    payload = [
+        {"id": f"{i:07d}", "descricao": f"Atividade {i}"} for i in range(60)
+    ]
+    with patch("mcp_fiscal_brasil._core.http.HTTPClient.get_list") as mock_get:
+        mock_get.return_value = payload
+        result = await client.get_activities(search="")
+        assert len(result) == 60
+        mock_get.assert_called_once_with("/subclasses", params=None)
+
+
 def test_cnae_activity_roundtrip_model_dump_validate() -> None:
     activity = CNAEActivity(código="6201501", descrição="Software")
     restored = CNAEActivity.model_validate(activity.model_dump())

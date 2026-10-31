@@ -58,6 +58,10 @@ def _match_busca(activity: CNAEActivity, search: str) -> bool:
     return termo in haystack
 
 
+def _tem_busca(search: str | None) -> bool:
+    return bool(search and search.strip())
+
+
 class CNAEClient:
     def _http_client(self) -> HTTPClient:
         return HTTPClient(
@@ -95,7 +99,7 @@ class CNAEClient:
     async def get_activities(self, search: str | None = None) -> list[CNAEActivity]:
         logger.info("cnae_get_activities_started", search=search)
         params: dict[str, Any] = {}
-        if search:
+        if _tem_busca(search):
             params["busca"] = search
 
         async with self._http_client() as client:
@@ -109,9 +113,10 @@ class CNAEClient:
                 raise
 
         activities = [_cnae_activity_from_item(item) for item in data if isinstance(item, dict)]
-        if search is None:
+        busca = search.strip() if search else ""
+        if not busca:
             return activities
-        filtrados = [item for item in activities if _match_busca(item, search)]
+        filtrados = [item for item in activities if _match_busca(item, busca)]
         return filtrados[:_MAX_BUSCA_RESULTADOS]
 
     async def get_activity(self, code: str) -> CNAEActivity:
@@ -128,7 +133,7 @@ class CNAEClient:
     async def get_classes(self, search: str | None = None) -> list[CNAEClass]:
         logger.info("cnae_get_classes_started", search=search)
         params: dict[str, Any] = {}
-        if search:
+        if _tem_busca(search):
             params["busca"] = search
 
         async with self._http_client() as client:
@@ -142,9 +147,10 @@ class CNAEClient:
                 raise
 
         classes = [_cnae_class_from_item(item) for item in data if isinstance(item, dict)]
-        if search is None:
+        busca = search.strip() if search else ""
+        if not busca:
             return classes
-        termo = search.casefold()
+        termo = busca.casefold()
         filtrados = [
             item
             for item in classes
