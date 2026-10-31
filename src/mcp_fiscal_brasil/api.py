@@ -173,7 +173,8 @@ async def simples_lookup(cnpj: str) -> dict[str, Any]:
     except FiscalNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except FiscalHTTPError as exc:
-        status = exc.status_code if isinstance(exc.status_code, int) else 502
+        is_http_error = isinstance(exc.status_code, int) and 400 <= exc.status_code <= 599
+        status = exc.status_code if is_http_error else 502
         raise HTTPException(status_code=status, detail=str(exc)) from exc
     return resultado.model_dump(mode="json", exclude_none=True)
 

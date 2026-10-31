@@ -19,7 +19,8 @@ async def consultar_status_mei(cnpj: str) -> MEIStatus:
         cnpj: Número do CNPJ com 14 dígitos, com ou sem formatação.
 
     Returns:
-        MEIStatus com situação MEI, Simples Nacional e datas de opção/exclusão.
+        MEIStatus com situação MEI, Simples Nacional, datas de opção/exclusão e
+        fonte_confirmada. Se fonte_confirmada for false, mei=false não é negativa definitiva.
 
     Raises:
         ValueError: Se o CNPJ for inválido ou tiver formato incorreto.

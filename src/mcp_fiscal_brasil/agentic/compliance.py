@@ -139,19 +139,47 @@ async def analyze_cnpj_compliance(cnpj: str) -> ComplianceReport:
 
     # Regime tributário
     if simples_data is not None:
-        fontes_ok.append("Simples Nacional")
-        if not simples_data.simples_nacional:
+        if getattr(simples_data, "fonte_confirmada", True):
+            fontes_ok.append("Simples Nacional")
+            if not simples_data.simples_nacional:
+                achados.append(
+                    ComplianceFinding(
+                        categoria="regime_tributario",
+                        severidade="baixo",
+                        titulo="Não optante pelo Simples Nacional",
+                        detalhe="Empresa não consta como optante do Simples Nacional.",
+                    )
+                )
+        else:
             achados.append(
                 ComplianceFinding(
                     categoria="regime_tributario",
-                    severidade="baixo",
-                    titulo="Não optante pelo Simples Nacional",
-                    detalhe="Empresa não consta como optante do Simples Nacional.",
+                    severidade="medio",
+                    titulo="Simples Nacional não confirmado pela fonte",
+                    detalhe=(
+                        "A consulta ao endpoint Simples/CNPJ não confirmou o "
+                        "enquadramento; mei/simples_nacional=false não é negativo definitivo."
+                    ),
+                    recomendacao="Consultar e-CAC ou comprovante oficial da RFB.",
                 )
             )
 
     if mei_data is not None:
-        fontes_ok.append("MEI Receita")
+        if getattr(mei_data, "fonte_confirmada", True):
+            fontes_ok.append("MEI Receita")
+        else:
+            achados.append(
+                ComplianceFinding(
+                    categoria="regime_tributario",
+                    severidade="medio",
+                    titulo="Status MEI não confirmado pela fonte",
+                    detalhe=(
+                        "A consulta MEI não foi confirmada (fonte_confirmada=false); "
+                        "mei=false não representa negativa definitiva."
+                    ),
+                    recomendacao="Consultar e-CAC ou comprovante oficial da RFB.",
+                )
+            )
 
     # CNAE - sem flag por enquanto, mas registra como achado informativo
     if cnpj_data.atividade_principal:

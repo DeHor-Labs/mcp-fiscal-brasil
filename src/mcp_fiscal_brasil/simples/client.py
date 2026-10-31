@@ -50,15 +50,7 @@ class SimplesClient:
                 data = await client.get(f"/simples/v1/{cnpj_clean}")
             except FiscalHTTPError as exc:
                 if exc.status_code == 404:
-                    # Nao optante pelo Simples/MEI (ou sem dados pro CNPJ):
-                    # nao e erro, e um resultado negativo legitimo.
-                    logger.warning("simples_status_nao_confirmado", cnpj=cnpj_clean)
-                    return SimplesStatus(
-                        cnpj=cnpj_clean,
-                        simples_nacional=False,
-                        mei=False,
-                        fonte_confirmada=False,
-                    )
+                    return await self._status_from_cnpj_endpoint(cnpj_clean)
                 raise
 
         # A BrasilAPI retorna {"simples": {...}, "simei": {...}}
@@ -83,4 +75,30 @@ class SimplesClient:
             data_exclusao_mei=self._parse_date(
                 simei.get("data_exclusao", data.get("data_exclusao_simei"))
             ),
+            fonte_confirmada=True,
+        )
+
+    async def _status_from_cnpj_endpoint(self, cnpj_clean: str) -> SimplesStatus:
+        async with self._http_client() as client:
+            try:
+                data = await client.get(f"/cnpj/v1/{cnpj_clean}")
+            except FiscalHTTPError as exc:
+                if exc.status_code == 404:
+                    logger.warning("simples_status_nao_confirmado", cnpj=cnpj_clean)
+                    return SimplesStatus(
+                        cnpj=cnpj_clean,
+                        simples_nacional=False,
+                        mei=False,
+                        fonte_confirmada=False,
+                    )
+                raise
+        return SimplesStatus(
+            cnpj=cnpj_clean,
+            simples_nacional=bool(data.get("opcao_pelo_simples")),
+            data_opcao=self._parse_date(data.get("data_opcao_pelo_simples")),
+            data_exclusao=self._parse_date(data.get("data_exclusao_do_simples")),
+            mei=bool(data.get("opcao_pelo_mei")),
+            data_opcao_mei=self._parse_date(data.get("data_opcao_pelo_mei")),
+            data_exclusao_mei=self._parse_date(data.get("data_exclusao_do_mei")),
+            fonte_confirmada=True,
         )

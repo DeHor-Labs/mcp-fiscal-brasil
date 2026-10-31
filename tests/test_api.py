@@ -360,3 +360,24 @@ def test_simples_lookup_erro_upstream_nao_vira_500_generico() -> None:
         response = client.get("/v1/simples/33000167000101")
     assert response.status_code == 503
     assert "indisponivel" in response.json()["detail"]
+
+
+def test_simples_lookup_status_2xx_anomalo_vira_502() -> None:
+    with patch.object(
+        api_module.SimplesClient,
+        "get_simples_status",
+        AsyncMock(side_effect=FiscalHTTPError("resposta anomala", 204, "http://test")),
+    ):
+        response = client.get("/v1/simples/33000167000101")
+    assert response.status_code == 502
+    assert "resposta anomala" in response.json()["detail"]
+
+
+def test_simples_lookup_status_none_vira_502() -> None:
+    with patch.object(
+        api_module.SimplesClient,
+        "get_simples_status",
+        AsyncMock(side_effect=FiscalHTTPError("timeout", None, "http://test")),
+    ):
+        response = client.get("/v1/simples/33000167000101")
+    assert response.status_code == 502

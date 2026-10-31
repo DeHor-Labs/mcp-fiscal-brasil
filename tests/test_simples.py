@@ -43,11 +43,8 @@ async def test_get_simples_status_success_brasilapi_format(client, cnpj_digits):
 
 
 @pytest.mark.asyncio
-async def test_get_simples_status_404_nao_optante_nao_e_erro(client, cnpj_digits):
-    """BrasilAPI responde 404 (HTML, sem JSON) pra CNPJ valido sem opcao pelo
-    Simples/MEI. Isso e um resultado negativo legitimo, nao uma falha, mas
-    fonte_confirmada fica False porque o 404 nao distingue esse caso de uma
-    fonte indisponivel."""
+async def test_get_simples_status_404_ambos_endpoints_nao_confirmado(client, cnpj_digits):
+    """Se /simples e /cnpj retornam 404, fonte_confirmada fica False."""
     with patch("mcp_fiscal_brasil._core.http.HTTPClient.get") as mock_get:
         mock_get.side_effect = FiscalHTTPError("Recurso não encontrado", 404, "http://test")
         result = await client.get_simples_status(cnpj_digits)
@@ -55,6 +52,25 @@ async def test_get_simples_status_404_nao_optante_nao_e_erro(client, cnpj_digits
         assert result.mei is False
         assert result.cnpj == cnpj_digits
         assert result.fonte_confirmada is False
+        assert mock_get.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_get_simples_status_404_simples_usa_cnpj_opcao_pelo_simples(client, cnpj_digits):
+    with patch("mcp_fiscal_brasil._core.http.HTTPClient.get") as mock_get:
+        mock_get.side_effect = [
+            FiscalHTTPError("Not found", 404, "http://test/simples"),
+            {
+                "opcao_pelo_simples": True,
+                "data_opcao_pelo_simples": "2020-01-01",
+                "opcao_pelo_mei": False,
+            },
+        ]
+        result = await client.get_simples_status(cnpj_digits)
+        assert result.simples_nacional is True
+        assert result.mei is False
+        assert result.fonte_confirmada is True
+        assert result.data_opcao is not None
 
 
 @pytest.mark.asyncio
