@@ -80,6 +80,27 @@ def _cnpj_baixado() -> CNPJResponse:
     )
 
 
+def _cnpj_inapto_ei() -> CNPJResponse:
+    return CNPJResponse(
+        cnpj="27496821000117",
+        razao_social="MARCO ANTONIO LUCIO CARVALHO",
+        nome_fantasia=None,
+        situacao_cadastral="INAPTA",
+        natureza_juridica="213-5 - Empresário (Individual)",
+        porte="ME",
+        capital_social=None,
+        atividade_principal=AtividadeCNAE(
+            código="6201501", descrição="Desenvolvimento de software"
+        ),
+        atividades_secundarias=[],
+        endereco=Endereco(municipio="Goiânia", uf="GO"),
+        telefone=None,
+        email=None,
+        qsa=[],
+        origem="BrasilAPI",
+    )
+
+
 @pytest.mark.asyncio
 async def test_validate_nfe_full_extrai_chave_do_xml_e_marca_consistente(
     tmp_path, chave_nfe_valida: str
@@ -322,6 +343,36 @@ async def test_compliance_simples_data_real_nao_optante_gera_achado() -> None:
 async def test_compliance_cnpj_invalido_levanta() -> None:
     with pytest.raises(ValueError, match="14 digitos"):
         await analyze_cnpj_compliance("123")
+
+
+@pytest.mark.asyncio
+async def test_compliance_inapta_ei_cita_dasn_pgmei_ecac() -> None:
+    with (
+        patch("mcp_fiscal_brasil.agentic.compliance.CNPJClient") as mock_cnpj_class,
+        patch("mcp_fiscal_brasil.agentic.compliance.SimplesClient") as mock_simples_class,
+        patch("mcp_fiscal_brasil.agentic.compliance.MEIClient") as mock_mei_class,
+    ):
+        cnpj_inst = MagicMock()
+        cnpj_inst.consultar = AsyncMock(return_value=_cnpj_inapto_ei())
+        mock_cnpj_class.return_value = cnpj_inst
+
+        simples_inst = MagicMock()
+        simples_inst.get_simples_status = AsyncMock(side_effect=Exception("offline"))
+        mock_simples_class.return_value = simples_inst
+
+        mei_inst = MagicMock()
+        mei_inst.get_mei_status = AsyncMock(side_effect=Exception("offline"))
+        mock_mei_class.return_value = mei_inst
+
+        report = await analyze_cnpj_compliance("27.496.821/0001-17")
+
+    situacao = next(a for a in report.achados if a.categoria == "situacao_cadastral")
+    assert situacao.severidade == "alto"
+    assert situacao.proximos_passos is not None
+    texto = " ".join([situacao.recomendacao or "", *situacao.proximos_passos]).lower()
+    assert "e-cac" in texto or "ecac" in texto.replace("-", "")
+    assert "dasn" in texto
+    assert "pgmei" in texto
 
 
 # ---------------------------------------------------------------------------

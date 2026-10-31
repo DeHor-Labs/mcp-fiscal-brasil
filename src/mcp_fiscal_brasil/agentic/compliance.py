@@ -63,6 +63,99 @@ def _consolida_risco(achados: list[ComplianceFinding]) -> RiskLevel:
     return "baixo"
 
 
+_URL_ECAC = "https://cav.receita.fazenda.gov.br/autenticacao/login"
+_URL_PGMEI = "https://www8.receita.fazenda.gov.br/SimplesNacional/Aplicacoes/ATSPO/pgmei.app/Identificacao"
+_URL_DASN = "https://www8.receita.fazenda.gov.br/SimplesNacional/Aplicacoes/ATSPO/dasnsimei.app/Identificacao"
+
+
+def _parece_mei_ou_simei(
+    cnpj_data: Any,
+    simples_data: Any | None,
+    mei_data: Any | None,
+) -> bool:
+    if mei_data is not None and getattr(mei_data, "mei", False):
+        return True
+    if simples_data is not None and getattr(simples_data, "mei", False):
+        return True
+    natureza = (getattr(cnpj_data, "natureza_juridica", None) or "").casefold()
+    porte = (getattr(cnpj_data, "porte", None) or "").casefold()
+    if "empresário individual" in natureza or "empresario individual" in natureza:
+        return True
+    if porte in {"mei", "microempreendedor individual"}:
+        return True
+    return "213-5" in natureza
+
+
+def _achado_situacao(
+    risco_sit: RiskLevel,
+    situacao_str: str,
+    cnpj_data: Any,
+    simples_data: Any | None,
+    mei_data: Any | None,
+) -> ComplianceFinding:
+    situacao_l = situacao_str.casefold()
+    is_inapta = "inapta" in situacao_l or "omissão" in situacao_l or "omissao" in situacao_l
+    if not is_inapta or risco_sit not in ("alto", "critico"):
+        recomendacao = (
+            "Confirmar regularizacao antes de contratar"
+            if risco_sit in ("alto", "critico")
+            else "Monitorar evolução da situacao"
+        )
+        return ComplianceFinding(
+            categoria="situacao_cadastral",
+            severidade=risco_sit,
+            titulo=f"Situacao cadastral: {situacao_str}",
+            detalhe=f"Empresa esta classificada como '{situacao_str}' na Receita Federal.",
+            recomendacao=recomendacao,
+        )
+
+    mei_like = _parece_mei_ou_simei(cnpj_data, simples_data, mei_data)
+    passos = [
+        f"Abrir o e-CAC e conferir pendências/declarações omitidas: {_URL_ECAC}",
+    ]
+    if mei_like:
+        passos.extend(
+            [
+                (
+                    "Para MEI/Simei: entregar DASN-SIMEI dos anos omitidos "
+                    f"(receita 0,00 se sem movimento): {_URL_DASN}"
+                ),
+                (
+                    "Se a DASN bloquear pedindo DAS do período, gerar no PGMEI "
+                    f"e voltar à declaração: {_URL_PGMEI}"
+                ),
+            ]
+        )
+    else:
+        passos.append(
+            "Identificar no e-CAC quais declarações estão omitidas "
+            "(DCTF, ECF, EFD etc.) e transmitir cada uma."
+        )
+    passos.append(
+        "Reemitir o comprovante de inscrição e situação cadastral e confirmar "
+        "saída de INAPTA para ATIVA."
+    )
+    detalhe = (
+        f"Empresa classificada como '{situacao_str}' na Receita Federal. "
+        "INAPTA por omissão de declarações exige regularização declaratória "
+        "antes de contratar ou emitir documentos fiscais."
+    )
+    recomendacao = (
+        "Regularizar via e-CAC → DASN-SIMEI/PGMEI (MEI) ou declarações omitidas "
+        "apontadas no e-CAC; não basta 'regularizar' genérico."
+        if mei_like
+        else "Consultar e-CAC, identificar declarações omitidas e transmitir antes de contratar."
+    )
+    return ComplianceFinding(
+        categoria="situacao_cadastral",
+        severidade=risco_sit,
+        titulo=f"Situacao cadastral: {situacao_str}",
+        detalhe=detalhe,
+        recomendacao=recomendacao,
+        proximos_passos=passos,
+    )
+
+
 async def analyze_cnpj_compliance(cnpj: str) -> ComplianceReport:
     """
     Analise consolidada de compliance fiscal de um CNPJ brasileiro.
@@ -119,21 +212,10 @@ async def analyze_cnpj_compliance(cnpj: str) -> ComplianceReport:
     achados: list[ComplianceFinding] = []
     fontes_ok: list[str] = []
 
-    # Situacao cadastral
     risco_sit, situacao_str = _risco_situacao(cnpj_data.situacao_cadastral)
     if risco_sit != "baixo":
         achados.append(
-            ComplianceFinding(
-                categoria="situacao_cadastral",
-                severidade=risco_sit,
-                titulo=f"Situacao cadastral: {situacao_str}",
-                detalhe=f"Empresa esta classificada como '{situacao_str}' na Receita Federal.",
-                recomendacao=(
-                    "Confirmar regularizacao antes de contratar"
-                    if risco_sit in ("alto", "critico")
-                    else "Monitorar evolução da situacao"
-                ),
-            )
+            _achado_situacao(risco_sit, situacao_str, cnpj_data, simples_data, mei_data)
         )
     fontes_ok.append(getattr(cnpj_data, "origem", "Receita"))
 
