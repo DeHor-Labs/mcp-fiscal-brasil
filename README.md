@@ -239,6 +239,7 @@ Retornam URLs e instruções - exigem ação manual nos portais governamentais.
 | NFSe | `consultar_nfse` | URL do portal NFSe do município + sistema utilizado |
 | Certidões | `consultar_certidao_federal` | URL do e-CAC para emissão de CND federal |
 | Certidões | `consultar_certidao_fgts` | URL do portal Caixa para consulta do CRF |
+| MEI | `orientar_regularizacao_mei` | Passos e-CAC → PGMEI → DASN-SIMEI → comprovante CNPJ |
 
 ---
 
