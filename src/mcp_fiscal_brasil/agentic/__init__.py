@@ -28,6 +28,7 @@ from .sped import summarize_sped
 from .supplier import consultar_empresas_lote, risk_score_supplier
 
 __all__ = [
+    "CompareTaxRegimesRequest",
     "ComplianceReport",
     "NFeValidationReport",
     "SPEDSummary",
@@ -35,7 +36,6 @@ __all__ = [
     "SupplierRiskBatchItem",
     "SupplierRiskBatchResult",
     "SupplierRiskScore",
-    "CompareTaxRegimesRequest",
     "TaxRegimeComparison",
     "analyze_cnpj_compliance",
     "compare_tax_regimes",

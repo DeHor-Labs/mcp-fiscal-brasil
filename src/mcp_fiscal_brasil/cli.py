@@ -220,7 +220,7 @@ def regimes(
     iss: float = typer.Option(5.0, "--iss", help="Aliquota ISS municipal (%)"),
     margem_real: float = typer.Option(0.15, "--margem-real", help="Margem Lucro Real (0-1)"),
     custo_fator_r: bool = typer.Option(
-        True, "--custo-fator-r/--sem-custo-fator-r", help="Incluir INSS/IRPF no ranking"
+        True, "--custo-fator-r/--sem-custo-fator-r", help="Estimar INSS/IRPF da folha (informativo)"
     ),
     as_json: bool = typer.Option(False, "--json", help="Saida em JSON puro"),
 ) -> None:

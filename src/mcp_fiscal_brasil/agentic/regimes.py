@@ -55,6 +55,27 @@ _ANEXO_III: list[_AnexoFaixa] = [
     (4_800_000.0, 33.00, 648_000.0),
 ]
 
+_INSS_FAIXAS: list[tuple[float, float]] = [
+    (1_621.00, 0.075),
+    (2_902.84, 0.09),
+    (4_354.27, 0.12),
+    (8_475.55, 0.14),
+]
+
+_IRPF_FAIXAS: list[tuple[float, float, float]] = [
+    (2_428.80, 0.0, 0.0),
+    (2_826.65, 0.075, 182.16),
+    (3_751.05, 0.15, 394.16),
+    (4_664.68, 0.225, 675.49),
+]
+_IRPF_ALIQUOTA_MAXIMA = 0.275
+_IRPF_DEDUCAO_MAXIMA = 908.73
+_IRPF_DESCONTO_SIMPLIFICADO = 607.20
+_IRPF_ISENCAO_LEI_15270 = 5_000.0
+_IRPF_REDUCAO_TETO = 7_350.0
+_IRPF_REDUCAO_CONSTANTE = 978.62
+_IRPF_REDUCAO_FATOR = 0.133145
+
 _ANEXO_V: list[_AnexoFaixa] = [
     (180_000.0, 15.50, 0.0),
     (360_000.0, 18.00, 4_500.0),
@@ -143,7 +164,9 @@ def _calc_lucro_presumido(
     irpj = base_irpj * 0.15
     adicional = max(0.0, base_irpj - 240_000.0) * 0.10
     csll = base_irpj * 0.09
-    pis_cofins = 0.0 if exportacao_servicos and setor == "serviços" else faturamento * _PIS_COFINS_LP
+    pis_cofins = (
+        0.0 if exportacao_servicos and setor == "serviços" else faturamento * _PIS_COFINS_LP
+    )
     iss = _iss_valor(faturamento, setor, exportacao_servicos, aliquota_iss)
     total = irpj + adicional + csll + pis_cofins + iss
     return True, total / faturamento * 100, total, None
@@ -160,7 +183,9 @@ def _calc_lucro_real_simplificado(
     irpj = lucro * 0.15
     adicional = max(0.0, lucro - 240_000.0) * 0.10
     csll = lucro * 0.09
-    pis_cofins = 0.0 if exportacao_servicos and setor == "serviços" else faturamento * _PIS_COFINS_LR
+    pis_cofins = (
+        0.0 if exportacao_servicos and setor == "serviços" else faturamento * _PIS_COFINS_LR
+    )
     iss = _iss_valor(faturamento, setor, exportacao_servicos, aliquota_iss)
     total = irpj + adicional + csll + pis_cofins + iss
     return True, total / faturamento * 100, total, None
@@ -175,24 +200,39 @@ def _calc_mei(faturamento: float, setor: _Setor) -> _CalcResult:
     return True, aliquota_efetiva, total, None
 
 
-def _irpf_mensal(base: float) -> float:
-    if base <= 2259.20:
+def _inss_mensal(salario: float) -> float:
+    inss = 0.0
+    piso = 0.0
+    for teto, aliquota in _INSS_FAIXAS:
+        if salario <= piso:
+            break
+        inss += (min(salario, teto) - piso) * aliquota
+        piso = teto
+    return inss
+
+
+def _irpf_tabela(base: float) -> float:
+    for limite, aliquota, deducao in _IRPF_FAIXAS:
+        if base <= limite:
+            return max(0.0, base * aliquota - deducao)
+    return max(0.0, base * _IRPF_ALIQUOTA_MAXIMA - _IRPF_DEDUCAO_MAXIMA)
+
+
+def _irpf_mensal(salario: float, inss: float) -> float:
+    if salario <= _IRPF_ISENCAO_LEI_15270:
         return 0.0
-    if base <= 2826.65:
-        return base * 0.075 - 169.44
-    if base <= 3751.05:
-        return base * 0.15 - 381.44
-    if base <= 4664.68:
-        return base * 0.225 - 662.77
-    return base * 0.275 - 896.00
+    imposto = _irpf_tabela(salario - max(inss, _IRPF_DESCONTO_SIMPLIFICADO))
+    if salario <= _IRPF_REDUCAO_TETO:
+        imposto -= _IRPF_REDUCAO_CONSTANTE - _IRPF_REDUCAO_FATOR * salario
+    return max(0.0, imposto)
 
 
 def _estimar_custo_pessoal_folha(folha_anual: float) -> float:
     if folha_anual <= 0:
         return 0.0
-    inss = folha_anual * 0.11
-    base_mensal = (folha_anual - inss) / 12.0
-    return inss + _irpf_mensal(base_mensal) * 12.0
+    salario = folha_anual / 12.0
+    inss = _inss_mensal(salario)
+    return (inss + _irpf_mensal(salario, inss)) * 12.0
 
 
 def _usa_fator_r(setor: _Setor, folha: float | None, faturamento: float) -> bool:
@@ -234,8 +274,6 @@ def _pros_contras(regime: str) -> tuple[list[str], list[str]]:
 
 
 def _custo_ranqueamento(opcao: TaxRegimeOption) -> float:
-    if opcao.custo_total_estimado is not None:
-        return opcao.custo_total_estimado
     if opcao.imposto_anual_estimado is not None:
         return opcao.imposto_anual_estimado
     return float("inf")
@@ -243,7 +281,7 @@ def _custo_ranqueamento(opcao: TaxRegimeOption) -> float:
 
 def _montar_observacoes(request: CompareTaxRegimesRequest) -> str:
     partes = [
-        "Estimativa simplificada com tabelas publicas vigentes em 2025.",
+        "Estimativa simplificada com tabelas publicas vigentes em 2026.",
         "Simples usa alíquota efetiva (LC 123/2006 art. 18 §1º-A).",
         "Nao inclui Anexo IV, beneficios estaduais nem regimes especiais.",
     ]
@@ -255,8 +293,9 @@ def _montar_observacoes(request: CompareTaxRegimesRequest) -> str:
         )
     if request.estimar_custo_fator_r:
         partes.append(
-            "Ranking do Simples com Fator R inclui estimativa simplificada de INSS (11%) "
-            "+ IRPF mensal sobre a folha informada."
+            "Custo pessoal do Fator R e informativo (fora do ranking): INSS progressivo "
+            "com teto e IRPF mensal com reducao da Lei 15.270/2025, tratando a folha "
+            "informada como um unico salario."
         )
     partes.append(
         f"ISS municipal {request.aliquota_iss:.2f}% (quando aplicavel); "
@@ -314,11 +353,7 @@ def _compare_from_request(request: CompareTaxRegimesRequest) -> TaxRegimeCompari
         ),
     ]
     custo_fator_r: float | None = None
-    if (
-        request.estimar_custo_fator_r
-        and _usa_fator_r(setor, folha, fat)
-        and folha is not None
-    ):
+    if request.estimar_custo_fator_r and _usa_fator_r(setor, folha, fat) and folha is not None:
         custo_fator_r = _estimar_custo_pessoal_folha(folha)
 
     opcoes: list[TaxRegimeOption] = []
@@ -331,11 +366,11 @@ def _compare_from_request(request: CompareTaxRegimesRequest) -> TaxRegimeCompari
         if pessoal and regime == "simples_nacional":
             contras = [
                 *contras,
-                "Custo pessoal do Fator R (INSS/IRPF) incluido no custo_total_estimado",
+                "Custo pessoal do Fator R (INSS/IRPF) informado em custo_total_estimado",
             ]
         opcoes.append(
             TaxRegimeOption(
-                regime=regime,  # type: ignore[arg-type]
+                regime=regime,
                 aplicavel=aplicavel,
                 motivo_inaplicavel=motivo,
                 aliquota_efetiva_estimada=aliquota,

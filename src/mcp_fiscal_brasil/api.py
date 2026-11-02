@@ -410,12 +410,12 @@ async def agentic_supplier(
     summary="Comparativo de regimes tributarios",
 )
 def agentic_regimes(
-    faturamento_anual: float = Query(..., gt=0),
+    faturamento_anual: float = Query(..., gt=0, allow_inf_nan=False),
     setor: Literal["comércio", "serviços", "indústria"] = Query(...),
-    folha_pagamento_anual: float | None = Query(None, ge=0),
+    folha_pagamento_anual: float | None = Query(None, ge=0, allow_inf_nan=False),
     exportacao_servicos: bool = Query(False),
-    aliquota_iss: float = Query(5.0, ge=0, le=5),
-    margem_lucro_real: float = Query(0.15, gt=0, le=1),
+    aliquota_iss: float = Query(5.0, ge=0, le=5, allow_inf_nan=False),
+    margem_lucro_real: float = Query(0.15, gt=0, le=1, allow_inf_nan=False),
     estimar_custo_fator_r: bool = Query(True),
 ) -> dict[str, Any]:
     resultado = compare_tax_regimes(

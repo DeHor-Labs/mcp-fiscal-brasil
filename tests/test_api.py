@@ -77,6 +77,19 @@ def test_agentic_regimes_setor_invalido() -> None:
     assert response.status_code == 422
 
 
+@pytest.mark.parametrize(
+    "params",
+    [
+        {"faturamento_anual": "inf", "setor": "serviços"},
+        {"faturamento_anual": 500_000, "setor": "serviços", "folha_pagamento_anual": "nan"},
+        {"faturamento_anual": 500_000, "setor": "serviços", "margem_lucro_real": "inf"},
+    ],
+)
+def test_agentic_regimes_rejeita_inf_nan(params: dict[str, object]) -> None:
+    response = client.get("/v1/agentic/regimes", params=params)
+    assert response.status_code == 422
+
+
 def test_agentic_regimes_faturamento_zero() -> None:
     response = client.get(
         "/v1/agentic/regimes",

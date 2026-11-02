@@ -19,6 +19,8 @@ from mcp_fiscal_brasil.agentic.regimes import (
     _calc_lucro_presumido,
     _calc_mei,
     _calc_simples,
+    _inss_mensal,
+    _irpf_mensal,
 )
 from mcp_fiscal_brasil.agentic.schemas import (
     ComplianceFinding,
@@ -384,7 +386,41 @@ def test_compare_tax_regimes_fator_r_inclui_custo_pessoal() -> None:
     s_com = next(o for o in com.opcoes if o.regime == "simples_nacional")
     assert s_com.custo_pessoal_fator_r_estimado is not None
     assert s_com.custo_pessoal_fator_r_estimado > 0
-    assert (s_com.custo_total_estimado or 0) > (s_sem.imposto_anual_estimado or 0)
+    assert s_com.custo_total_estimado == pytest.approx(
+        (s_sem.imposto_anual_estimado or 0) + s_com.custo_pessoal_fator_r_estimado
+    )
+    assert com.melhor_opcao == sem.melhor_opcao
+    assert com.economia_anual_vs_pior == pytest.approx(sem.economia_anual_vs_pior)
+    assert [o.regime for o in com.opcoes] == [o.regime for o in sem.opcoes]
+
+
+@pytest.mark.parametrize(
+    ("salario", "inss", "irpf"),
+    [
+        (1_621.00, 121.57, 0.0),
+        (5_000.00, 501.51, 0.0),
+        (6_000.00, 641.51, 385.10),
+        (10_000.00, 988.09, 1_569.54),
+    ],
+)
+def test_custo_pessoal_usa_inss_com_teto_e_irpf_lei_15270(
+    salario: float, inss: float, irpf: float
+) -> None:
+    assert _inss_mensal(salario) == pytest.approx(inss, abs=0.01)
+    assert _irpf_mensal(salario, _inss_mensal(salario)) == pytest.approx(irpf, abs=0.01)
+
+
+@pytest.mark.parametrize(
+    "campos",
+    [
+        {"faturamento_anual": float("inf")},
+        {"faturamento_anual": 500_000.0, "folha_pagamento_anual": float("inf")},
+        {"faturamento_anual": 500_000.0, "aliquota_iss": float("nan")},
+    ],
+)
+def test_compare_tax_regimes_rejeita_inf_nan(campos: dict[str, float]) -> None:
+    with pytest.raises(ValueError, match="finite"):
+        compare_tax_regimes(setor="serviços", **campos)  # type: ignore[arg-type]
 
 
 def test_compare_tax_regimes_margem_lucro_real_altera_carga() -> None:

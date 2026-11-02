@@ -62,13 +62,16 @@ class ComplianceReport(BaseModel):
 
 
 class CompareTaxRegimesRequest(BaseModel):
-    faturamento_anual: float = Field(gt=0, description="Receita bruta anual em reais.")
+    faturamento_anual: float = Field(
+        gt=0, allow_inf_nan=False, description="Receita bruta anual em reais."
+    )
     setor: Literal["comércio", "serviços", "indústria"] = Field(
         description="Setor da empresa (impacta anexo do Simples e prescuncao do LP)."
     )
     folha_pagamento_anual: float | None = Field(
         default=None,
         ge=0,
+        allow_inf_nan=False,
         description="Folha anual em reais para Fator R no Simples (servicos).",
     )
     exportacao_servicos: bool = Field(
@@ -82,19 +85,21 @@ class CompareTaxRegimesRequest(BaseModel):
         default=5.0,
         ge=0,
         le=5,
+        allow_inf_nan=False,
         description="Aliquota municipal de ISS (%) quando nao ha exportacao. Default 5.",
     )
     margem_lucro_real: float = Field(
         default=0.15,
         gt=0,
         le=1,
+        allow_inf_nan=False,
         description="Margem de lucro liquido (0-1) usada na estimativa de Lucro Real.",
     )
     estimar_custo_fator_r: bool = Field(
         default=True,
         description=(
-            "Se True, estima INSS+IRPF da folha usada no Fator R e inclui no ranking "
-            "do Simples quando folha/faturamento >= 28%."
+            "Se True, estima INSS+IRPF da folha usada no Fator R (informativo, fora do "
+            "ranking) quando folha/faturamento >= 28%."
         ),
     )
 
