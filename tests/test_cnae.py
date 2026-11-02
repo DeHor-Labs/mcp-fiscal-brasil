@@ -42,10 +42,28 @@ async def test_get_activities_filtra_busca_localmente(client: CNAEClient) -> Non
 
 
 @pytest.mark.asyncio
+async def test_get_activities_busca_ignora_codigo(client: CNAEClient) -> None:
+    with patch("mcp_fiscal_brasil._core.http.HTTPClient.get_list") as mock_get:
+        mock_get.return_value = [{"id": "6201501", "descricao": "Desenvolvimento de software"}]
+        result = await client.get_activities(search="6201")
+        assert result == []
+
+
+@pytest.mark.asyncio
+async def test_get_activities_descarta_itens_sem_codigo_ou_descricao(client: CNAEClient) -> None:
+    with patch("mcp_fiscal_brasil._core.http.HTTPClient.get_list") as mock_get:
+        mock_get.return_value = [
+            {"id": "6201501", "descricao": "Desenvolvimento de software"},
+            {"id": "6202300", "descricao": "  "},
+            {"descricao": "Sem codigo"},
+        ]
+        result = await client.get_activities()
+        assert [item.código for item in result] == ["6201501"]
+
+
+@pytest.mark.asyncio
 async def test_get_activities_sem_busca_nao_corta_em_50(client: CNAEClient) -> None:
-    payload = [
-        {"id": f"{i:07d}", "descricao": f"Atividade {i}"} for i in range(60)
-    ]
+    payload = [{"id": f"{i:07d}", "descricao": f"Atividade {i}"} for i in range(60)]
     with patch("mcp_fiscal_brasil._core.http.HTTPClient.get_list") as mock_get:
         mock_get.return_value = payload
         result = await client.get_activities()
@@ -54,9 +72,7 @@ async def test_get_activities_sem_busca_nao_corta_em_50(client: CNAEClient) -> N
 
 @pytest.mark.asyncio
 async def test_get_activities_search_vazio_nao_corta_em_50(client: CNAEClient) -> None:
-    payload = [
-        {"id": f"{i:07d}", "descricao": f"Atividade {i}"} for i in range(60)
-    ]
+    payload = [{"id": f"{i:07d}", "descricao": f"Atividade {i}"} for i in range(60)]
     with patch("mcp_fiscal_brasil._core.http.HTTPClient.get_list") as mock_get:
         mock_get.return_value = payload
         result = await client.get_activities(search="")
@@ -83,6 +99,28 @@ async def test_get_activity_lista_invalida_vira_not_found(client: CNAEClient) ->
             )
             with pytest.raises(FiscalNotFoundError):
                 await client.get_activity("6201501")
+
+
+@pytest.mark.asyncio
+async def test_get_activity_json_invalido_vira_not_found(client: CNAEClient) -> None:
+    with patch("mcp_fiscal_brasil._core.http.HTTPClient.get") as mock_get:
+        mock_get.side_effect = FiscalHTTPError(
+            "A resposta não é um JSON válido.", 200, "http://test"
+        )
+        with patch("mcp_fiscal_brasil._core.http.HTTPClient.get_list") as mock_list:
+            mock_list.side_effect = FiscalHTTPError(
+                "A resposta não é um JSON válido.", 200, "http://test"
+            )
+            with pytest.raises(FiscalNotFoundError):
+                await client.get_activity("6201501")
+
+
+@pytest.mark.asyncio
+async def test_get_activity_erro_http_real_propaga(client: CNAEClient) -> None:
+    with patch("mcp_fiscal_brasil._core.http.HTTPClient.get") as mock_get:
+        mock_get.side_effect = FiscalHTTPError("Erro interno", 500, "http://test")
+        with pytest.raises(FiscalHTTPError):
+            await client.get_activity("6201501")
 
 
 @pytest.mark.asyncio

@@ -53,9 +53,11 @@ def _as_dict_payload(data: dict[str, Any] | list[Any]) -> dict[str, Any]:
 
 
 def _match_busca(activity: CNAEActivity, search: str) -> bool:
-    termo = search.casefold()
-    haystack = f"{activity.código} {activity.descrição}".casefold()
-    return termo in haystack
+    return search.casefold() in activity.descrição.casefold()
+
+
+def _atividade_completa(activity: CNAEActivity) -> bool:
+    return bool(activity.código and activity.descrição)
 
 
 def _tem_busca(search: str | None) -> bool:
@@ -81,8 +83,7 @@ class CNAEClient:
                     raise FiscalNotFoundError(
                         f"CNAE activity {code_clean} not found", "Recurso", "desconhecido"
                     ) from exc
-                msg = str(exc).lower()
-                if "objeto json" not in msg and "lista json" not in msg:
+                if exc.status_code != 200:
                     raise
                 try:
                     data = await client.get_list(f"/subclasses/{code_clean}")
@@ -112,7 +113,13 @@ class CNAEClient:
                     ) from exc
                 raise
 
-        activities = [_cnae_activity_from_item(item) for item in data if isinstance(item, dict)]
+        activities = [
+            activity
+            for activity in (
+                _cnae_activity_from_item(item) for item in data if isinstance(item, dict)
+            )
+            if _atividade_completa(activity)
+        ]
         busca = search.strip() if search else ""
         if not busca:
             return activities
@@ -152,9 +159,7 @@ class CNAEClient:
             return classes
         termo = busca.casefold()
         filtrados = [
-            item
-            for item in classes
-            if termo in f"{item.código} {item.descrição}".casefold()
+            item for item in classes if termo in f"{item.código} {item.descrição}".casefold()
         ]
         return filtrados[:_MAX_BUSCA_RESULTADOS]
 
