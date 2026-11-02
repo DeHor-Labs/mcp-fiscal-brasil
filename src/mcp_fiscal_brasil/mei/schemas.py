@@ -48,7 +48,7 @@ class RegularizacaoMeiRequest(BaseModel):
         if invalidos:
             raise ValueError(
                 f"anos_omitidos fora do intervalo declarável "
-                f"({_ANO_MIN_DASN}–{ano_max}): {invalidos}"
+                f"({_ANO_MIN_DASN}-{ano_max}): {invalidos}"
             )
         return normalizados
 

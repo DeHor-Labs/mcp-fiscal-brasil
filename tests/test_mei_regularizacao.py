@@ -1,13 +1,6 @@
 import pytest
 
-from mcp_fiscal_brasil.mei.regularizacao import (
-    _LINKS,
-    _URL_COMPROVANTE,
-    _URL_DASN,
-    _URL_ECAC,
-    _URL_PGMEI,
-    orientar_regularizacao_mei,
-)
+from mcp_fiscal_brasil.mei.regularizacao import orientar_regularizacao_mei
 from mcp_fiscal_brasil.mei.schemas import RegularizacaoMeiRequest
 from mcp_fiscal_brasil.mei.tools import orientar_regularizacao_mei as tool_orientar
 
@@ -26,17 +19,38 @@ def test_orientar_regularizacao_mei_passos_e_links() -> None:
     assert len(response.passos) == 5
     assert response.passos[0].ordem == 1
     assert "e-CAC" in response.passos[0].titulo or "e-CAC" in response.passos[0].detalhe
-    assert "ano a ano" in response.passos[1].titulo.casefold() or "antigo" in response.passos[1].titulo.casefold()
+    assert (
+        "ano a ano" in response.passos[1].titulo.casefold()
+        or "antigo" in response.passos[1].titulo.casefold()
+    )
     assert "0,00" in response.passos[1].detalhe
     assert "maio" in response.passos[1].detalhe.casefold()
-    assert "remiss" in response.passos[2].titulo.casefold() or "remiss" in response.passos[2].detalhe.casefold()
+    assert (
+        "remiss" in response.passos[2].titulo.casefold()
+        or "remiss" in response.passos[2].detalhe.casefold()
+    )
     assert "não é condição" in response.passos[3].detalhe.casefold()
     assert "baixa de ofício" in response.passos[4].detalhe.casefold()
-    assert response.links_oficiais["e_cac"] == _URL_ECAC
-    assert response.links_oficiais["pgmei"] == _URL_PGMEI
-    assert response.links_oficiais["dasn_simei"] == _URL_DASN
-    assert response.links_oficiais["comprovante_cnpj"] == _URL_COMPROVANTE
-    assert response.links_oficiais == _LINKS
+    urls = " ".join(filter(None, [p.url for p in response.passos]))
+    assert "receita.fazenda.gov.br" in urls
+    assert response.links_oficiais["e_cac"] == (
+        "https://cav.receita.fazenda.gov.br/autenticacao/login"
+    )
+    assert response.links_oficiais["pgmei"] == (
+        "https://www8.receita.fazenda.gov.br/SimplesNacional/Aplicacoes/ATSPO/"
+        "pgmei.app/Identificacao"
+    )
+    assert response.links_oficiais["dasn_simei"] == (
+        "https://www8.receita.fazenda.gov.br/SimplesNacional/Aplicacoes/ATSPO/"
+        "dasnsimei.app/Identificacao"
+    )
+    assert response.links_oficiais["comprovante_cnpj"] == (
+        "https://solucoes.receita.fazenda.gov.br/Servicos/cnpjreva/Cnpjreva_Solicitacao.asp"
+    )
+    assert response.links_oficiais["remissao_mei"] == (
+        "https://www.gov.br/pgfn/pt-br/servicos/perguntas-frequentes/"
+        "perguntas-frequentes-perdao-do-mei"
+    )
     assert any("DARF" in a and "25,00" in a for a in response.avisos)
     assert any("multa" in a.lower() and "50" in a for a in response.avisos)
 

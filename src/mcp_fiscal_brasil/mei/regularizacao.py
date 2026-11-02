@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from datetime import date
-
 from mcp_fiscal_brasil.shared.validators import normalizar_cnpj, validate_cnpj_qualquer
 
 from .schemas import (
@@ -12,8 +10,7 @@ from .schemas import (
 
 _URL_ECAC = "https://cav.receita.fazenda.gov.br/autenticacao/login"
 _URL_PGMEI = (
-    "https://www8.receita.fazenda.gov.br/SimplesNacional/Aplicacoes/ATSPO/"
-    "pgmei.app/Identificacao"
+    "https://www8.receita.fazenda.gov.br/SimplesNacional/Aplicacoes/ATSPO/pgmei.app/Identificacao"
 )
 _URL_DASN = (
     "https://www8.receita.fazenda.gov.br/SimplesNacional/Aplicacoes/ATSPO/"
@@ -23,8 +20,7 @@ _URL_COMPROVANTE = (
     "https://solucoes.receita.fazenda.gov.br/Servicos/cnpjreva/Cnpjreva_Solicitacao.asp"
 )
 _URL_REMISSAO = (
-    "https://www.gov.br/pgfn/pt-br/servicos/perguntas-frequentes/"
-    "perguntas-frequentes-perdao-do-mei"
+    "https://www.gov.br/pgfn/pt-br/servicos/perguntas-frequentes/perguntas-frequentes-perdao-do-mei"
 )
 
 _LINKS = {
@@ -35,27 +31,11 @@ _LINKS = {
     "remissao_mei": _URL_REMISSAO,
 }
 
-_ANO_MIN_DASN = 2007
-
 
 def _anos_texto(anos: list[int]) -> str:
     if not anos:
         return "cada ano-calendário omitido"
     return ", ".join(str(ano) for ano in anos)
-
-
-def _validar_anos_omitidos(anos: list[int] | None) -> list[int]:
-    if not anos:
-        return []
-    ano_max = date.today().year - 1
-    normalizados = sorted({int(a) for a in anos})
-    invalidos = [a for a in normalizados if a < _ANO_MIN_DASN or a > ano_max]
-    if invalidos:
-        raise ValueError(
-            f"anos_omitidos fora do intervalo declarável "
-            f"({_ANO_MIN_DASN}–{ano_max}): {invalidos}"
-        )
-    return normalizados
 
 
 def _normalizar_cnpj_opcional(cnpj: str | None) -> str | None:
@@ -72,7 +52,7 @@ def orientar_regularizacao_mei(
     request: RegularizacaoMeiRequest,
 ) -> RegularizacaoMeiResponse:
     cnpj_norm = _normalizar_cnpj_opcional(request.cnpj)
-    anos = _validar_anos_omitidos(request.anos_omitidos)
+    anos = request.anos_omitidos or []
     receita_txt = (
         "Informe receita bruta anual 0,00 se não houve movimento."
         if request.receita_zero
