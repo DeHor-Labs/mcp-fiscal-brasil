@@ -64,21 +64,33 @@ def _consolida_risco(achados: list[ComplianceFinding]) -> RiskLevel:
 
 
 _URL_ECAC = "https://cav.receita.fazenda.gov.br/autenticacao/login"
-_URL_PGMEI = "https://www8.receita.fazenda.gov.br/SimplesNacional/Aplicacoes/ATSPO/pgmei.app/Identificacao"
+_URL_PGMEI = (
+    "https://www8.receita.fazenda.gov.br/SimplesNacional/Aplicacoes/ATSPO/pgmei.app/Identificacao"
+)
 _URL_DASN = "https://www8.receita.fazenda.gov.br/SimplesNacional/Aplicacoes/ATSPO/dasnsimei.app/Identificacao"
 _URL_COMPROVANTE = (
     "https://solucoes.receita.fazenda.gov.br/Servicos/cnpjreva/Cnpjreva_Solicitacao.asp"
 )
 
 
-def _fonte_confirma_mei(status: Any | None) -> bool:
-    if status is None or not getattr(status, "mei", False):
-        return False
-    return bool(getattr(status, "fonte_confirmada", True))
+_RECOMENDACAO_INAPTA: dict[tuple[bool, bool], str] = {
+    (True, True): (
+        "Transmitir as declarações omitidas via e-CAC/DASN-SIMEI (Simei confirmado); "
+        "quitar DAS/multas em separado no PGMEI quando devidos."
+    ),
+    (False, True): (
+        "Consultar e-CAC, identificar a declaração omitida e transmiti-la antes de contratar."
+    ),
+    (True, False): (
+        "Conferir no e-CAC a causa da inaptidão e saná-la antes de contratar; "
+        "entregar DASN-SIMEI somente se o e-CAC apontar omissão."
+    ),
+    (False, False): "Conferir no e-CAC a causa da inaptidão e saná-la antes de contratar.",
+}
 
 
 def _simei_confirmado(simples_data: Any | None, mei_data: Any | None) -> bool:
-    return _fonte_confirma_mei(mei_data) or _fonte_confirma_mei(simples_data)
+    return any(getattr(status, "mei", None) is True for status in (mei_data, simples_data))
 
 
 def _motivo_indica_omissao(motivo: str | None, situacao_str: str) -> bool:
@@ -111,6 +123,7 @@ def _achado_situacao(
         )
 
     simei = _simei_confirmado(simples_data, mei_data)
+    gatilho = "" if is_omissao else " (somente se o e-CAC apontar declaração omitida)"
     passos = [
         f"Abrir o e-CAC e conferir a causa da situação e pendências: {_URL_ECAC}",
     ]
@@ -118,7 +131,7 @@ def _achado_situacao(
         passos.extend(
             [
                 (
-                    "Com Simei/MEI confirmado: entregar a DASN-SIMEI ano a ano, "
+                    f"Com Simei/MEI confirmado{gatilho}: entregar a DASN-SIMEI ano a ano, "
                     "do mais antigo ao mais recente (receita 0,00 se sem movimento; "
                     f"prazo normal até maio do ano seguinte): {_URL_DASN}"
                 ),
@@ -135,8 +148,8 @@ def _achado_situacao(
         )
     else:
         passos.append(
-            "Identificar no e-CAC a obrigação pendente (DASN-SIMEI só se for/foi Simei; "
-            "senão DEFIS, PGDAS-D, DCTF, ECF, EFD etc.) e transmitir cada uma. "
+            f"Identificar no e-CAC a obrigação pendente e transmitir cada uma{gatilho}: "
+            "DASN-SIMEI só se for/foi Simei; senão DEFIS, PGDAS-D, DCTF, ECF, EFD etc. "
             "Natureza 213-5 (EI) sozinha não prova MEI."
         )
     passos.append(
@@ -160,18 +173,12 @@ def _achado_situacao(
         f"{causa}"
         "Confirme no e-CAC quais obrigações faltam antes de contratar ou emitir documentos fiscais."
     )
-    recomendacao = (
-        "Transmitir as declarações omitidas via e-CAC/DASN-SIMEI (Simei confirmado); "
-        "quitar DAS/multas em separado no PGMEI quando devidos."
-        if simei
-        else "Consultar e-CAC, identificar a obrigação pendente e transmitir antes de contratar."
-    )
     return ComplianceFinding(
         categoria="situacao_cadastral",
         severidade=risco_sit,
         titulo=f"Situacao cadastral: {situacao_str}",
         detalhe=detalhe,
-        recomendacao=recomendacao,
+        recomendacao=_RECOMENDACAO_INAPTA[(simei, is_omissao)],
         proximos_passos=passos,
     )
 

@@ -420,7 +420,51 @@ async def test_compliance_inapta_com_simei_confirmado_cita_dasn_pgmei() -> None:
     idx_dasn = next(i for i, p in enumerate(passos) if "dasn" in p.casefold())
     idx_pgmei = next(i for i, p in enumerate(passos) if "pgmei" in p.casefold())
     assert idx_dasn < idx_pgmei
-    assert "omissão" not in situacao.detalhe.casefold() or "não afirme" in situacao.detalhe.casefold()
+    assert (
+        "omissão" not in situacao.detalhe.casefold() or "não afirme" in situacao.detalhe.casefold()
+    )
+
+
+async def _situacao_inapta_com_simei(cnpj_data: CNPJResponse) -> ComplianceFinding:
+    with (
+        patch("mcp_fiscal_brasil.agentic.compliance.CNPJClient") as mock_cnpj_class,
+        patch("mcp_fiscal_brasil.agentic.compliance.SimplesClient") as mock_simples_class,
+        patch("mcp_fiscal_brasil.agentic.compliance.MEIClient") as mock_mei_class,
+    ):
+        mock_cnpj_class.return_value = MagicMock(consultar=AsyncMock(return_value=cnpj_data))
+        mock_simples_class.return_value = MagicMock(
+            get_simples_status=AsyncMock(side_effect=Exception("offline"))
+        )
+        mock_mei_class.return_value = MagicMock(
+            get_mei_status=AsyncMock(
+                return_value=MEIStatus(cnpj=cnpj_data.cnpj, mei=True, simples_nacional=True)
+            )
+        )
+        report = await analyze_cnpj_compliance(cnpj_data.cnpj)
+    return next(a for a in report.achados if a.categoria == "situacao_cadastral")
+
+
+@pytest.mark.asyncio
+async def test_compliance_inapta_sem_motivo_condiciona_dasn_a_omissao() -> None:
+    situacao = await _situacao_inapta_com_simei(_cnpj_inapto_ei())
+
+    passo_dasn = next(p for p in situacao.proximos_passos or [] if "dasn-simei" in p.casefold())
+    assert "somente se o e-cac apontar declaração omitida" in passo_dasn.casefold()
+    assert "declarações omitidas" not in (situacao.recomendacao or "").casefold()
+    assert "causa da inaptidão" in (situacao.recomendacao or "").casefold()
+
+
+@pytest.mark.asyncio
+async def test_compliance_inapta_por_omissao_orienta_transmitir_declaracoes() -> None:
+    cnpj_data = _cnpj_inapto_ei().model_copy(
+        update={"motivo_situacao_cadastral": "OMISSAO DE DECLARACOES"}
+    )
+    situacao = await _situacao_inapta_com_simei(cnpj_data)
+
+    passos = " ".join(situacao.proximos_passos or []).casefold()
+    assert "somente se o e-cac apontar" not in passos
+    assert "transmitir as declarações omitidas" in (situacao.recomendacao or "").casefold()
+    assert "motivo cadastral indica omissão" in situacao.detalhe.casefold()
 
 
 # ---------------------------------------------------------------------------
