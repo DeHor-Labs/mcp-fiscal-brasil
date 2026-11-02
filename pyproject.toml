@@ -76,7 +76,7 @@ dev = [
     "pytest-asyncio>=0.23",
     "ruff>=0.17.0",
     "mypy>=1.10",
-    "pre-commit>=3.7",
+    "pre-commit>=4.7.0",
 ]
 
 [project.scripts]
