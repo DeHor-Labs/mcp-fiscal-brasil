@@ -121,9 +121,7 @@ async def test_get_simples_status_cnpj_invalido_nao_bate_na_api(
 
 
 @pytest.mark.asyncio
-async def test_get_simples_status_erro_500_propaga(
-    client: SimplesClient, cnpj_digits: str
-) -> None:
+async def test_get_simples_status_erro_500_propaga(client: SimplesClient, cnpj_digits: str) -> None:
     with patch("mcp_fiscal_brasil._core.http.HTTPClient.get") as mock_get:
         mock_get.side_effect = FiscalHTTPError("Erro interno do servidor", 500, "http://test")
         with pytest.raises(FiscalHTTPError) as exc_info:

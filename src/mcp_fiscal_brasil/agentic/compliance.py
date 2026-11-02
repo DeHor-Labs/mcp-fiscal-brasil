@@ -139,7 +139,7 @@ async def analyze_cnpj_compliance(cnpj: str) -> ComplianceReport:
 
     # Regime tributário
     if simples_data is not None:
-        if getattr(simples_data, "fonte_confirmada", True):
+        if simples_data.simples_nacional is not None:
             fontes_ok.append("Simples Nacional")
             if simples_data.simples_nacional is False:
                 achados.append(
@@ -158,14 +158,15 @@ async def analyze_cnpj_compliance(cnpj: str) -> ComplianceReport:
                     titulo="Simples Nacional não confirmado pela fonte",
                     detalhe=(
                         "A consulta ao endpoint Simples/CNPJ não confirmou o "
-                        "enquadramento; mei/simples_nacional=false não é negativo definitivo."
+                        "enquadramento; indicador simples_nacional ausente não é "
+                        "negativa definitiva."
                     ),
                     recomendacao="Consultar e-CAC ou comprovante oficial da RFB.",
                 )
             )
 
     if mei_data is not None:
-        if getattr(mei_data, "fonte_confirmada", True):
+        if mei_data.mei is not None:
             fontes_ok.append("MEI Receita")
         else:
             achados.append(
@@ -174,8 +175,8 @@ async def analyze_cnpj_compliance(cnpj: str) -> ComplianceReport:
                     severidade="medio",
                     titulo="Status MEI não confirmado pela fonte",
                     detalhe=(
-                        "A consulta MEI não foi confirmada (fonte_confirmada=false); "
-                        "mei=false não representa negativa definitiva."
+                        "A consulta MEI não confirmou o enquadramento; indicador mei "
+                        "ausente não representa negativa definitiva."
                     ),
                     recomendacao="Consultar e-CAC ou comprovante oficial da RFB.",
                 )

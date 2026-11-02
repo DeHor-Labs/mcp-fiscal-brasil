@@ -64,11 +64,7 @@ class SimplesClient:
             if "opcao_pelo_simples" in data
             else None
         )
-        mei = (
-            self._optional_bool(data.get("opcao_pelo_mei"))
-            if "opcao_pelo_mei" in data
-            else None
-        )
+        mei = self._optional_bool(data.get("opcao_pelo_mei")) if "opcao_pelo_mei" in data else None
         return SimplesStatus(
             cnpj=cnpj_clean,
             simples_nacional=simples_nacional,

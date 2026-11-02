@@ -54,11 +54,7 @@ class MEIClient:
         )
 
     def _status_from_cnpj_payload(self, cnpj_clean: str, data: dict[str, Any]) -> MEIStatus:
-        mei = (
-            self._optional_bool(data.get("opcao_pelo_mei"))
-            if "opcao_pelo_mei" in data
-            else None
-        )
+        mei = self._optional_bool(data.get("opcao_pelo_mei")) if "opcao_pelo_mei" in data else None
         simples_nacional = (
             self._optional_bool(data.get("opcao_pelo_simples"))
             if "opcao_pelo_simples" in data
@@ -85,9 +81,7 @@ class MEIClient:
         return MEIStatus(
             cnpj=cnpj_clean,
             mei=mei,
-            data_opcao_mei=self._parse_date(
-                simei.get("data_opcao", data.get("data_opcao_simei"))
-            ),
+            data_opcao_mei=self._parse_date(simei.get("data_opcao", data.get("data_opcao_simei"))),
             data_exclusao_mei=self._parse_date(
                 simei.get("data_exclusao", data.get("data_exclusao_simei"))
             ),

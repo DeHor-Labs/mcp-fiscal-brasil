@@ -65,9 +65,7 @@ async def test_get_mei_status_404_ambos_endpoints_nao_confirmado(
 
 
 @pytest.mark.asyncio
-async def test_get_mei_status_usa_cnpj_opcao_pelo_mei(
-    client: MEIClient, cnpj_digits: str
-) -> None:
+async def test_get_mei_status_usa_cnpj_opcao_pelo_mei(client: MEIClient, cnpj_digits: str) -> None:
     with patch("mcp_fiscal_brasil._core.http.HTTPClient.get") as mock_get:
         mock_get.return_value = {
             "opcao_pelo_mei": True,
