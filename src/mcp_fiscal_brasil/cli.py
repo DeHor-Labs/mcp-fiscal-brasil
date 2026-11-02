@@ -214,9 +214,16 @@ def regimes(
     faturamento: float = typer.Option(..., "--faturamento", help="Faturamento anual em reais"),
     setor: str = typer.Option(..., "--setor", help="comércio, serviços ou indústria"),
     folha: float | None = typer.Option(None, "--folha", help="Folha anual (impacta Fator R)"),
+    exportacao: bool = typer.Option(
+        False, "--exportacao", help="Tratar receita como exportacao de servicos"
+    ),
+    iss: float = typer.Option(5.0, "--iss", help="Aliquota ISS municipal (%)"),
+    margem_real: float = typer.Option(0.15, "--margem-real", help="Margem Lucro Real (0-1)"),
+    custo_fator_r: bool = typer.Option(
+        True, "--custo-fator-r/--sem-custo-fator-r", help="Incluir INSS/IRPF no ranking"
+    ),
     as_json: bool = typer.Option(False, "--json", help="Saida em JSON puro"),
 ) -> None:
-    """Compara regimes tributarios (MEI/Simples/Lucro Presumido/Lucro Real)."""
     if setor not in ("comércio", "serviços", "indústria"):
         _fail(
             ValueError("setor deve ser comércio, serviços ou indústria"),
@@ -228,6 +235,10 @@ def regimes(
             faturamento_anual=faturamento,
             setor=setor,  # type: ignore[arg-type]
             folha_pagamento_anual=folha,
+            exportacao_servicos=exportacao,
+            aliquota_iss=iss,
+            margem_lucro_real=margem_real,
+            estimar_custo_fator_r=custo_fator_r,
         )
     )
     _print(resultado, as_json)

@@ -413,12 +413,19 @@ def agentic_regimes(
     faturamento_anual: float = Query(..., gt=0),
     setor: Literal["comércio", "serviços", "indústria"] = Query(...),
     folha_pagamento_anual: float | None = Query(None, ge=0),
+    exportacao_servicos: bool = Query(False),
+    aliquota_iss: float = Query(5.0, ge=0, le=5),
+    margem_lucro_real: float = Query(0.15, gt=0, le=1),
+    estimar_custo_fator_r: bool = Query(True),
 ) -> dict[str, Any]:
-    """Comparativo MEI/Simples/Lucro Presumido/Lucro Real."""
     resultado = compare_tax_regimes(
         faturamento_anual=faturamento_anual,
         setor=setor,
         folha_pagamento_anual=folha_pagamento_anual,
+        exportacao_servicos=exportacao_servicos,
+        aliquota_iss=aliquota_iss,
+        margem_lucro_real=margem_lucro_real,
+        estimar_custo_fator_r=estimar_custo_fator_r,
     )
     return resultado.model_dump(mode="json", exclude_none=True)
 
