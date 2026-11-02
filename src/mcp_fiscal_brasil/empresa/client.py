@@ -34,8 +34,10 @@ class EmpresaClient:
         simples_nacional = False
         mei = False
         if not isinstance(simples_data, BaseException):
-            simples_nacional = simples_data.simples_nacional
-            mei = simples_data.mei
+            simples_nacional = (
+                False if simples_data.simples_nacional is None else simples_data.simples_nacional
+            )
+            mei = False if simples_data.mei is None else simples_data.mei
         else:
             logger.warning("empresa_simples_fetch_failed", cnpj=cnpj, error=str(simples_data))
 

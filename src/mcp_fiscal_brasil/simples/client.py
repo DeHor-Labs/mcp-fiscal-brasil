@@ -1,4 +1,5 @@
 from datetime import date
+from typing import Any
 
 from mcp_fiscal_brasil._core import (
     FiscalNotFoundError,
@@ -34,14 +35,65 @@ class SimplesClient:
         except ValueError:
             return None
 
+    def _optional_bool(self, value: Any) -> bool | None:
+        if value is None:
+            return None
+        return bool(value)
+
+    def _lookup_indicator(
+        self, primary: dict[str, Any], primary_key: str, fallback: dict[str, Any], fallback_key: str
+    ) -> bool | None:
+        if primary_key in primary:
+            return self._optional_bool(primary[primary_key])
+        if fallback_key in fallback:
+            return self._optional_bool(fallback[fallback_key])
+        return None
+
+    def _unconfirmed(self, cnpj_clean: str) -> SimplesStatus:
+        logger.warning("simples_status_nao_confirmado", cnpj=cnpj_clean)
+        return SimplesStatus(
+            cnpj=cnpj_clean,
+            simples_nacional=None,
+            mei=None,
+            fonte_confirmada=False,
+        )
+
+    def _status_from_cnpj_payload(self, cnpj_clean: str, data: dict[str, Any]) -> SimplesStatus:
+        simples_nacional = (
+            self._optional_bool(data.get("opcao_pelo_simples"))
+            if "opcao_pelo_simples" in data
+            else None
+        )
+        mei = (
+            self._optional_bool(data.get("opcao_pelo_mei"))
+            if "opcao_pelo_mei" in data
+            else None
+        )
+        return SimplesStatus(
+            cnpj=cnpj_clean,
+            simples_nacional=simples_nacional,
+            data_opcao=self._parse_date(data.get("data_opcao_pelo_simples")),
+            data_exclusao=self._parse_date(data.get("data_exclusao_do_simples")),
+            mei=mei,
+            data_opcao_mei=self._parse_date(data.get("data_opcao_pelo_mei")),
+            data_exclusao_mei=self._parse_date(data.get("data_exclusao_do_mei")),
+            fonte_confirmada=simples_nacional is not None and mei is not None,
+        )
+
+    async def _status_from_cnpj_endpoint(self, cnpj_clean: str) -> SimplesStatus:
+        async with self._http_client() as client:
+            try:
+                data = await client.get(f"/cnpj/v1/{cnpj_clean}")
+            except FiscalHTTPError as exc:
+                if exc.status_code == 404:
+                    return self._unconfirmed(cnpj_clean)
+                raise
+        return self._status_from_cnpj_payload(cnpj_clean, data)
+
     async def get_simples_status(self, cnpj: str) -> SimplesStatus:
         """Consulta o status do Simples Nacional e MEI para um CNPJ."""
         cnpj_clean = normalizar_cnpj(cnpj)
         if not validate_cnpj_qualquer(cnpj_clean):
-            # A BrasilAPI responde 404 tanto pra CNPJ inexistente quanto pra CNPJ
-            # valido sem opcao pelo Simples/MEI, entao so da pra distinguir
-            # "invalido de fato" validando o digito verificador localmente,
-            # antes de bater na API.
             raise FiscalNotFoundError("CNPJ inválido", "CNPJ", cnpj_clean)
 
         logger.info("simples_status_started", cnpj=cnpj_clean)
@@ -50,37 +102,29 @@ class SimplesClient:
                 data = await client.get(f"/simples/v1/{cnpj_clean}")
             except FiscalHTTPError as exc:
                 if exc.status_code == 404:
-                    # Nao optante pelo Simples/MEI (ou sem dados pro CNPJ):
-                    # nao e erro, e um resultado negativo legitimo.
-                    logger.warning("simples_status_nao_confirmado", cnpj=cnpj_clean)
-                    return SimplesStatus(
-                        cnpj=cnpj_clean,
-                        simples_nacional=False,
-                        mei=False,
-                        fonte_confirmada=False,
-                    )
+                    return await self._status_from_cnpj_endpoint(cnpj_clean)
                 raise
 
-        # A BrasilAPI retorna {"simples": {...}, "simei": {...}}
-        # ou dados na raiz dependendo da versão, tratamos ambas.
         simples = data.get("simples") if isinstance(data.get("simples"), dict) else data
         simei = data.get("simei") if isinstance(data.get("simei"), dict) else data
-
         if not isinstance(simples, dict):
             simples = {}
         if not isinstance(simei, dict):
             simei = {}
 
+        simples_nacional = self._lookup_indicator(simples, "optante", data, "simples_nacional")
+        mei = self._lookup_indicator(simei, "optante", data, "mei")
         return SimplesStatus(
             cnpj=cnpj_clean,
-            simples_nacional=simples.get("optante", data.get("simples_nacional", False)),
+            simples_nacional=simples_nacional,
             data_opcao=self._parse_date(simples.get("data_opcao", data.get("data_opcao_simples"))),
             data_exclusao=self._parse_date(
                 simples.get("data_exclusao", data.get("data_exclusao_simples"))
             ),
-            mei=simei.get("optante", data.get("mei", False)),
+            mei=mei,
             data_opcao_mei=self._parse_date(simei.get("data_opcao", data.get("data_opcao_simei"))),
             data_exclusao_mei=self._parse_date(
                 simei.get("data_exclusao", data.get("data_exclusao_simei"))
             ),
+            fonte_confirmada=simples_nacional is not None and mei is not None,
         )

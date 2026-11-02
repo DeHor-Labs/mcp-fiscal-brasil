@@ -19,7 +19,9 @@ def register(app: Any) -> None:
         description=(
             "Consulta o status de MEI (Microempreendedor Individual) e Simples Nacional "
             "de um CNPJ via BrasilAPI. Retorna se a empresa é optante pelo MEI e/ou Simples "
-            "Nacional, com as respectivas datas de opção e exclusão quando disponíveis."
+            "Nacional, com as respectivas datas de opção e exclusão quando disponíveis. "
+            "Quando fonte_confirmada for false, mei/simples_nacional false ou null "
+            "não representam negativas definitivas."
         ),
     )
     async def tool_consultar_status_mei(cnpj: str) -> dict[str, Any]:
