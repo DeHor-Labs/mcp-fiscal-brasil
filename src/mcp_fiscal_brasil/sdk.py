@@ -35,6 +35,8 @@ from typing import Any
 
 from .cnpj.client import CNPJClient
 from .cnpj.schemas import CNPJResponse
+from .cpf.client import CPFClient
+from .cpf.schemas import CPFCadastro
 from .nfe.client import NFEClient
 from .nfe.schemas import NFeResponse, StatusSEFAZResponse
 from .shared.validators import validate_chave_nfe, validate_cnpj_qualquer, validate_cpf
@@ -64,6 +66,7 @@ class FiscalBrasil:
 
     def __init__(self) -> None:
         self._cnpj_client = CNPJClient()
+        self._cpf_client = CPFClient()
         self._nfe_client = NFEClient()
         self._simples_client = SimplesClient()
 
@@ -159,6 +162,34 @@ class FiscalBrasil:
             fiscal.validar_cpf("111.111.111-11")  # False (sequência repetida)
         """
         return validate_cpf(cpf)
+
+    async def consultar_cpf(self, cpf: str) -> CPFCadastro:
+        """
+        Consulta a situação cadastral de um CPF na Receita Federal (premium, opt-in).
+
+        Requer o provedor premium opcional cpfcnpj.com.br (``CPFCNPJ_TOKEN``): não há
+        fonte gratuita de dados de CPF. O dígito verificador é validado localmente
+        antes de qualquer chamada. O pacote é definido por ``CPFCNPJ_CPF_PACKET``
+        (padrão 26: nome, nascimento e situação cadastral). Uso previsto: conferir o
+        destinatário/tomador pessoa física antes de emitir documento fiscal.
+
+        Args:
+            cpf: CPF com ou sem máscara (ex: "529.982.247-25" ou "52998224725").
+
+        Returns:
+            CPFCadastro com situação cadastral e o derivado apto_emissao.
+
+        Raises:
+            ValueError: Se o CPF for inválido (dígito verificador).
+            FiscalError: Sem token configurado ou CPF inexistente na Receita.
+
+        Exemplo:
+            cadastro = await fiscal.consultar_cpf("529.982.247-25")
+            print(cadastro.apto_emissao)
+        """
+        if not validate_cpf(cpf):
+            raise ValueError(f"CPF inválido: {cpf}")
+        return await self._cpf_client.consultar(cpf)
 
     # ------------------------------------------------------------------
     # NFe
@@ -404,6 +435,21 @@ class FiscalBrasil:
             CNPJResponse com os dados da empresa.
         """
         return asyncio.run(self.consultar_cnpj(cnpj))
+
+    def consultar_cpf_sync(self, cpf: str) -> CPFCadastro:
+        """
+        Versão síncrona de consultar_cpf. Útil em contextos não-async (Django, scripts).
+
+        Não use dentro de um event loop já ativo (ex: FastAPI, Jupyter).
+        Prefira o método assíncrono nesses casos.
+
+        Args:
+            cpf: CPF com ou sem máscara.
+
+        Returns:
+            CPFCadastro com a situação cadastral do titular.
+        """
+        return asyncio.run(self.consultar_cpf(cpf))
 
     def consultar_simples_sync(self, cnpj: str) -> SimplesStatus:
         """

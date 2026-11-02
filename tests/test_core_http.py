@@ -212,7 +212,7 @@ async def test_rate_limit_is_acquired_on_every_retry_attempt(
         "https://example.test",
         max_retries=2,
         cache_ttl=0,
-        limiter=limiter,  # type: ignore[arg-type]
+        limiter=limiter,
     )
 
     payload = await client.get("/flaky")
