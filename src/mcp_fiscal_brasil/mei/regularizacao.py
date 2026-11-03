@@ -92,7 +92,10 @@ def orientar_regularizacao_mei(
                 "Antes de quitar integralmente DAS antigos, verifique elegibilidade "
                 "à remissão da parcela previdenciária (LC 238/2026; efeitos a partir "
                 "de 01/01/2027). Até lá os débitos seguem exigíveis; valores já pagos "
-                "não são restituídos; ICMS/ISS não entram na remissão."
+                "não são restituídos; ICMS/ISS não entram na remissão. Quem continuar "
+                "enquadrado como MEI precisa pagar em dia as contribuições dos seis meses "
+                "seguintes a 01/01/2027; o descumprimento cancela a remissão e recompõe "
+                "a dívida."
             ),
             url=_URL_REMISSAO,
         ),

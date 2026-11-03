@@ -2,7 +2,7 @@ from datetime import date
 
 from pydantic import BaseModel, Field, field_validator
 
-_ANO_MIN_DASN = 2007
+_ANO_MIN_DASN = 2009
 
 
 class MEIStatus(BaseModel):
@@ -28,7 +28,7 @@ class RegularizacaoMeiRequest(BaseModel):
     anos_omitidos: list[int] | None = Field(
         default=None,
         description=(
-            "Anos-calendário de DASN-SIMEI omitidos (2007 até o ano-calendário "
+            "Anos-calendário de DASN-SIMEI omitidos (2009 até o ano-calendário "
             "anterior ao corrente). Anos inválidos geram erro."
         ),
     )

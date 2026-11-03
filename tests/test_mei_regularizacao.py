@@ -65,11 +65,22 @@ def test_orientar_regularizacao_mei_cnpj_vazio() -> None:
         orientar_regularizacao_mei(RegularizacaoMeiRequest(cnpj=""))
 
 
-def test_orientar_regularizacao_mei_ano_invalido() -> None:
+@pytest.mark.parametrize("ano", [1999, 2007, 2008, 2099])
+def test_orientar_regularizacao_mei_ano_invalido(ano: int) -> None:
     with pytest.raises(ValueError, match="anos_omitidos"):
-        orientar_regularizacao_mei(RegularizacaoMeiRequest(anos_omitidos=[1999]))
-    with pytest.raises(ValueError, match="anos_omitidos"):
-        orientar_regularizacao_mei(RegularizacaoMeiRequest(anos_omitidos=[2099]))
+        orientar_regularizacao_mei(RegularizacaoMeiRequest(anos_omitidos=[ano]))
+
+
+def test_orientar_regularizacao_mei_aceita_2009() -> None:
+    response = orientar_regularizacao_mei(RegularizacaoMeiRequest(anos_omitidos=[2009]))
+    assert response.anos_omitidos == [2009]
+
+
+def test_orientar_regularizacao_mei_informa_condicao_da_remissao() -> None:
+    response = orientar_regularizacao_mei(RegularizacaoMeiRequest())
+    detalhe = response.passos[2].detalhe.casefold()
+    assert "seis meses" in detalhe
+    assert "cancela a remissão" in detalhe
 
 
 @pytest.mark.asyncio
