@@ -31,13 +31,11 @@ class EmpresaClient:
             # CNPJ é o dado primário, se falhar, propagamos o erro
             raise cnpj_data
 
-        simples_nacional = False
-        mei = False
+        simples_nacional: bool | None = None
+        mei: bool | None = None
         if not isinstance(simples_data, BaseException):
-            simples_nacional = (
-                False if simples_data.simples_nacional is None else simples_data.simples_nacional
-            )
-            mei = False if simples_data.mei is None else simples_data.mei
+            simples_nacional = simples_data.simples_nacional
+            mei = simples_data.mei
         else:
             logger.warning("empresa_simples_fetch_failed", cnpj=cnpj, error=str(simples_data))
 

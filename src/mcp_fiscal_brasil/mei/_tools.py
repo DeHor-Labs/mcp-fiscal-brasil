@@ -20,8 +20,11 @@ def register(app: Any) -> None:
             "Consulta o status de MEI (Microempreendedor Individual) e Simples Nacional "
             "de um CNPJ via BrasilAPI. Retorna se a empresa é optante pelo MEI e/ou Simples "
             "Nacional, com as respectivas datas de opção e exclusão quando disponíveis. "
-            "Quando fonte_confirmada for false, valores false ou a ausência de "
-            "mei/simples_nacional na resposta não representam negativas definitivas."
+            "Cada indicador presente na resposta (mei, simples_nacional) foi confirmado "
+            "pela fonte, inclusive quando fonte_confirmada for false; por exemplo, "
+            "mei=false presente é negativa confirmada. Indicador ausente não foi "
+            "confirmado e não representa negativa definitiva. fonte_confirmada=true "
+            "indica que ambos os indicadores foram confirmados."
         ),
     )
     async def tool_consultar_status_mei(cnpj: str) -> dict[str, Any]:

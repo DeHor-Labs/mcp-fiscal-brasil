@@ -20,7 +20,9 @@ def register(app: Any) -> None:
             "Consulta dados enriquecidos de uma empresa brasileira combinando informações "
             "da Receita Federal (CNPJ) e do Simples Nacional em uma única chamada. "
             "Retorna razão social, situação cadastral, porte, regime tributário (MEI/Simples), "
-            "CNAE principal e secundárias, endereço e natureza jurídica."
+            "CNAE principal e secundárias, endereço e natureza jurídica. "
+            "simples_nacional/mei ausentes na resposta indicam que a fonte não confirmou "
+            "o enquadramento; não representam negativa definitiva."
         ),
     )
     async def tool_consultar_empresa_completa(cnpj: str) -> dict[str, Any]:
