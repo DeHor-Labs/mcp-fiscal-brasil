@@ -1,3 +1,5 @@
+from datetime import date
+
 import pytest
 
 from mcp_fiscal_brasil.mei.regularizacao import orientar_regularizacao_mei
@@ -65,7 +67,7 @@ def test_orientar_regularizacao_mei_cnpj_vazio() -> None:
         orientar_regularizacao_mei(RegularizacaoMeiRequest(cnpj=""))
 
 
-@pytest.mark.parametrize("ano", [1999, 2007, 2008, 2099])
+@pytest.mark.parametrize("ano", [1999, 2007, 2008, date.today().year])
 def test_orientar_regularizacao_mei_ano_invalido(ano: int) -> None:
     with pytest.raises(ValueError, match="anos_omitidos"):
         orientar_regularizacao_mei(RegularizacaoMeiRequest(anos_omitidos=[ano]))
