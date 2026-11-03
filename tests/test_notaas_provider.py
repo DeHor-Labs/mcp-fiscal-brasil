@@ -197,6 +197,21 @@ async def test_consultar_nfse_usa_provedor_notaas_quando_configurado(
 
 
 @pytest.mark.asyncio
+async def test_consultar_nfse_por_invoice_id_sem_municipio_e_uf(
+    provedor_habilitado: None,
+) -> None:
+    _FakeHTTPClient.payload = STATUS_NFSE_SAMPLE
+
+    resultado = await consultar_nfse(
+        invoice_id="b1f29d18-7c4d-4c88-90d2-123456789abc",
+    )
+
+    assert resultado["fonte"] == "notaas.com.br"
+    assert resultado["status"] == "issued"
+    assert resultado["numero"] == "202600000142"
+
+
+@pytest.mark.asyncio
 async def test_consultar_nfse_faz_fallback_quando_notaas_falha(
     provedor_habilitado: None,
 ) -> None:

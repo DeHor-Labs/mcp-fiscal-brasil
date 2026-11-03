@@ -154,6 +154,25 @@ async def test_consultar_cobertura_nfse_fallback_local_nao_finge_validar_ibge() 
 
 
 @pytest.mark.asyncio
+async def test_consultar_cobertura_nfse_fallback_local_por_uf_exclui_varios() -> None:
+    from mcp_fiscal_brasil._core import FiscalHTTPError
+
+    with patch(
+        "mcp_fiscal_brasil.nfse.tools.notaas_provider.consultar_cobertura_cidades",
+        new_callable=AsyncMock,
+        side_effect=FiscalHTTPError(
+            "offline", status_code=503, url="https://platform.notaas.com.br"
+        ),
+    ):
+        resultado = await consultar_cobertura_nfse(uf="MT")
+
+    assert resultado["fonte"] == "fallback_catalogo_local"
+    nomes = [m["nome_municipio"] for m in resultado["municipios"]]
+    assert "CUIABA" in nomes
+    assert "VARIOS" not in nomes
+
+
+@pytest.mark.asyncio
 async def test_consultar_nfse_aceita_chave_formatada_com_espacos_em_numero() -> None:
     chave_com_espacos = "35497 06224 14035 05000 18400 00000 00014 22607 33456 39378"
     with patch("mcp_fiscal_brasil.nfse.tools.NFSeNacionalClient") as mock_client_class:

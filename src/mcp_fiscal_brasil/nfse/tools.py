@@ -319,7 +319,7 @@ async def consultar_cobertura_nfse(
                     "portal_municipio": info.get("portal"),
                 }
                 for chave, info in PORTAIS_CONHECIDOS.items()
-                if chave.endswith(f"/{uf_limpa}")
+                if chave.endswith(f"/{uf_limpa}") and not chave.startswith("VARIOS/")
             ]
             return {
                 "fonte": "fallback_catalogo_local",
@@ -387,15 +387,23 @@ async def consultar_nfse(
     Returns:
         Dicionário com os dados da NFS-e encontrada ou orientações de consulta para o município.
     """
-    municipio = _validar_municipio_nfse(municipio)
-    uf_upper = _validar_uf_nfse(uf)
-    cnpj_prestador = _validar_cnpj_prestador(cnpj_prestador)
-
     invoice_id_limpo = (
         notaas_provider.validar_invoice_id(invoice_id)
         if invoice_id is not None and invoice_id.strip()
         else None
     )
+    if (
+        invoice_id_limpo is not None
+        and notaas_provider.provedor_configurado()
+        and not municipio.strip()
+        and not uf.strip()
+    ):
+        municipio = municipio.strip()
+        uf_upper = uf.strip().upper()
+    else:
+        municipio = _validar_municipio_nfse(municipio)
+        uf_upper = _validar_uf_nfse(uf)
+    cnpj_prestador = _validar_cnpj_prestador(cnpj_prestador)
     chave_efetiva: str | None = None
     if chave_acesso is not None and chave_acesso.strip():
         if not validate_chave_nfse(chave_acesso):
