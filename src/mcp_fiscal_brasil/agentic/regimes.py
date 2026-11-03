@@ -18,13 +18,14 @@ _LIMITE_MEI = 81_000.0
 _LIMITE_SIMPLES = 4_800_000.0
 _LIMITE_LUCRO_PRESUMIDO = 78_000_000.0
 _FATOR_R_MIN = 0.28
-_SIMPLES_EXPORT_REMAINING = 0.509
+_ISS_MAXIMO_SIMPLES = 5.0
 _PIS_COFINS_LP = 0.0365
 _PIS_COFINS_LR = 0.0925
 _PRESUNCAO_SERVICOS = 0.32
 _PRESUNCAO_OUTROS = 0.08
 
 _AnexoFaixa = tuple[float, float, float]
+_ReparticaoPisCofinsIss = tuple[float, float]
 _CalcResult = tuple[bool, float | None, float | None, str | None]
 _Setor = Literal["comércio", "serviços", "indústria"]
 
@@ -85,12 +86,42 @@ _ANEXO_V: list[_AnexoFaixa] = [
     (4_800_000.0, 30.50, 540_000.0),
 ]
 
+_REPARTICAO_ANEXO_III: list[_ReparticaoPisCofinsIss] = [
+    (15.60, 33.50),
+    (17.10, 32.00),
+    (16.60, 32.50),
+    (16.60, 32.50),
+    (15.60, 33.50),
+    (19.50, 0.0),
+]
+
+_REPARTICAO_ANEXO_V: list[_ReparticaoPisCofinsIss] = [
+    (17.15, 14.00),
+    (17.15, 17.00),
+    (18.15, 19.00),
+    (19.15, 21.00),
+    (17.15, 23.50),
+    (20.00, 0.0),
+]
+
+
+def _faixa_simples(rbt12: float, tabela: list[_AnexoFaixa]) -> int:
+    for indice, (limite, _, _) in enumerate(tabela):
+        if rbt12 <= limite:
+            return indice
+    raise ValueError("faturamento acima do limite do Simples Nacional")
+
 
 def _aliquota_efetiva_simples(rbt12: float, tabela: list[_AnexoFaixa]) -> float:
-    for limite, nominal, parcela_deduzir in tabela:
-        if rbt12 <= limite:
-            return (rbt12 * nominal / 100.0 - parcela_deduzir) / rbt12 * 100.0
-    raise ValueError("faturamento acima do limite do Simples Nacional")
+    _, nominal, parcela_deduzir = tabela[_faixa_simples(rbt12, tabela)]
+    return (rbt12 * nominal / 100.0 - parcela_deduzir) / rbt12 * 100.0
+
+
+def _aliquota_sem_pis_cofins_iss(aliquota: float, reparticao: _ReparticaoPisCofinsIss) -> float:
+    pis_cofins_pct, iss_pct = reparticao
+    iss = min(aliquota * iss_pct / 100.0, _ISS_MAXIMO_SIMPLES)
+    federais = aliquota - iss
+    return federais - federais * pis_cofins_pct / (100.0 - iss_pct)
 
 
 def _tabela_simples(
@@ -108,12 +139,17 @@ def _tabela_simples(
     return _ANEXO_V
 
 
-def _aplica_exportacao_simples(aliquota: float, setor: _Setor, exportacao: bool) -> float:
-    if not exportacao:
+def _aliquota_simples(
+    faturamento: float,
+    tabela: list[_AnexoFaixa],
+    setor: _Setor,
+    exportacao: bool,
+) -> float:
+    aliquota = _aliquota_efetiva_simples(faturamento, tabela)
+    if not exportacao or setor != "serviços":
         return aliquota
-    if setor != "serviços":
-        return aliquota
-    return aliquota * _SIMPLES_EXPORT_REMAINING
+    reparticoes = _REPARTICAO_ANEXO_III if tabela is _ANEXO_III else _REPARTICAO_ANEXO_V
+    return _aliquota_sem_pis_cofins_iss(aliquota, reparticoes[_faixa_simples(faturamento, tabela)])
 
 
 def _calc_simples(
@@ -130,11 +166,7 @@ def _calc_simples(
             "Faturamento excede o limite anual do Simples Nacional (R$ 4,8 milhoes).",
         )
     tabela = _tabela_simples(setor, folha, faturamento)
-    aliquota = _aplica_exportacao_simples(
-        _aliquota_efetiva_simples(faturamento, tabela),
-        setor,
-        exportacao_servicos,
-    )
+    aliquota = _aliquota_simples(faturamento, tabela, setor, exportacao_servicos)
     return True, aliquota, faturamento * aliquota / 100, None
 
 
@@ -288,7 +320,7 @@ def _montar_observacoes(request: CompareTaxRegimesRequest) -> str:
     if request.exportacao_servicos and request.setor == "serviços":
         partes.append(
             "Exportacao de servicos: LP/Real sem ISS/PIS/Cofins; "
-            "Simples com reducao aproximada de ISS/PIS/Cofins no DAS "
+            "Simples sem as parcelas de ISS/PIS/Cofins da faixa e do anexo no DAS "
             "(LC 123 art. 18 §§ 4º-A e 14; MP 2.158-35 art. 14)."
         )
     if request.estimar_custo_fator_r:

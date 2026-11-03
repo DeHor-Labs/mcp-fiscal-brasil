@@ -483,6 +483,22 @@ def test_calc_simples_fator_r_servicos() -> None:
     assert aliq_alto < aliq_baixo
 
 
+@pytest.mark.parametrize(
+    ("faturamento", "folha", "aliquota_esperada"),
+    [
+        (180_000.0, 60_000.0, 6.00 * 0.509),
+        (4_500_000.0, 1_500_000.0, 18.60 * 0.805),
+        (3_000_000.0, 900_000.0, (16.812 - 5.0) * (1 - 15.60 / 66.50)),
+        (180_000.0, 0.0, 15.50 * (1 - 0.1715 - 0.14)),
+    ],
+)
+def test_calc_simples_exportacao_remove_pis_cofins_iss_da_faixa(
+    faturamento: float, folha: float, aliquota_esperada: float
+) -> None:
+    _, aliquota, _, _ = _calc_simples(faturamento, "serviços", folha, exportacao_servicos=True)
+    assert aliquota == pytest.approx(aliquota_esperada, abs=0.001)
+
+
 def test_calc_simples_anexo_i_sexta_faixa_usa_parcela_a_deduzir() -> None:
     aplicavel, aliq, imposto, motivo = _calc_simples(4_500_000, "comércio", None)
     assert aplicavel is True
