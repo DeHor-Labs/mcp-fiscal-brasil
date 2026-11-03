@@ -309,6 +309,23 @@ async def consultar_cobertura_nfse(
                     "O catálogo local não permite validar o codigo_ibge informado."
                 ),
             }
+        if uf_limpa and not q:
+            municipios = [
+                {
+                    "nome_municipio": chave.rsplit("/", 1)[0],
+                    "sigla_uf": uf_limpa,
+                    "codigo_ibge": ibge_limpo,
+                    "sistema_nfse": info.get("sistema", "ABRASF/Proprietario"),
+                    "portal_municipio": info.get("portal"),
+                }
+                for chave, info in PORTAIS_CONHECIDOS.items()
+                if chave.endswith(f"/{uf_limpa}")
+            ]
+            return {
+                "fonte": "fallback_catalogo_local",
+                "municipios": municipios,
+                "total": len(municipios),
+            }
         portal_info = (
             PORTAIS_CONHECIDOS.get(f"{_normalizar_chave_municipio(q)}/{uf_limpa}")
             if q and uf_limpa
