@@ -326,6 +326,27 @@ async def consultar_cobertura_nfse(
                 "municipios": municipios,
                 "total": len(municipios),
             }
+        if q and not uf_limpa:
+            municipio_normalizado = _normalizar_chave_municipio(q)
+            municipios = [
+                {
+                    "nome_municipio": chave.rsplit("/", 1)[0],
+                    "sigla_uf": chave.rsplit("/", 1)[1],
+                    "codigo_ibge": ibge_limpo,
+                    "sistema_nfse": info.get("sistema", "ABRASF/Proprietario"),
+                    "portal_municipio": info.get("portal"),
+                }
+                for chave, info in PORTAIS_CONHECIDOS.items()
+                if "/" in chave
+                and not chave.startswith("VARIOS/")
+                and _normalizar_chave_municipio(chave.rsplit("/", 1)[0]) == municipio_normalizado
+            ]
+            if municipios:
+                return {
+                    "fonte": "fallback_catalogo_local",
+                    "municipios": municipios,
+                    "total": len(municipios),
+                }
         portal_info = (
             PORTAIS_CONHECIDOS.get(f"{_normalizar_chave_municipio(q)}/{uf_limpa}")
             if q and uf_limpa
@@ -440,6 +461,13 @@ async def consultar_nfse(
                 invoice_id_limpo,
                 exc,
             )
+            if not municipio and not uf_upper and chave_efetiva is None:
+                return {
+                    "invoice_id": invoice_id_limpo,
+                    "fonte": "notaas.com.br",
+                    "status": "erro_provedor",
+                    "motivo": f"Falha ao consultar invoice no provedor Notaas: {exc}",
+                }
 
     # 2. Tenta a API do Ambiente de Dados Nacional (ADN) somente quando houver
     # chave de acesso válida de 50 posições (corrige issue #153: não envia número

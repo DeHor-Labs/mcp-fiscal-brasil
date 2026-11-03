@@ -212,6 +212,22 @@ async def test_consultar_nfse_por_invoice_id_sem_municipio_e_uf(
 
 
 @pytest.mark.asyncio
+async def test_consultar_nfse_por_invoice_id_sem_municipio_retorna_erro_provedor_quando_falha(
+    provedor_habilitado: None,
+) -> None:
+    _FakeHTTPClient.should_fail = True
+
+    resultado = await consultar_nfse(
+        invoice_id="b1f29d18-7c4d-4c88-90d2-123456789abc",
+    )
+
+    assert resultado["fonte"] == "notaas.com.br"
+    assert resultado["status"] == "erro_provedor"
+    assert resultado["invoice_id"] == "b1f29d18-7c4d-4c88-90d2-123456789abc"
+    assert "portal_municipio" not in resultado
+
+
+@pytest.mark.asyncio
 async def test_consultar_nfse_faz_fallback_quando_notaas_falha(
     provedor_habilitado: None,
 ) -> None:
