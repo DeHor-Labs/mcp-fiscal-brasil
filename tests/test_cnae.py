@@ -56,9 +56,18 @@ async def test_get_activities_descarta_itens_sem_codigo_ou_descricao(client: CNA
             {"id": "6201501", "descricao": "Desenvolvimento de software"},
             {"id": "6202300", "descricao": "  "},
             {"descricao": "Sem codigo"},
+            {"id": None, "descricao": "Codigo nulo"},
         ]
         result = await client.get_activities()
         assert [item.código for item in result] == ["6201501"]
+
+
+@pytest.mark.asyncio
+async def test_get_activity_sem_codigo_vira_not_found(client: CNAEClient) -> None:
+    with patch("mcp_fiscal_brasil._core.http.HTTPClient.get") as mock_get:
+        mock_get.return_value = {"id": None, "descricao": "Desenvolvimento de software"}
+        with pytest.raises(FiscalNotFoundError, match="sem código ou descrição"):
+            await client.get_activity("6201501")
 
 
 @pytest.mark.asyncio

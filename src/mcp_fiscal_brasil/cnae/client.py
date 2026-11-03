@@ -18,9 +18,17 @@ def _texto_campo(item: dict[str, Any], *keys: str) -> str:
     return ""
 
 
+def _codigo_item(item: dict[str, Any]) -> str:
+    for key in ("id", "codigo"):
+        value = item.get(key)
+        if value is not None and str(value).strip():
+            return str(value).strip()
+    return ""
+
+
 def _cnae_activity_from_item(item: dict[str, Any]) -> CNAEActivity:
     return CNAEActivity(
-        código=str(item.get("id", item.get("codigo", ""))),
+        código=_codigo_item(item),
         descrição=_texto_campo(item, "descricao", "descrição", "description"),
     )
 
@@ -37,7 +45,7 @@ def _cnae_class_from_item(item: dict[str, Any]) -> CNAEClass:
             divisao = _texto_campo(divisao_raw, "descricao", "descrição") or None
 
     return CNAEClass(
-        código=str(item.get("id", "")),
+        código=_codigo_item(item),
         descrição=_texto_campo(item, "descricao", "descrição", "description"),
         grupo=grupo,
         divisao=divisao,
@@ -131,9 +139,9 @@ class CNAEClient:
         code_clean = "".join(c for c in code if c.isdigit())
         item = _as_dict_payload(await self._fetch_subclasse(code_clean))
         activity = _cnae_activity_from_item(item)
-        if not activity.descrição:
+        if not _atividade_completa(activity):
             raise FiscalNotFoundError(
-                f"CNAE activity {code_clean} sem descrição", "Recurso", code_clean
+                f"CNAE activity {code_clean} sem código ou descrição", "Recurso", code_clean
             )
         return activity
 
