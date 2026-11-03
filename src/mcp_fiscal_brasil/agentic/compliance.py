@@ -89,8 +89,8 @@ _RECOMENDACAO_INAPTA: dict[tuple[bool, bool], str] = {
 }
 
 
-def _simei_confirmado(simples_data: Any | None, mei_data: Any | None) -> bool:
-    return any(getattr(status, "mei", None) is True for status in (mei_data, simples_data))
+def _simei_confirmado(*fontes: Any | None) -> bool:
+    return any(getattr(fonte, "mei", None) is True for fonte in fontes)
 
 
 def _motivo_indica_omissao(motivo: str | None, situacao_str: str) -> bool:
@@ -101,10 +101,11 @@ def _motivo_indica_omissao(motivo: str | None, situacao_str: str) -> bool:
 def _achado_situacao(
     risco_sit: RiskLevel,
     situacao_str: str,
+    cnpj_data: Any,
     simples_data: Any | None,
     mei_data: Any | None,
-    motivo_situacao: str | None = None,
 ) -> ComplianceFinding:
+    motivo_situacao: str | None = getattr(cnpj_data, "motivo_situacao_cadastral", None)
     situacao_l = situacao_str.casefold()
     is_inapta = "inapta" in situacao_l
     is_omissao = _motivo_indica_omissao(motivo_situacao, situacao_str)
@@ -122,7 +123,7 @@ def _achado_situacao(
             recomendacao=recomendacao,
         )
 
-    simei = _simei_confirmado(simples_data, mei_data)
+    simei = _simei_confirmado(mei_data, simples_data, cnpj_data)
     gatilho = "" if is_omissao else " (somente se o e-CAC apontar declaração omitida)"
     passos = [
         f"Abrir o e-CAC e conferir a causa da situação e pendências: {_URL_ECAC}",
@@ -241,15 +242,7 @@ async def analyze_cnpj_compliance(cnpj: str) -> ComplianceReport:
 
     risco_sit, situacao_str = _risco_situacao(cnpj_data.situacao_cadastral)
     if risco_sit != "baixo":
-        achados.append(
-            _achado_situacao(
-                risco_sit,
-                situacao_str,
-                simples_data,
-                mei_data,
-                getattr(cnpj_data, "motivo_situacao_cadastral", None),
-            )
-        )
+        achados.append(_achado_situacao(risco_sit, situacao_str, cnpj_data, simples_data, mei_data))
     fontes_ok.append(getattr(cnpj_data, "origem", "Receita"))
 
     if simples_data is not None:
