@@ -47,7 +47,22 @@ def test_parse_receita_ws_mapeia_motivo_situacao() -> None:
 
 def test_parse_cpfcnpj_mapeia_motivo_situacao() -> None:
     response = CNPJClient()._parse_cpfcnpj(
-        {"razao": "EMPRESA TESTE LTDA", "situacao": {"nome": "Inapta", "motivo": "Omissão"}},
+        {
+            "razao": "EMPRESA TESTE LTDA",
+            "situacao": {"nome": "Inapta", "motivo": {"id": 1, "descricao": "Omissão"}},
+        },
         "12345678000190",
     )
     assert response.motivo_situacao_cadastral == "Omissão"
+
+
+def test_parse_brasil_api_mapeia_opcao_pelo_mei() -> None:
+    client = CNPJClient()
+    payload = {"razao_social": "EMPRESA TESTE LTDA", "descricao_situacao_cadastral": "INAPTA"}
+
+    assert client._parse_brasil_api({**payload, "opcao_pelo_mei": True}, "12345678000190").mei
+    assert (
+        client._parse_brasil_api({**payload, "opcao_pelo_mei": False}, "12345678000190").mei
+        is False
+    )
+    assert client._parse_brasil_api(payload, "12345678000190").mei is None

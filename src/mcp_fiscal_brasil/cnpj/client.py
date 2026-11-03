@@ -188,6 +188,7 @@ class CNPJClient:
             telefone=data.get("ddd_telefone_1"),
             email=data.get("email"),
             qsa=qsa,
+            mei=self._bool_opcional(data.get("opcao_pelo_mei")),
             origem="BrasilAPI",
         )
 
@@ -312,7 +313,9 @@ class CNPJClient:
             nome_fantasia=data.get("fantasia") or None,
             situacao_cadastral=situacao.get("nome", ""),
             data_situacao_cadastral=_parse_data(situacao.get("data")),
-            motivo_situacao_cadastral=self._texto_opcional(situacao.get("motivo")),
+            motivo_situacao_cadastral=self._texto_opcional(
+                self._qualificacao_texto(situacao.get("motivo"))
+            ),
             natureza_juridica=natureza_texto,
             porte=porte.get("descricao"),
             capital_social=data.get("capitalSocial"),
@@ -335,6 +338,10 @@ class CNPJClient:
         if not isinstance(valor, str) or not valor.strip():
             return None
         return valor.strip().lower().startswith("s")
+
+    @staticmethod
+    def _bool_opcional(valor: Any) -> bool | None:
+        return valor if isinstance(valor, bool) else None
 
     @staticmethod
     def _texto_opcional(valor: Any) -> str | None:
