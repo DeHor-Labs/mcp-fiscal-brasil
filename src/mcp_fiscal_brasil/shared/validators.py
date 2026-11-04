@@ -314,3 +314,81 @@ def format_chave_nfe(chave: str) -> str:
     if len(números) != 44:
         raise ValueError(f"Chave NFe deve ter 44 digitos, recebeu {len(números)}")
     return " ".join(números[i : i + 4] for i in range(0, 44, 4))
+
+
+def normalizar_chave_nfse(chave: str) -> str:
+    """
+    Remove espaços, pontos, hífens e o prefixo opcional 'NFS' (NT 009 E1263) de uma
+    chave de acesso de NFS-e Nacional (50 posições) e normaliza letras para maiúsculas.
+    """
+    limpa = re.sub(r"[\s.\-]+", "", chave).upper()
+    if len(limpa) == 53 and limpa.startswith("NFS"):
+        limpa = limpa[3:]
+    return limpa
+
+
+def validate_chave_nfse(chave: str) -> bool:
+    """
+    Valida uma chave de acesso da NFS-e Nacional (ADN / SNNFSE) de 50 posições.
+
+    Composição oficial (Guia do Emissor Público Nacional / NT-009 Anexo VI E1263):
+    [NFS opcional] + cMun(7) + AmbGer(1) + tpInsc(1) + Inscrição Federal(14) + nNFSe(13)
+    + AAMM(4) + cNum(9) + DV(1) = 50 posições.
+
+    Validações aplicadas:
+    - Prefixo literal 'NFS' (53 caracteres) é aceito e removido na normalização.
+    - AmbGer deve ser '1' (Prefeitura) ou '2' (Sistema Nacional).
+    - tpInsc '1' exige CPF válido precedido por '000' nas 14 posições da inscrição federal.
+    - tpInsc '2' exige CNPJ válido (numérico ou alfanumérico IN RFB 2.229/2024).
+    - Mês de emissão (posições 39-40) entre '01' e '12'.
+    - Dígito verificador pelo módulo 11 (pesos 2 a 9 da direita para a esquerda, ASCII - 48).
+    """
+    if not chave:
+        return False
+
+    chave_limpa = normalizar_chave_nfse(chave)
+    if len(chave_limpa) != 50:
+        return False
+
+    if not re.fullmatch(r"[0-9]{9}[A-Z0-9]{12}[0-9]{29}", chave_limpa):
+        return False
+
+    if len(set(chave_limpa)) == 1:
+        return False
+
+    amb_ger = chave_limpa[7]
+    tp_insc = chave_limpa[8]
+    insc_federal = chave_limpa[9:23]
+    mes_emissao = int(chave_limpa[38:40])
+
+    if amb_ger not in ("1", "2"):
+        return False
+
+    if mes_emissao < 1 or mes_emissao > 12:
+        return False
+
+    if tp_insc == "1":
+        if not insc_federal.startswith("000") or not validate_cpf(insc_federal[3:]):
+            return False
+    elif tp_insc == "2":
+        if not validate_cnpj_qualquer(insc_federal):
+            return False
+    else:
+        return False
+
+    pesos_ciclo = list(range(2, 10))  # [2, 3, 4, 5, 6, 7, 8, 9]
+    soma = 0
+    for i, char in enumerate(reversed(chave_limpa[:49])):
+        soma += _valor_char_cnpj(char) * pesos_ciclo[i % len(pesos_ciclo)]
+
+    resto = soma % 11
+    dv_esperado = 0 if resto in (0, 1) else 11 - resto
+    return dv_esperado == int(chave_limpa[49])
+
+
+def format_chave_nfse(chave: str) -> str:
+    """Formata uma chave de NFS-e Nacional (50 posições) em grupos de 5 caracteres."""
+    chave_limpa = normalizar_chave_nfse(chave)
+    if len(chave_limpa) != 50 or not re.fullmatch(r"[0-9]{9}[A-Z0-9]{12}[0-9]{29}", chave_limpa):
+        raise ValueError(f"Chave NFS-e deve ter 50 posições válidas, recebeu {len(chave_limpa)}")
+    return " ".join(chave_limpa[i : i + 5] for i in range(0, 50, 5))

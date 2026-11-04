@@ -25,6 +25,16 @@ class Settings(BaseSettings):
     cpfcnpj_token: str = ""
     cpfcnpj_base_url: str = "https://api.cpfcnpj.com.br"
     cpfcnpj_cnpj_packet: int = 6
+
+    # Provedor opcional Notaas (opt-in) para NFS-e nacional/municipal (5.570 municípios).
+    # Sem NOTAAS_API_KEY configurado, o servico opera exatamente como antes, usando
+    # apenas as fontes gratuitas. Ao definir NOTAAS_API_KEY (chave ntaas_*), habilita
+    # consulta de status, emissao, cancelamento e diagnostico de NFS-e via API v1 da
+    # Notaas (https://platform.notaas.com.br), mantendo o fallback gratuito. A consulta
+    # de cobertura municipal (/api/v1/cobertura/cidades) e publica e gratuita mesmo sem chave.
+    notaas_api_key: str = ""
+    notaas_base_url: str = "https://platform.notaas.com.br"
+
     ibge_cnae_base_url: str = "https://servicodados.ibge.gov.br/api/v2/cnae"
     ibge_localidades_base_url: str = "https://servicodados.ibge.gov.br/api/v1/localidades"
     bcb_sgs_base_url: str = "https://api.bcb.gov.br/dados/serie"
@@ -54,6 +64,23 @@ class Settings(BaseSettings):
             raise ValueError(
                 "CPFCNPJ_BASE_URL deve usar https:// (o token da conta viaja no "
                 "caminho da URL e nao pode trafegar sem criptografia)."
+            )
+        return normalizado
+
+    @field_validator("notaas_base_url")
+    @classmethod
+    def _exigir_https_notaas(cls, valor: str) -> str:
+        """Exige HTTPS na base da Notaas.
+
+        A chave de API (header x-api-key) autentica operacoes fiscais e nao pode
+        trafegar sem criptografia TLS, mesmo quando sobrescrita por variavel
+        de ambiente.
+        """
+        normalizado = valor.strip()
+        if not normalizado.lower().startswith("https://"):
+            raise ValueError(
+                "NOTAAS_BASE_URL deve usar https:// (a chave de API nao pode "
+                "trafegar sem criptografia)."
             )
         return normalizado
 

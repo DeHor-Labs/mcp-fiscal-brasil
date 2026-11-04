@@ -51,7 +51,7 @@ from .nfe.tools import (
     consultar_status_sefaz,
     validar_chave_nfe,
 )
-from .nfse.tools import consultar_nfse
+from .nfse.tools import consultar_cobertura_nfse, consultar_nfse, validar_chave_nfse
 from .shared.validators import normalizar_cnpj, validate_cnpj_qualquer
 from .simples.tools import consultar_simples_nacional
 from .sped.tools import analisar_sped, listar_registros_sped
@@ -614,32 +614,100 @@ async def tool_manifestar_nfe(
     name="consultar_nfse",
     description=(
         "Consulta dados de uma NFSe (Nota Fiscal de Serviço Eletrônica). "
-        "ATENÇÃO: NFSe não possui padrão nacional - cada município tem seu próprio sistema. "
-        "Esta ferramenta orienta sobre como acessar o portal correto do município."
+        "Aceita chave_acesso de 50 posições para consulta na API Nacional (ADN), "
+        "invoice_id para consulta no provedor opcional Notaas (quando NOTAAS_API_KEY está configurado) "
+        "ou orienta sobre o portal municipal correto quando apenas o número é informado."
     ),
 )
 async def tool_consultar_nfse(
-    numero: str,
-    municipio: str,
-    uf: str,
+    numero: str = "",
+    municipio: str = "",
+    uf: str = "",
     cnpj_prestador: str | None = None,
-) -> dict[str, str]:
-    """Orienta a consulta de uma NFS-e (Nota Fiscal de Servicos eletronica) por municipio.
+    chave_acesso: str | None = None,
+    invoice_id: str | None = None,
+) -> dict[str, Any]:
+    """Consulta uma NFS-e (Nota Fiscal de Servicos Eletronica) por chave de 50 posicoes, invoice_id ou municipio.
 
-    A NFS-e e municipal e nao tem padrao nacional unico, entao esta ferramenta retorna o portal
-    da prefeitura, o tipo de sistema (ABRASF, ISS.net etc.) e alternativas de integracao, em vez
-    de buscar os dados da nota diretamente.
+    A consulta na API Nacional (ADN) so e disparada quando uma chave_acesso valida de 50 posicoes
+    e informada. Com o provedor opcional Notaas habilitado (NOTAAS_API_KEY), tambem permite
+    consultar o status pelo invoice_id. Sem chave de 50 posicoes, retorna o portal da prefeitura,
+    o sistema municipal e alternativas de integracao.
 
     Args:
-        numero: Numero da NFS-e.
+        numero: Numero da NFS-e (obrigatorio se chave_acesso e invoice_id nao forem informados).
         municipio: Nome do municipio emissor (ex.: "Sao Paulo", "Belo Horizonte").
         uf: Sigla do estado com 2 letras (ex.: "SP", "MG").
-        cnpj_prestador: CNPJ do prestador de servico. Opcional.
+        cnpj_prestador: CNPJ do prestador de servico (numerico ou alfanumerico). Opcional.
+        chave_acesso: Chave de acesso de 50 posicoes da NFS-e Nacional (ADN). Opcional.
+        invoice_id: ID da invoice no provedor opcional Notaas (requer NOTAAS_API_KEY). Opcional.
 
     Returns:
-        dict com orientacoes de consulta, portal e sistema do municipio e alternativas de automacao.
+        dict com os dados da nota ou orientacoes de consulta, portal e sistema do municipio.
     """
-    return await consultar_nfse(numero, municipio, uf, cnpj_prestador)
+    return await consultar_nfse(
+        numero=numero,
+        municipio=municipio,
+        uf=uf,
+        cnpj_prestador=cnpj_prestador,
+        chave_acesso=chave_acesso,
+        invoice_id=invoice_id,
+    )
+
+
+@app.tool(
+    name="validar_chave_nfse",
+    description=(
+        "Valida o formato e o dígito verificador de uma chave de acesso da NFS-e Nacional (50 posições). "
+        "Não consulta APIs - verifica apenas o cálculo matemático (módulo 11, compatível com CNPJ "
+        "numérico e alfanumérico IN RFB 2.229/2024) e extrai código IBGE do município, UF, "
+        "ambiente gerador, CPF/CNPJ do prestador, número da NFS-e e ano/mês de emissão."
+    ),
+)
+async def tool_validar_chave_nfse(chave_acesso: str) -> dict[str, Any]:
+    """Valida o formato e o digito verificador de uma chave de acesso de NFS-e Nacional (50 posicoes).
+
+    Nao consulta a API Nacional; apenas confere o calculo modulo 11 e decodifica os metadados
+    embutidos na chave (municipio IBGE, UF, ambiente gerador, inscricao federal e numero da nota).
+
+    Args:
+        chave_acesso: Chave de acesso da NFS-e Nacional com 50 posicoes (aceita com ou sem espacos).
+
+    Returns:
+        dict com "válido", "chave_formatada" e os campos estruturais decodificados quando valida.
+    """
+    return await validar_chave_nfse(chave_acesso)
+
+
+@app.tool(
+    name="consultar_cobertura_nfse",
+    description=(
+        "Consulta qual o sistema/engine de NFS-e utilizado por um município brasileiro "
+        "(cobertura de 5.570 municípios via catálogo público da Notaas, com fallback offline). "
+        "Retorna código IBGE, código TOM, engine municipal (snnfse, sp_prefeitura, ginfes, betha, "
+        "issnet, etc.) e se o município aderiu ao Sistema Nacional NFS-e (ADN/SNNFSE)."
+    ),
+)
+async def tool_consultar_cobertura_nfse(
+    municipio: str | None = None,
+    uf: str | None = None,
+    codigo_ibge: str | None = None,
+) -> dict[str, Any]:
+    """Consulta a cobertura e o provedor/engine municipal de NFS-e para qualquer cidade brasileira.
+
+    Args:
+        municipio: Nome do municipio (ex.: "Campinas", "Sao Paulo"). Opcional se codigo_ibge for informado.
+        uf: Sigla da UF com 2 letras (ex.: "SP", "MG"). Opcional.
+        codigo_ibge: Codigo IBGE de 7 digitos do municipio (ex.: "3509502"). Opcional.
+
+    Returns:
+        dict com os municipios encontrados, engine municipal e status de adesao ao padrao nacional.
+    """
+    return await consultar_cobertura_nfse(
+        municipio=municipio,
+        uf=uf,
+        codigo_ibge=codigo_ibge,
+    )
 
 
 # ---------------------------------------------------------------------------
