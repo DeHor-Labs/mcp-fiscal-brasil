@@ -113,6 +113,53 @@ class TestValidateChaveNFSe:
         assert formatada.startswith("35497 06224")
         assert formatada.endswith("39378")
 
+    def test_chave_nfse_com_prefixo_nfs_e1263_valida(self) -> None:
+        chave_id = f"NFS{self.CHAVE_REAL}"
+        assert normalizar_chave_nfse(chave_id) == self.CHAVE_REAL
+        assert validate_chave_nfse(chave_id) is True
+        assert format_chave_nfse(chave_id) == format_chave_nfse(self.CHAVE_REAL)
+
+    def test_chave_nfse_tp_insc_cpf_com_000_a_esquerda_valida(self) -> None:
+        # cMun=3550308 (7), AmbGer=2 (1), tpInsc=1 (1), CPF=00052998224725 (14),
+        # nNFSe=0000000000001 (13), AAMM=2607 (4), cNum=123456789 (9) -> 49 posições
+        base49_cpf = "3550308210005299822472500000000000012607123456789"
+        pesos = [2, 3, 4, 5, 6, 7, 8, 9]
+        soma = sum((ord(c) - 48) * pesos[i % 8] for i, c in enumerate(reversed(base49_cpf)))
+        resto = soma % 11
+        dv = 0 if resto < 2 else 11 - resto
+        chave_cpf = f"{base49_cpf}{dv}"
+        assert validate_chave_nfse(chave_cpf) is True
+
+    def test_chave_nfse_rejeita_tp_insc_ou_inscricao_incompativeis_e1263(self) -> None:
+        pesos = [2, 3, 4, 5, 6, 7, 8, 9]
+
+        def _assinar(base49: str) -> str:
+            soma = sum((ord(c) - 48) * pesos[i % 8] for i, c in enumerate(reversed(base49)))
+            resto = soma % 11
+            dv = 0 if resto < 2 else 11 - resto
+            return f"{base49}{dv}"
+
+        # tpInsc=1 (CPF) sem '000' à esquerda
+        assert (
+            validate_chave_nfse(_assinar("3550308211235299822472500000000000012607123456789"))
+            is False
+        )
+        # tpInsc=2 (CNPJ) com CNPJ de DV inválido (41403505000180)
+        assert (
+            validate_chave_nfse(_assinar("3549706224140350500018000000000001422607334563937"))
+            is False
+        )
+        # AmbGer inválido ('9')
+        assert (
+            validate_chave_nfse(_assinar("3549706924140350500018400000000001422607334563937"))
+            is False
+        )
+        # Mês inválido ('13')
+        assert (
+            validate_chave_nfse(_assinar("3549706224140350500018400000000001422613334563937"))
+            is False
+        )
+
 
 class TestFormatCPF:
     def test_formata_sem_mascara(self) -> None:

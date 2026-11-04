@@ -85,6 +85,11 @@ async def test_validar_chave_nfse_valida_e_decompoe() -> None:
     assert resultado["ano_mes_emissao"] == "07/26"
     assert resultado["digito_verificador"] == "8"
 
+    # Também aceita o Id completo da NFS-e com prefixo 'NFS' (NT 009 E1263)
+    resultado_nfs = await validar_chave_nfse(f"NFS{chave}")
+    assert resultado_nfs["válido"] is True
+    assert resultado_nfs["chave_formatada"] == resultado["chave_formatada"]
+
 
 @pytest.mark.asyncio
 async def test_validar_chave_nfse_invalida_retorna_falso() -> None:
