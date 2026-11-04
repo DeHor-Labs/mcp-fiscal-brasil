@@ -447,13 +447,13 @@ async def consultar_nfse(
         try:
             dados_notaas = await notaas_provider.consultar_status_nfse(invoice_id_limpo)
             return {
+                **dados_notaas,
                 "numero": str(dados_notaas.get("numeroNfse") or numero),
                 "invoice_id": invoice_id_limpo,
                 "municipio": municipio,
                 "uf": uf_upper,
                 "fonte": "notaas.com.br",
                 "status": str(dados_notaas.get("status", "encontrada")),
-                **dados_notaas,
             }
         except Exception as exc:
             logger.warning(
@@ -493,22 +493,22 @@ async def consultar_nfse(
                 "certificado ICP-Brasil não configurado)"
             )
             logger.info(
-                "API Nacional NFS-e: chave %s retornou 404 - usando fallback municipal",
-                chave_efetiva,
+                "API Nacional NFS-e: cMun %s retornou 404 - usando fallback municipal",
+                chave_efetiva[:7],
             )
         except NFSeNacionalUnavailableError as exc:
             api_fallback_motivo = f"API Nacional indisponível: {exc}"
             logger.warning(
-                "API Nacional NFS-e indisponível para chave %s: %s - usando fallback municipal",
-                chave_efetiva,
-                exc,
+                "API Nacional NFS-e indisponível para cMun %s (%s) - usando fallback municipal",
+                chave_efetiva[:7],
+                type(exc).__name__,
             )
         except Exception as exc:
             api_fallback_motivo = f"Erro inesperado na API Nacional: {exc}"
             logger.warning(
-                "Erro inesperado ao consultar API Nacional NFS-e para chave %s: %s - usando fallback",
-                chave_efetiva,
-                exc,
+                "Erro inesperado ao consultar API Nacional NFS-e para cMun %s (%s) - usando fallback",
+                chave_efetiva[:7],
+                type(exc).__name__,
             )
     else:
         api_fallback_motivo = (
