@@ -31,8 +31,8 @@ class EmpresaClient:
             # CNPJ é o dado primário, se falhar, propagamos o erro
             raise cnpj_data
 
-        simples_nacional = False
-        mei = False
+        simples_nacional: bool | None = None
+        mei: bool | None = None
         if not isinstance(simples_data, BaseException):
             simples_nacional = simples_data.simples_nacional
             mei = simples_data.mei
