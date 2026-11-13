@@ -32,6 +32,10 @@ class ComplianceFinding(BaseModel):
     recomendacao: str | None = Field(
         default=None, description="Acao sugerida ao operador, quando aplicavel."
     )
+    proximos_passos: list[str] | None = Field(
+        default=None,
+        description="Passos operacionais concretos (URLs/portais), quando aplicavel.",
+    )
 
 
 class ComplianceReport(BaseModel):
