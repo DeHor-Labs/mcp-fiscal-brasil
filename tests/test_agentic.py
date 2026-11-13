@@ -19,6 +19,8 @@ from mcp_fiscal_brasil.agentic.regimes import (
     _calc_lucro_presumido,
     _calc_mei,
     _calc_simples,
+    _inss_mensal,
+    _irpf_mensal,
 )
 from mcp_fiscal_brasil.agentic.schemas import (
     ComplianceFinding,
@@ -334,11 +336,109 @@ def test_compare_tax_regimes_servicos_pequena_empresa() -> None:
         faturamento_anual=300_000,
         setor="serviços",
         folha_pagamento_anual=120_000,
+        estimar_custo_fator_r=False,
     )
     assert isinstance(resultado, TaxRegimeComparison)
     assert resultado.melhor_opcao in ("simples_nacional", "mei")
     assert resultado.economia_anual_vs_pior >= 0
     assert len(resultado.opcoes) >= 3
+
+
+def test_compare_tax_regimes_exportacao_servicos_reduz_presumido() -> None:
+    domestico = compare_tax_regimes(
+        faturamento_anual=449_316,
+        setor="serviços",
+        folha_pagamento_anual=0,
+        exportacao_servicos=False,
+        estimar_custo_fator_r=False,
+    )
+    exportacao = compare_tax_regimes(
+        faturamento_anual=449_316,
+        setor="serviços",
+        folha_pagamento_anual=0,
+        exportacao_servicos=True,
+        estimar_custo_fator_r=False,
+    )
+    lp_dom = next(o for o in domestico.opcoes if o.regime == "lucro_presumido")
+    lp_exp = next(o for o in exportacao.opcoes if o.regime == "lucro_presumido")
+    assert lp_dom.imposto_anual_estimado is not None
+    assert lp_exp.imposto_anual_estimado is not None
+    assert lp_exp.imposto_anual_estimado < lp_dom.imposto_anual_estimado
+    assert exportacao.melhor_opcao in ("lucro_presumido", "lucro_real")
+
+
+def test_compare_tax_regimes_fator_r_inclui_custo_pessoal() -> None:
+    fat = 449_316.0
+    folha = fat * 0.28
+    sem = compare_tax_regimes(
+        faturamento_anual=fat,
+        setor="serviços",
+        folha_pagamento_anual=folha,
+        estimar_custo_fator_r=False,
+    )
+    com = compare_tax_regimes(
+        faturamento_anual=fat,
+        setor="serviços",
+        folha_pagamento_anual=folha,
+        estimar_custo_fator_r=True,
+    )
+    s_sem = next(o for o in sem.opcoes if o.regime == "simples_nacional")
+    s_com = next(o for o in com.opcoes if o.regime == "simples_nacional")
+    assert s_com.custo_pessoal_fator_r_estimado is not None
+    assert s_com.custo_pessoal_fator_r_estimado > 0
+    assert s_com.custo_total_estimado == pytest.approx(
+        (s_sem.imposto_anual_estimado or 0) + s_com.custo_pessoal_fator_r_estimado
+    )
+    assert com.melhor_opcao == sem.melhor_opcao
+    assert com.economia_anual_vs_pior == pytest.approx(sem.economia_anual_vs_pior)
+    assert [o.regime for o in com.opcoes] == [o.regime for o in sem.opcoes]
+
+
+@pytest.mark.parametrize(
+    ("salario", "inss", "irpf"),
+    [
+        (1_621.00, 121.57, 0.0),
+        (5_000.00, 501.51, 0.0),
+        (6_000.00, 641.51, 385.10),
+        (10_000.00, 988.09, 1_569.54),
+    ],
+)
+def test_custo_pessoal_usa_inss_com_teto_e_irpf_lei_15270(
+    salario: float, inss: float, irpf: float
+) -> None:
+    assert _inss_mensal(salario) == pytest.approx(inss, abs=0.01)
+    assert _irpf_mensal(salario, _inss_mensal(salario)) == pytest.approx(irpf, abs=0.01)
+
+
+@pytest.mark.parametrize(
+    "campos",
+    [
+        {"faturamento_anual": float("inf")},
+        {"faturamento_anual": 500_000.0, "folha_pagamento_anual": float("inf")},
+        {"faturamento_anual": 500_000.0, "aliquota_iss": float("nan")},
+    ],
+)
+def test_compare_tax_regimes_rejeita_inf_nan(campos: dict[str, float]) -> None:
+    with pytest.raises(ValueError, match="finite"):
+        compare_tax_regimes(setor="serviços", **campos)  # type: ignore[arg-type]
+
+
+def test_compare_tax_regimes_margem_lucro_real_altera_carga() -> None:
+    baixa = compare_tax_regimes(
+        faturamento_anual=449_316,
+        setor="serviços",
+        margem_lucro_real=0.15,
+        estimar_custo_fator_r=False,
+    )
+    alta = compare_tax_regimes(
+        faturamento_anual=449_316,
+        setor="serviços",
+        margem_lucro_real=0.80,
+        estimar_custo_fator_r=False,
+    )
+    lr_baixa = next(o for o in baixa.opcoes if o.regime == "lucro_real")
+    lr_alta = next(o for o in alta.opcoes if o.regime == "lucro_real")
+    assert (lr_alta.imposto_anual_estimado or 0) > (lr_baixa.imposto_anual_estimado or 0)
 
 
 def test_compare_tax_regimes_grande_empresa_exclui_simples() -> None:
@@ -381,6 +481,58 @@ def test_calc_simples_fator_r_servicos() -> None:
     assert aplicavel_alto and aplicavel_baixo
     assert aliq_alto is not None and aliq_baixo is not None
     assert aliq_alto < aliq_baixo
+
+
+@pytest.mark.parametrize(
+    ("faturamento", "folha", "aliquota_esperada"),
+    [
+        (180_000.0, 60_000.0, 6.00 * 0.509),
+        (4_500_000.0, 1_500_000.0, 18.60 * 0.805),
+        (3_000_000.0, 900_000.0, (16.812 - 5.0) * (1 - 15.60 / 66.50)),
+        (180_000.0, 0.0, 15.50 * (1 - 0.1715 - 0.14)),
+    ],
+)
+def test_calc_simples_exportacao_remove_pis_cofins_iss_da_faixa(
+    faturamento: float, folha: float, aliquota_esperada: float
+) -> None:
+    _, aliquota, _, _ = _calc_simples(faturamento, "serviços", folha, exportacao_servicos=True)
+    assert aliquota == pytest.approx(aliquota_esperada, abs=0.001)
+
+
+def test_calc_simples_anexo_i_sexta_faixa_usa_parcela_a_deduzir() -> None:
+    aplicavel, aliq, imposto, motivo = _calc_simples(4_500_000, "comércio", None)
+    assert aplicavel is True
+    assert motivo is None
+    assert aliq is not None and imposto is not None
+    assert abs(aliq - 10.60) < 0.01
+    assert abs(imposto - 477_000.0) < 1.0
+
+
+def test_calc_simples_anexo_iii_terceira_faixa_usa_parcela_a_deduzir() -> None:
+    aplicavel, aliq, imposto, motivo = _calc_simples(600_000, "serviços", 200_000)
+    assert aplicavel is True
+    assert motivo is None
+    assert aliq is not None and imposto is not None
+    assert abs(aliq - 10.56) < 0.01
+    assert abs(imposto - 63_360.0) < 1.0
+
+
+def test_calc_simples_anexo_ii_sexta_faixa_usa_parcela_a_deduzir() -> None:
+    aplicavel, aliq, imposto, motivo = _calc_simples(4_500_000, "indústria", None)
+    assert aplicavel is True
+    assert motivo is None
+    assert aliq is not None and imposto is not None
+    assert abs(aliq - 14.00) < 0.01
+    assert abs(imposto - 630_000.0) < 1.0
+
+
+def test_compare_tax_regimes_comercio_alto_faturamento_prefere_simples() -> None:
+    resultado = compare_tax_regimes(faturamento_anual=4_500_000, setor="comércio")
+    assert resultado.melhor_opcao == "simples_nacional"
+    simples = next(o for o in resultado.opcoes if o.regime == "simples_nacional")
+    assert simples.aplicavel is True
+    assert simples.aliquota_efetiva_estimada is not None
+    assert abs(simples.aliquota_efetiva_estimada - 10.60) < 0.01
 
 
 def test_calc_lucro_presumido_aplicavel() -> None:

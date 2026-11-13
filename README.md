@@ -94,7 +94,7 @@ Ele não tenta ser um catálogo genérico de dados públicos. A proposta é ser 
 | Compliance de CNPJ | `analyze_cnpj_compliance` | CNPJ + Simples/MEI + CNAE em relatório acionável |
 | Validação de NFe | `validate_nfe_full` | XML + chave + emissor, com issues estruturadas |
 | Sumário de SPED | `summarize_sped` | Resumo executivo, período, empresa, blocos e inconsistências |
-| Planejamento tributário | `compare_tax_regimes` | Comparativo MEI, Simples, Lucro Presumido e Lucro Real |
+| Planejamento tributário | `compare_tax_regimes` | Comparativo MEI, Simples, Lucro Presumido e Lucro Real (exportação de serviços, ISS, margem Real, custo Fator R) |
 
 ---
 
