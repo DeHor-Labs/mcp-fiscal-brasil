@@ -383,6 +383,42 @@ def test_calc_simples_fator_r_servicos() -> None:
     assert aliq_alto < aliq_baixo
 
 
+def test_calc_simples_anexo_i_sexta_faixa_usa_parcela_a_deduzir() -> None:
+    aplicavel, aliq, imposto, motivo = _calc_simples(4_500_000, "comércio", None)
+    assert aplicavel is True
+    assert motivo is None
+    assert aliq is not None and imposto is not None
+    assert abs(aliq - 10.60) < 0.01
+    assert abs(imposto - 477_000.0) < 1.0
+
+
+def test_calc_simples_anexo_iii_terceira_faixa_usa_parcela_a_deduzir() -> None:
+    aplicavel, aliq, imposto, motivo = _calc_simples(600_000, "serviços", 200_000)
+    assert aplicavel is True
+    assert motivo is None
+    assert aliq is not None and imposto is not None
+    assert abs(aliq - 10.56) < 0.01
+    assert abs(imposto - 63_360.0) < 1.0
+
+
+def test_calc_simples_anexo_ii_sexta_faixa_usa_parcela_a_deduzir() -> None:
+    aplicavel, aliq, imposto, motivo = _calc_simples(4_500_000, "indústria", None)
+    assert aplicavel is True
+    assert motivo is None
+    assert aliq is not None and imposto is not None
+    assert abs(aliq - 14.00) < 0.01
+    assert abs(imposto - 630_000.0) < 1.0
+
+
+def test_compare_tax_regimes_comercio_alto_faturamento_prefere_simples() -> None:
+    resultado = compare_tax_regimes(faturamento_anual=4_500_000, setor="comércio")
+    assert resultado.melhor_opcao == "simples_nacional"
+    simples = next(o for o in resultado.opcoes if o.regime == "simples_nacional")
+    assert simples.aplicavel is True
+    assert simples.aliquota_efetiva_estimada is not None
+    assert abs(simples.aliquota_efetiva_estimada - 10.60) < 0.01
+
+
 def test_calc_lucro_presumido_aplicavel() -> None:
     aplicavel, _aliq, imp, motivo = _calc_lucro_presumido(2_000_000, "comércio")
     assert aplicavel is True
