@@ -11,8 +11,8 @@ class EmpresaInfo(BaseModel):
     situacao: str
     porte: str | None = None
     natureza_juridica: str | None = None
-    simples_nacional: bool
-    mei: bool
+    simples_nacional: bool | None
+    mei: bool | None
     atividade_principal: AtividadeCNAE | None = None
     atividades_secundarias: list[AtividadeCNAE] = []
     endereco: Endereco | None = None

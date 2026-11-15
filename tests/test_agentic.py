@@ -28,6 +28,7 @@ from mcp_fiscal_brasil.agentic.schemas import (
     TaxRegimeComparison,
 )
 from mcp_fiscal_brasil.cnpj.schemas import AtividadeCNAE, CNPJResponse
+from mcp_fiscal_brasil.mei.schemas import MEIStatus
 from mcp_fiscal_brasil.shared.schemas import Endereco
 from mcp_fiscal_brasil.simples.schemas import SimplesStatus
 
@@ -316,6 +317,53 @@ async def test_compliance_simples_data_real_nao_optante_gera_achado() -> None:
 
     assert "Simples Nacional" in report.fontes_consultadas
     assert any(a.categoria == "regime_tributario" for a in report.achados)
+
+
+async def _compliance_com_status(simples: SimplesStatus, mei: MEIStatus) -> ComplianceReport:
+    with (
+        patch("mcp_fiscal_brasil.agentic.compliance.CNPJClient") as mock_cnpj_class,
+        patch("mcp_fiscal_brasil.agentic.compliance.SimplesClient") as mock_simples_class,
+        patch("mcp_fiscal_brasil.agentic.compliance.MEIClient") as mock_mei_class,
+    ):
+        mock_cnpj_class.return_value = MagicMock(consultar=AsyncMock(return_value=_cnpj_ativo()))
+        mock_simples_class.return_value = MagicMock(
+            get_simples_status=AsyncMock(return_value=simples)
+        )
+        mock_mei_class.return_value = MagicMock(get_mei_status=AsyncMock(return_value=mei))
+        return await analyze_cnpj_compliance("12.345.678/0001-90")
+
+
+@pytest.mark.asyncio
+async def test_compliance_fonte_nao_confirmada_nao_conta_como_fonte_ok() -> None:
+    report = await _compliance_com_status(
+        SimplesStatus(
+            cnpj="12345678000190", simples_nacional=None, mei=None, fonte_confirmada=False
+        ),
+        MEIStatus(cnpj="12345678000190", mei=None, simples_nacional=None, fonte_confirmada=False),
+    )
+
+    assert "Simples Nacional" not in report.fontes_consultadas
+    assert "MEI Receita" not in report.fontes_consultadas
+    titulos = {a.titulo for a in report.achados}
+    assert "Simples Nacional não confirmado pela fonte" in titulos
+    assert "Status MEI não confirmado pela fonte" in titulos
+
+
+@pytest.mark.asyncio
+async def test_compliance_avalia_cada_indicador_independentemente() -> None:
+    report = await _compliance_com_status(
+        SimplesStatus(
+            cnpj="12345678000190", simples_nacional=False, mei=None, fonte_confirmada=False
+        ),
+        MEIStatus(cnpj="12345678000190", mei=None, simples_nacional=False, fonte_confirmada=False),
+    )
+
+    assert "Simples Nacional" in report.fontes_consultadas
+    assert "MEI Receita" not in report.fontes_consultadas
+    titulos = {a.titulo for a in report.achados}
+    assert "Não optante pelo Simples Nacional" in titulos
+    assert "Simples Nacional não confirmado pela fonte" not in titulos
+    assert "Status MEI não confirmado pela fonte" in titulos
 
 
 @pytest.mark.asyncio
