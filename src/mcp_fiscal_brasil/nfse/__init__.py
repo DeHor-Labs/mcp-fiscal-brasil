@@ -1,5 +1,5 @@
-"""Modulo NFSe: consulta de Notas Fiscais de Servico Eletronicas."""
+"""Modulo NFSe: consulta de Notas Fiscais de Servico Eletronicas e cobertura municipal."""
 
-from .tools import consultar_nfse
+from .tools import consultar_cobertura_nfse, consultar_nfse, validar_chave_nfse
 
-__all__ = ["consultar_nfse"]
+__all__ = ["consultar_cobertura_nfse", "consultar_nfse", "validar_chave_nfse"]

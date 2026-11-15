@@ -68,9 +68,27 @@ class TestNFSeNacionalClient:
 class TestConsultarNFSeComFallback:
     """Testes de integração: tentativa API Nacional + fallback estático."""
 
+    CHAVE_VALIDA_50 = "35497062241403505000184000000000014226073345639378"
+
+    @pytest.mark.asyncio
+    async def test_numero_curto_nao_chama_api_nacional(self) -> None:
+        """Issue #153: número municipal curto não deve ser enviado como chave de 50 dígitos à ADN."""
+        with patch("mcp_fiscal_brasil.nfse.tools.NFSeNacionalClient") as mock_client_class:
+            resultado = await consultar_nfse(
+                numero="99999",
+                municipio="São Paulo",
+                uf="SP",
+            )
+            mock_client_class.assert_not_called()
+
+        assert resultado["numero"] == "99999"
+        assert resultado["fonte"] == "fallback_portal_municipal"
+        assert resultado["status"] == "consulta_manual_necessaria"
+        assert "50 posições" in (resultado["api_nacional_motivo"] or "")
+
     @pytest.mark.asyncio
     async def test_fallback_estatico_quando_api_nacional_indisponivel(self) -> None:
-        """Quando a API Nacional falha, cai no fallback com orientações manuais."""
+        """Quando a API Nacional falha com chave de 50 dígitos válida, cai no fallback com orientações manuais."""
         with patch("mcp_fiscal_brasil.nfse.tools.NFSeNacionalClient") as mock_client_class:
             mock_instance = MagicMock()
             mock_instance.consultar_por_chave = AsyncMock(return_value=None)
@@ -80,8 +98,10 @@ class TestConsultarNFSeComFallback:
                 numero="99999",
                 municipio="São Paulo",
                 uf="SP",
+                chave_acesso=self.CHAVE_VALIDA_50,
             )
 
+        mock_instance.consultar_por_chave.assert_called_once_with(self.CHAVE_VALIDA_50)
         assert resultado["numero"] == "99999"
         assert resultado["municipio"] == "São Paulo"
         assert resultado["uf"] == "SP"
@@ -99,7 +119,9 @@ class TestConsultarNFSeComFallback:
         with patch("mcp_fiscal_brasil.nfse.tools.NFSeNacionalClient") as mock_client_class:
             mock_instance = MagicMock()
             mock_instance.consultar_por_chave = AsyncMock(
-                side_effect=NFSeNacionalUnavailableError("status=503 path=/nfse/55555")
+                side_effect=NFSeNacionalUnavailableError(
+                    f"status=503 path=/nfse/{self.CHAVE_VALIDA_50}"
+                )
             )
             mock_client_class.return_value = mock_instance
 
@@ -107,6 +129,7 @@ class TestConsultarNFSeComFallback:
                 numero="55555",
                 municipio="Belo Horizonte",
                 uf="MG",
+                chave_acesso=self.CHAVE_VALIDA_50,
             )
 
         assert resultado["numero"] == "55555"
@@ -132,7 +155,7 @@ class TestConsultarNFSeComFallback:
             mock_client_class.return_value = mock_instance
 
             resultado = await consultar_nfse(
-                numero="77777",
+                numero=self.CHAVE_VALIDA_50,
                 municipio="Brasília",
                 uf="DF",
             )

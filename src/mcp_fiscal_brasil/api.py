@@ -41,6 +41,7 @@ from .cpf.tools import validar_cpf_tool
 from .ibge.client import IBGEClient
 from .nfe.status_sefaz import obter_status_certificado
 from .nfe.tools import UFS_VALIDAS, consultar_status_sefaz, validar_chave_nfe
+from .nfse.tools import validar_chave_nfse
 from .shared.validators import normalizar_cnpj, validate_cnpj_qualquer
 from .simples.client import SimplesClient
 
@@ -195,6 +196,14 @@ async def ibge_municipio(código: int) -> dict[str, Any]:
 async def nfe_chave_validate(chave: str) -> dict[str, Any]:
     """Valida formato e digito verificador da chave de NFe."""
     return await validar_chave_nfe(chave)
+
+
+@app.get(
+    "/v1/nfse/chave/{chave}", tags=["nfse"], summary="Valida chave de acesso de NFS-e Nacional"
+)
+async def nfse_chave_validate(chave: str) -> dict[str, Any]:
+    """Valida formato e digito verificador da chave de 50 posicoes da NFS-e Nacional."""
+    return await validar_chave_nfse(chave)
 
 
 _STATUS_SEFAZ_CACHE_TTL_SEGUNDOS = 60

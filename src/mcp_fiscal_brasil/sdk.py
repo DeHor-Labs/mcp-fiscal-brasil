@@ -321,7 +321,7 @@ class FiscalBrasil:
     # NFSe
     # ------------------------------------------------------------------
 
-    async def portal_nfse(self, municipio: str, uf: str) -> dict[str, str]:
+    async def portal_nfse(self, municipio: str, uf: str) -> dict[str, Any]:
         """
         Retorna o portal de consulta de NFSe para um município.
 
@@ -349,11 +349,25 @@ class FiscalBrasil:
         from .nfse.tools import consultar_nfse
 
         resultado = await consultar_nfse(
-            numero="",
+            numero="0",
             municipio=municipio,
             uf=uf,
         )
         return resultado
+
+    async def validar_chave_nfse(self, chave: str) -> dict[str, Any]:
+        """
+        Valida e extrai os campos estruturais de uma chave de acesso da NFS-e Nacional (50 posições).
+
+        Args:
+            chave: Chave de acesso da NFS-e Nacional com 50 posições.
+
+        Returns:
+            Dicionário com "válido", "chave_formatada" e metadados extraídos.
+        """
+        from .nfse.tools import validar_chave_nfse
+
+        return await validar_chave_nfse(chave)
 
     # ------------------------------------------------------------------
     # eSocial
