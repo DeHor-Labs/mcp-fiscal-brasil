@@ -27,7 +27,9 @@ from mcp_fiscal_brasil.agentic.schemas import (
     SupplierRiskBatchResult,
     TaxRegimeComparison,
 )
+from mcp_fiscal_brasil.cnpj.client import CNPJClient
 from mcp_fiscal_brasil.cnpj.schemas import AtividadeCNAE, CNPJResponse
+from mcp_fiscal_brasil.mei.schemas import MEIStatus
 from mcp_fiscal_brasil.shared.schemas import Endereco
 from mcp_fiscal_brasil.simples.schemas import SimplesStatus
 
@@ -73,6 +75,28 @@ def _cnpj_baixado() -> CNPJResponse:
         atividade_principal=None,
         atividades_secundarias=[],
         endereco=Endereco(),
+        telefone=None,
+        email=None,
+        qsa=[],
+        origem="BrasilAPI",
+    )
+
+
+def _cnpj_inapto_ei() -> CNPJResponse:
+    return CNPJResponse(
+        cnpj="27496821000117",
+        razao_social="MARCO ANTONIO LUCIO CARVALHO",
+        nome_fantasia=None,
+        situacao_cadastral="INAPTA",
+        motivo_situacao_cadastral=None,
+        natureza_juridica="213-5 - Empresário (Individual)",
+        porte="ME",
+        capital_social=None,
+        atividade_principal=AtividadeCNAE(
+            código="6201501", descrição="Desenvolvimento de software"
+        ),
+        atividades_secundarias=[],
+        endereco=Endereco(municipio="Goiânia", uf="GO"),
         telefone=None,
         email=None,
         qsa=[],
@@ -322,6 +346,151 @@ async def test_compliance_simples_data_real_nao_optante_gera_achado() -> None:
 async def test_compliance_cnpj_invalido_levanta() -> None:
     with pytest.raises(ValueError, match="14 digitos"):
         await analyze_cnpj_compliance("123")
+
+
+@pytest.mark.asyncio
+async def test_compliance_inapta_ei_sem_simei_nao_cita_dasn() -> None:
+    with (
+        patch("mcp_fiscal_brasil.agentic.compliance.CNPJClient") as mock_cnpj_class,
+        patch("mcp_fiscal_brasil.agentic.compliance.SimplesClient") as mock_simples_class,
+        patch("mcp_fiscal_brasil.agentic.compliance.MEIClient") as mock_mei_class,
+    ):
+        cnpj_inst = MagicMock()
+        cnpj_inst.consultar = AsyncMock(return_value=_cnpj_inapto_ei())
+        mock_cnpj_class.return_value = cnpj_inst
+
+        simples_inst = MagicMock()
+        simples_inst.get_simples_status = AsyncMock(side_effect=Exception("offline"))
+        mock_simples_class.return_value = simples_inst
+
+        mei_inst = MagicMock()
+        mei_inst.get_mei_status = AsyncMock(side_effect=Exception("offline"))
+        mock_mei_class.return_value = mei_inst
+
+        report = await analyze_cnpj_compliance("27.496.821/0001-17")
+
+    situacao = next(a for a in report.achados if a.categoria == "situacao_cadastral")
+    assert situacao.severidade == "alto"
+    assert situacao.proximos_passos is not None
+    texto = " ".join(
+        [situacao.detalhe, situacao.recomendacao or "", *situacao.proximos_passos]
+    ).lower()
+    assert "e-cac" in texto or "ecac" in texto.replace("-", "")
+    assert "213-5" in texto
+    assert "não afirme omissão" in situacao.detalhe.casefold()
+    assert "dasn-simei dos anos" not in texto
+    assert "pgmei" not in texto
+
+
+@pytest.mark.asyncio
+async def test_compliance_inapta_com_simei_confirmado_cita_dasn_pgmei() -> None:
+    with (
+        patch("mcp_fiscal_brasil.agentic.compliance.CNPJClient") as mock_cnpj_class,
+        patch("mcp_fiscal_brasil.agentic.compliance.SimplesClient") as mock_simples_class,
+        patch("mcp_fiscal_brasil.agentic.compliance.MEIClient") as mock_mei_class,
+    ):
+        cnpj_inst = MagicMock()
+        cnpj_inst.consultar = AsyncMock(return_value=_cnpj_inapto_ei())
+        mock_cnpj_class.return_value = cnpj_inst
+
+        simples_inst = MagicMock()
+        simples_inst.get_simples_status = AsyncMock(side_effect=Exception("offline"))
+        mock_simples_class.return_value = simples_inst
+
+        mei_inst = MagicMock()
+        mei_inst.get_mei_status = AsyncMock(
+            return_value=MEIStatus(
+                cnpj="27496821000117",
+                mei=True,
+                simples_nacional=True,
+            )
+        )
+        mock_mei_class.return_value = mei_inst
+
+        report = await analyze_cnpj_compliance("27.496.821/0001-17")
+
+    situacao = next(a for a in report.achados if a.categoria == "situacao_cadastral")
+    passos = situacao.proximos_passos or []
+    texto = " ".join([situacao.recomendacao or "", *passos]).lower()
+    assert "dasn" in texto
+    assert "pgmei" in texto
+    assert "multa" in texto
+    assert "r$ 50" in texto or "50,00" in texto
+    assert "cnpjreva" in texto
+    assert "não é condição" in texto or "nao e condicao" in texto.replace("é", "e")
+    idx_dasn = next(i for i, p in enumerate(passos) if "dasn" in p.casefold())
+    idx_pgmei = next(i for i, p in enumerate(passos) if "pgmei" in p.casefold())
+    assert idx_dasn < idx_pgmei
+    assert (
+        "omissão" not in situacao.detalhe.casefold() or "não afirme" in situacao.detalhe.casefold()
+    )
+
+
+async def _situacao_inapta(cnpj_data: CNPJResponse, get_mei_status: AsyncMock) -> ComplianceFinding:
+    with (
+        patch("mcp_fiscal_brasil.agentic.compliance.CNPJClient") as mock_cnpj_class,
+        patch("mcp_fiscal_brasil.agentic.compliance.SimplesClient") as mock_simples_class,
+        patch("mcp_fiscal_brasil.agentic.compliance.MEIClient") as mock_mei_class,
+    ):
+        mock_cnpj_class.return_value = MagicMock(consultar=AsyncMock(return_value=cnpj_data))
+        mock_simples_class.return_value = MagicMock(
+            get_simples_status=AsyncMock(side_effect=Exception("offline"))
+        )
+        mock_mei_class.return_value = MagicMock(get_mei_status=get_mei_status)
+        report = await analyze_cnpj_compliance(cnpj_data.cnpj)
+    return next(a for a in report.achados if a.categoria == "situacao_cadastral")
+
+
+async def _situacao_inapta_com_simei(cnpj_data: CNPJResponse) -> ComplianceFinding:
+    return await _situacao_inapta(
+        cnpj_data,
+        AsyncMock(return_value=MEIStatus(cnpj=cnpj_data.cnpj, mei=True, simples_nacional=True)),
+    )
+
+
+def _cnpj_inapto_brasil_api(motivo: str | None) -> CNPJResponse:
+    return CNPJClient()._parse_brasil_api(
+        {
+            "razao_social": "MARCO ANTONIO LUCIO CARVALHO",
+            "descricao_situacao_cadastral": "INAPTA",
+            "descricao_motivo_situacao_cadastral": motivo,
+            "natureza_juridica": "213-5 - Empresário (Individual)",
+            "porte": "ME",
+            "municipio": "Goiânia",
+            "uf": "GO",
+        },
+        "12345678000190",
+    )
+
+
+@pytest.mark.asyncio
+async def test_compliance_inapta_sem_motivo_condiciona_dasn_a_omissao() -> None:
+    situacao = await _situacao_inapta_com_simei(_cnpj_inapto_ei())
+
+    passo_dasn = next(p for p in situacao.proximos_passos or [] if "dasn-simei" in p.casefold())
+    assert "somente se o e-cac apontar declaração omitida" in passo_dasn.casefold()
+    assert "declarações omitidas" not in (situacao.recomendacao or "").casefold()
+    assert "causa da inaptidão" in (situacao.recomendacao or "").casefold()
+
+
+@pytest.mark.asyncio
+async def test_compliance_inapta_por_omissao_orienta_transmitir_declaracoes() -> None:
+    situacao = await _situacao_inapta_com_simei(_cnpj_inapto_brasil_api("OMISSAO DE DECLARACOES"))
+
+    passos = " ".join(situacao.proximos_passos or []).casefold()
+    assert "somente se o e-cac apontar" not in passos
+    assert "transmitir as declarações omitidas" in (situacao.recomendacao or "").casefold()
+    assert "motivo cadastral indica omissão" in situacao.detalhe.casefold()
+
+
+@pytest.mark.asyncio
+async def test_compliance_inapta_usa_mei_dos_dados_cadastrais() -> None:
+    cnpj_data = _cnpj_inapto_ei().model_copy(update={"mei": True})
+    situacao = await _situacao_inapta(cnpj_data, AsyncMock(side_effect=Exception("offline")))
+
+    passos = " ".join(situacao.proximos_passos or []).casefold()
+    assert "com simei/mei confirmado" in passos
+    assert "pgmei" in passos
 
 
 # ---------------------------------------------------------------------------

@@ -63,6 +63,127 @@ def _consolida_risco(achados: list[ComplianceFinding]) -> RiskLevel:
     return "baixo"
 
 
+_URL_ECAC = "https://cav.receita.fazenda.gov.br/autenticacao/login"
+_URL_PGMEI = (
+    "https://www8.receita.fazenda.gov.br/SimplesNacional/Aplicacoes/ATSPO/pgmei.app/Identificacao"
+)
+_URL_DASN = "https://www8.receita.fazenda.gov.br/SimplesNacional/Aplicacoes/ATSPO/dasnsimei.app/Identificacao"
+_URL_COMPROVANTE = (
+    "https://solucoes.receita.fazenda.gov.br/Servicos/cnpjreva/Cnpjreva_Solicitacao.asp"
+)
+
+
+_RECOMENDACAO_INAPTA: dict[tuple[bool, bool], str] = {
+    (True, True): (
+        "Transmitir as declarações omitidas via e-CAC/DASN-SIMEI (Simei confirmado); "
+        "quitar DAS/multas em separado no PGMEI quando devidos."
+    ),
+    (False, True): (
+        "Consultar e-CAC, identificar a declaração omitida e transmiti-la antes de contratar."
+    ),
+    (True, False): (
+        "Conferir no e-CAC a causa da inaptidão e saná-la antes de contratar; "
+        "entregar DASN-SIMEI somente se o e-CAC apontar omissão."
+    ),
+    (False, False): "Conferir no e-CAC a causa da inaptidão e saná-la antes de contratar.",
+}
+
+
+def _simei_confirmado(*fontes: Any | None) -> bool:
+    return any(getattr(fonte, "mei", None) is True for fonte in fontes)
+
+
+def _motivo_indica_omissao(motivo: str | None, situacao_str: str) -> bool:
+    texto = f"{motivo or ''} {situacao_str}".casefold()
+    return "omiss" in texto
+
+
+def _achado_situacao(
+    risco_sit: RiskLevel,
+    situacao_str: str,
+    cnpj_data: Any,
+    simples_data: Any | None,
+    mei_data: Any | None,
+) -> ComplianceFinding:
+    motivo_situacao: str | None = getattr(cnpj_data, "motivo_situacao_cadastral", None)
+    situacao_l = situacao_str.casefold()
+    is_inapta = "inapta" in situacao_l
+    is_omissao = _motivo_indica_omissao(motivo_situacao, situacao_str)
+    if (not is_inapta and not is_omissao) or risco_sit not in ("alto", "critico"):
+        recomendacao = (
+            "Confirmar regularizacao antes de contratar"
+            if risco_sit in ("alto", "critico")
+            else "Monitorar evolução da situacao"
+        )
+        return ComplianceFinding(
+            categoria="situacao_cadastral",
+            severidade=risco_sit,
+            titulo=f"Situacao cadastral: {situacao_str}",
+            detalhe=f"Empresa esta classificada como '{situacao_str}' na Receita Federal.",
+            recomendacao=recomendacao,
+        )
+
+    simei = _simei_confirmado(mei_data, simples_data, cnpj_data)
+    gatilho = "" if is_omissao else " (somente se o e-CAC apontar declaração omitida)"
+    passos = [
+        f"Abrir o e-CAC e conferir a causa da situação e pendências: {_URL_ECAC}",
+    ]
+    if simei:
+        passos.extend(
+            [
+                (
+                    f"Com Simei/MEI confirmado{gatilho}: entregar a DASN-SIMEI ano a ano, "
+                    "do mais antigo ao mais recente (receita 0,00 se sem movimento; "
+                    f"prazo normal até maio do ano seguinte): {_URL_DASN}"
+                ),
+                (
+                    "Em paralelo, quitar no PGMEI os DAS mensais devidos "
+                    f"(INSS do MEI mesmo sem receita). O pagamento do DAS não é "
+                    f"condição para transmitir a DASN: {_URL_PGMEI}"
+                ),
+                (
+                    "Atraso na DASN sujeita a multa (mínimo R$ 50,00 — LC 123/2006 art. 38); "
+                    "verifique o DARF gerado após a transmissão."
+                ),
+            ]
+        )
+    else:
+        passos.append(
+            f"Identificar no e-CAC a obrigação pendente e transmitir cada uma{gatilho}: "
+            "DASN-SIMEI só se for/foi Simei; senão DEFIS, PGDAS-D, DCTF, ECF, EFD etc. "
+            "Natureza 213-5 (EI) sozinha não prova MEI."
+        )
+    passos.append(
+        "Após sanar as pendências, reemitir o comprovante CNPJ e confirmar "
+        f"saída de INAPTA para ATIVA: {_URL_COMPROVANTE} "
+        "(reversão processada diariamente pela RFB; INAPTA prolongada pode levar a baixa de ofício)."
+    )
+    if is_omissao:
+        causa = (
+            f"Motivo cadastral indica omissão"
+            f"{f' ({motivo_situacao})' if motivo_situacao else ''} "
+            "(IN RFB 2.119/2022). "
+        )
+    else:
+        causa = (
+            "Não afirme omissão sem conferir o motivo no e-CAC/comprovante; "
+            "INAPTA pode ter outras causas (IN RFB 2.119/2022). "
+        )
+    detalhe = (
+        f"Empresa classificada como '{situacao_str}' na Receita Federal. "
+        f"{causa}"
+        "Confirme no e-CAC quais obrigações faltam antes de contratar ou emitir documentos fiscais."
+    )
+    return ComplianceFinding(
+        categoria="situacao_cadastral",
+        severidade=risco_sit,
+        titulo=f"Situacao cadastral: {situacao_str}",
+        detalhe=detalhe,
+        recomendacao=_RECOMENDACAO_INAPTA[(simei, is_omissao)],
+        proximos_passos=passos,
+    )
+
+
 async def analyze_cnpj_compliance(cnpj: str) -> ComplianceReport:
     """
     Analise consolidada de compliance fiscal de um CNPJ brasileiro.
@@ -119,39 +240,53 @@ async def analyze_cnpj_compliance(cnpj: str) -> ComplianceReport:
     achados: list[ComplianceFinding] = []
     fontes_ok: list[str] = []
 
-    # Situacao cadastral
     risco_sit, situacao_str = _risco_situacao(cnpj_data.situacao_cadastral)
     if risco_sit != "baixo":
-        achados.append(
-            ComplianceFinding(
-                categoria="situacao_cadastral",
-                severidade=risco_sit,
-                titulo=f"Situacao cadastral: {situacao_str}",
-                detalhe=f"Empresa esta classificada como '{situacao_str}' na Receita Federal.",
-                recomendacao=(
-                    "Confirmar regularizacao antes de contratar"
-                    if risco_sit in ("alto", "critico")
-                    else "Monitorar evolução da situacao"
-                ),
-            )
-        )
+        achados.append(_achado_situacao(risco_sit, situacao_str, cnpj_data, simples_data, mei_data))
     fontes_ok.append(getattr(cnpj_data, "origem", "Receita"))
 
-    # Regime tributário
     if simples_data is not None:
-        fontes_ok.append("Simples Nacional")
-        if not simples_data.simples_nacional:
+        if getattr(simples_data, "fonte_confirmada", True):
+            fontes_ok.append("Simples Nacional")
+            if not simples_data.simples_nacional:
+                achados.append(
+                    ComplianceFinding(
+                        categoria="regime_tributario",
+                        severidade="baixo",
+                        titulo="Não optante pelo Simples Nacional",
+                        detalhe="Empresa não consta como optante do Simples Nacional.",
+                    )
+                )
+        else:
             achados.append(
                 ComplianceFinding(
                     categoria="regime_tributario",
-                    severidade="baixo",
-                    titulo="Não optante pelo Simples Nacional",
-                    detalhe="Empresa não consta como optante do Simples Nacional.",
+                    severidade="medio",
+                    titulo="Simples Nacional não confirmado pela fonte",
+                    detalhe=(
+                        "A consulta ao endpoint Simples/CNPJ não confirmou o "
+                        "enquadramento; mei/simples_nacional=false não é negativo definitivo."
+                    ),
+                    recomendacao="Consultar e-CAC ou comprovante oficial da RFB.",
                 )
             )
 
     if mei_data is not None:
-        fontes_ok.append("MEI Receita")
+        if getattr(mei_data, "fonte_confirmada", True):
+            fontes_ok.append("MEI Receita")
+        else:
+            achados.append(
+                ComplianceFinding(
+                    categoria="regime_tributario",
+                    severidade="medio",
+                    titulo="Status MEI não confirmado pela fonte",
+                    detalhe=(
+                        "A consulta MEI não foi confirmada (fonte_confirmada=false); "
+                        "mei=false não representa negativa definitiva."
+                    ),
+                    recomendacao="Consultar e-CAC ou comprovante oficial da RFB.",
+                )
+            )
 
     # CNAE - sem flag por enquanto, mas registra como achado informativo
     if cnpj_data.atividade_principal:
