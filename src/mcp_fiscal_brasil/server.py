@@ -7,9 +7,10 @@ Registra todas as ferramentas fiscais e expõe via protocolo MCP (Model Context 
 import asyncio
 import logging
 import unicodedata
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from fastmcp import FastMCP
+from pydantic import Field
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
@@ -865,21 +866,33 @@ async def tool_analyze_cnpj_compliance(cnpj: str) -> dict[str, Any]:
         "Compara regimes tributarios brasileiros (MEI, Simples Nacional, Lucro Presumido, "
         "Lucro Real) para um cenário de faturamento e setor. Retorna estimativa de alíquota "
         "efetiva, imposto anual e melhor opção. Util para planejamento tributário rápido. "
-        "Setor: comércio, serviços ou indústria. Folha opcional impacta Fator R no Simples."
+        "Setor: comércio, serviços ou indústria. Folha opcional impacta Fator R no Simples. "
+        "exportacao_servicos reduz ISS/PIS/Cofins (LP/Real) e o DAS (Simples). "
+        "aliquota_iss: ISS municipal em percentual, de 0 a 5 (ex: 2.5 = 2,5%). "
+        "margem_lucro_real: fracao de 0 a 1 (ex: 0.15 = 15%). "
+        "estimar_custo_fator_r estima INSS/IRPF da folha do Simples como informacao, "
+        "sem alterar o ranking."
     ),
 )
 async def tool_compare_tax_regimes(
     faturamento_anual: float,
     setor: str,
     folha_pagamento_anual: float | None = None,
+    exportacao_servicos: bool = False,
+    aliquota_iss: Annotated[float, Field(ge=0, le=5, allow_inf_nan=False)] = 5.0,
+    margem_lucro_real: Annotated[float, Field(gt=0, le=1, allow_inf_nan=False)] = 0.15,
+    estimar_custo_fator_r: bool = True,
 ) -> dict[str, Any]:
-    """Compara regimes tributarios para um cenário."""
     if setor not in ("comércio", "serviços", "indústria"):
         raise ValueError("setor deve ser: comércio, serviços ou indústria")
     resultado = compare_tax_regimes(
         faturamento_anual=faturamento_anual,
         setor=setor,  # type: ignore[arg-type]
         folha_pagamento_anual=folha_pagamento_anual,
+        exportacao_servicos=exportacao_servicos,
+        aliquota_iss=aliquota_iss,
+        margem_lucro_real=margem_lucro_real,
+        estimar_custo_fator_r=estimar_custo_fator_r,
     )
     return resultado.model_dump(mode="json", exclude_none=True)
 
