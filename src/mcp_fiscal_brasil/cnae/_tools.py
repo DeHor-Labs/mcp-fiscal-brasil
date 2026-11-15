@@ -35,7 +35,7 @@ def register(app: Any) -> None:
             dict com 'codigo' e 'descricao' da atividade economica.
         """
         result = await consultar_cnae(codigo)
-        return result.model_dump(mode="json")
+        return result.model_dump(mode="json", by_alias=True)
 
     @app.tool(
         name="buscar_cnae",
@@ -58,4 +58,4 @@ def register(app: Any) -> None:
             Lista de dicts com 'codigo' e 'descricao' das atividades encontradas.
         """
         result = await buscar_cnae(texto)
-        return [item.model_dump(mode="json") for item in result]
+        return [item.model_dump(mode="json", by_alias=True) for item in result]
