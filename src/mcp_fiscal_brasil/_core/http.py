@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from importlib import import_module
 from inspect import Parameter, signature
-from typing import Any, cast
+from typing import Any, Protocol, cast
 
 import httpx
 from aiolimiter import AsyncLimiter
@@ -17,9 +17,21 @@ from tenacity import (
     wait_exponential,
 )
 
-__all__ = ["HTTPClient"]
+__all__ = ["HTTPClient", "RateLimiter"]
 
 _CacheKey = tuple[str, str, tuple[tuple[str, Any], ...]]
+
+
+class RateLimiter(Protocol):
+    """Interface estrutural do limitador aceito pelo :class:`HTTPClient`.
+
+    Cobre o ``AsyncLimiter`` do aiolimiter (padrao interno das fontes gratuitas) e
+    limitadores proprios, como o limitador de processo do provedor cpfcnpj.com.br,
+    sem exigir heranca: basta expor ``acquire``. O ``AsyncLimiter`` satisfaz o
+    protocolo estruturalmente.
+    """
+
+    async def acquire(self, amount: float = 1) -> None: ...
 
 
 class _ReadableQuery(bytes):
@@ -43,13 +55,27 @@ class HTTPClient:
         max_retries: int = 3,
         cache_ttl: int = 300,
         rate_limit_per_second: int = 10,
-        limiter: AsyncLimiter | None = None,
+        limiter: RateLimiter | None = None,
+        mask_first_path_segment: bool = False,
+        mask_secret: str | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/") + "/"
         self.timeout = timeout
         self.max_retries = max(1, max_retries)
         self.cache_ttl = max(0, cache_ttl)
         self.rate_limit_per_second = max(1, rate_limit_per_second)
+        # Quando o primeiro segmento do path e um segredo (ex.: o token da
+        # cpfcnpj.com.br em /{token}/{pacote}/{documento}), ele nao pode vazar nas
+        # URLs carregadas pelos erros. As fontes gratuitas nao setam esse flag.
+        self.mask_first_path_segment = mask_first_path_segment
+        # Prefixo de path da base_url (ex.: "/cpfcnpj/" quando a base traz um
+        # prefixo). O segmento a mascarar e o primeiro DEPOIS desse prefixo, senao
+        # uma base com prefixo mascararia o prefixo e deixaria o token exposto.
+        self._base_path = httpx.URL(self.base_url).path
+        # Segredo literal conhecido (ex.: o token). Quando informado, qualquer
+        # ocorrencia dele e trocada por "***" em url/endpoint/mensagem/details,
+        # como defesa em profundidade caso a URL nao siga o formato esperado.
+        self.mask_secret = mask_secret or None
         self._client = httpx.AsyncClient(
             base_url=self.base_url,
             timeout=timeout,
@@ -62,7 +88,7 @@ class HTTPClient:
         # Um limitador pode ser injetado para ser compartilhado entre varias
         # instancias (ex.: o teto global da cpfcnpj.com.br). Quando ausente, cada
         # instancia usa o proprio, derivado de rate_limit_per_second.
-        self._limiter = (
+        self._limiter: RateLimiter = (
             limiter
             if limiter is not None
             else AsyncLimiter(self.rate_limit_per_second, self.rate_limit_per_second)
@@ -250,9 +276,50 @@ class HTTPClient:
     def _is_retryable_status(self, status_code: int) -> bool:
         return status_code == 429 or 500 <= status_code <= 599
 
+    def _mask_url(self, url: str) -> str:
+        """Mascara o primeiro segmento do path quando ele carrega um segredo.
+
+        Usado pelo provedor cpfcnpj.com.br, cujo token viaja em ``/{token}/...``.
+        Quando a base_url tem prefixo de path (ex.: ``https://proxy/cpfcnpj``), o
+        segmento mascarado e o primeiro DEPOIS do prefixo, para nao mascarar o
+        prefixo e deixar o token exposto. Sem o flag ligado, o path fica intacto
+        (mas o segredo literal, se conhecido, ainda e removido).
+        """
+        if not self.mask_first_path_segment:
+            return self._scrub_secret(url)
+        try:
+            parsed = httpx.URL(url)
+        except (httpx.InvalidURL, ValueError):
+            return self._scrub_secret(url)
+        caminho = parsed.path
+        prefixo = self._base_path
+        if prefixo not in ("", "/") and caminho.startswith(prefixo):
+            mascarado = prefixo + self._mascarar_primeiro_segmento(caminho[len(prefixo) :])
+        else:
+            mascarado = self._mascarar_primeiro_segmento(caminho)
+        if mascarado == caminho:
+            return self._scrub_secret(url)
+        return self._scrub_secret(str(parsed.copy_with(path=mascarado)))
+
+    def _mascarar_primeiro_segmento(self, caminho: str) -> str:
+        segmentos = caminho.split("/")
+        for indice, segmento in enumerate(segmentos):
+            if segmento:
+                segmentos[indice] = "***"
+                return "/".join(segmentos)
+        return caminho
+
+    def _scrub_secret(self, texto: str) -> str:
+        """Remove qualquer ocorrencia literal do segredo conhecido do texto."""
+        if self.mask_secret and self.mask_secret in texto:
+            return texto.replace(self.mask_secret, "***")
+        return texto
+
     def _request_error(self, method: str, exc: httpx.RequestError) -> Exception:
         request = exc.request
-        url = str(request.url) if request is not None else self.base_url
+        bruta = str(request.url) if request is not None else self.base_url
+        url = self._mask_url(bruta)
+        detalhe = self._scrub_secret(str(exc).replace(bruta, url) if bruta else str(exc))
         return self._make_core_error(
             "FiscalHTTPError",
             "Falha de comunicação com serviço externo",
@@ -260,7 +327,7 @@ class HTTPClient:
             url=url,
             endpoint=url,
             status_code=None,
-            details={"error": str(exc)},
+            details={"error": detalhe},
         )
 
     def _http_error(
@@ -270,11 +337,11 @@ class HTTPClient:
         message: str | None = None,
     ) -> Exception:
         status_code = response.status_code if response is not None else None
-        url = str(response.request.url) if response is not None else self.base_url
-        response_text = response.text if response is not None else None
+        url = self._mask_url(str(response.request.url) if response is not None else self.base_url)
+        response_text = self._scrub_secret(response.text) if response is not None else None
         return self._make_core_error(
             "FiscalHTTPError",
-            message or self._status_message(status_code),
+            self._scrub_secret(message or self._status_message(status_code)),
             method=method.upper(),
             url=url,
             endpoint=url,
